@@ -1,0 +1,103 @@
+row_index,code,label,section,coicop,period
+228,R228,"Perkiraan sewa rumah milik sendiri/bebas sewa (sebulan)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04221000,bulan
+229,R229,"Nilai kontrak rumah (sebulan)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04110002,bulan
+230,R230,"Nilai sewa rumah (sebulan)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04110001,bulan
+231,R231,"Perkiraan sewa rumah dinas atau lainnya (sebulan)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04222000,bulan
+232,R232,"Pemeliharaan rumah dan perbaikan ringan","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04300000,bulan
+234,R234,"Listrik (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04510000,bulan
+236,R236,"Air PAM/pikulan/beli (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04410000,bulan
+239,R239,"Bahan bakar minyak untuk generator (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04530001,bulan
+241,R241,"Minyak pelumas untuk generator (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",07220001,tahun
+242,R242,"Pemeliharaan dan perbaikan generator","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",05330000,tahun
+244,R244,"Bensin untuk kendaraan bermotor (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",07220011,bulan
+246,R246,"Solar untuk kendaraan bermotor (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",07220008,bulan
+248,R248,"Minyak tanah untuk kendaraan bermotor (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04530001,bulan
+250,R250,"Minyak pelumas untuk kendaraan bermotor (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",07220001,tahun
+251,R251,"Perbaikan dan pemeliharaan kendaraan bermotor","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",07230000,tahun
+252,R252,"LPG gas tabung (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04521001,bulan
+254,R254,"Gas kota (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04521002,bulan
+256,R256,"Minyak tanah untuk bahan bakar keperluan lain (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04530001,bulan
+258,R258,"Arang/batu bara/briket (nilai)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04540002,bulan
+260,R260,Biogas,"A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04521000,bulan
+261,R261,"Kayu bakar dan bahan bakar lainnya","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",04540001,bulan
+262,R262,"Kebutuhan lainnya untuk rumah (pembersih lantai, obat nyamuk, korek api, baterai, dsb.)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",05610000,bulan
+263,R263,"Rekening telepon rumah","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",08300002,bulan
+264,R264,"Pulsa HP","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",08300011,bulan
+265,R265,"Benda pos (wesel, materai, perangko, dsb.)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",08100000,bulan
+266,R266,"Biaya internet, warnet","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",08300010,bulan
+267,R267,"Pos dan telekomunikasi lainnya (nomor perdana, kirim paket, dsb.)","A. PERUMAHAN DAN FASILITAS RUMAH TANGGA",08300000,bulan
+269,R269,"Sabun mandi, pasta gigi, sikat gigi, dan sampo","B. ANEKA BARANG DAN JASA",12130000,bulan
+270,R270,"Barang kecantikan dan pembalut wanita","B. ANEKA BARANG DAN JASA",12130000,bulan
+271,R271,"Perawatan kulit, muka, kuku, rambut (pangkas rambut, creambath, lulur/spa, dsb.)","B. ANEKA BARANG DAN JASA",12110000,bulan
+272,R272,"Sabun cuci (batangan, bubuk, krim, cair)","B. ANEKA BARANG DAN JASA",05611000,bulan
+273,R273,"Bahan pemeliharaan pakaian (pelembut, pemutih, pelicin, dsb.)","B. ANEKA BARANG DAN JASA",05611000,bulan
+274,R274,"Surat kabar, majalah, buku, dan alat tulis (di luar keperluan sekolah)","B. ANEKA BARANG DAN JASA",09500000,bulan
+275,R275,"Barang lainnya (tisu, pampers, kantong plastik, kapur barus, masker sekali pakai, dsb.)","B. ANEKA BARANG DAN JASA",12130000,bulan
+276,R276,"Rumah sakit pemerintah (rawat jalan dan rawat inap, out of pocket)","B. ANEKA BARANG DAN JASA",06300000,tahun
+277,R277,"Rumah sakit swasta (rawat jalan dan rawat inap, out of pocket)","B. ANEKA BARANG DAN JASA",06300000,tahun
+278,R278,"Puskesmas/pustu/polindes/posyandu (out of pocket)","B. ANEKA BARANG DAN JASA",06302004,tahun
+279,R279,"Praktik dokter/poliklinik (out of pocket)","B. ANEKA BARANG DAN JASA",06210000,tahun
+280,R280,"Praktik petugas kesehatan (bidan/perawat/mantri kesehatan)","B. ANEKA BARANG DAN JASA",06232000,tahun
+281,R281,"Praktik pengobatan tradisional","B. ANEKA BARANG DAN JASA",06232015,tahun
+282,R282,"Dukun penolong persalinan","B. ANEKA BARANG DAN JASA",06232015,tahun
+283,R283,"Obat yang dibeli dengan resep tenaga kesehatan","B. ANEKA BARANG DAN JASA",06110002,tahun
+284,R284,"Obat modern yang dibeli tanpa resep tenaga kesehatan","B. ANEKA BARANG DAN JASA",06110002,tahun
+285,R285,"Obat tradisional/jamu untuk pengobatan","B. ANEKA BARANG DAN JASA",06110001,tahun
+286,R286,"Pembelian kacamata, kaki/tangan palsu (protese), dan kursi roda","B. ANEKA BARANG DAN JASA",06130000,tahun
+287,R287,"Periksa kehamilan","B. ANEKA BARANG DAN JASA",06232001,tahun
+288,R288,Imunisasi,"B. ANEKA BARANG DAN JASA",06110012,tahun
+289,R289,"Tes kesehatan/deteksi dini/Medical Check Up","B. ANEKA BARANG DAN JASA",06302015,tahun
+290,R290,"Keluarga Berencana (alat/cara kontrasepsi, konsultasi, dsb.)","B. ANEKA BARANG DAN JASA",06302002,tahun
+291,R291,"Biaya pemeliharaan kesehatan lainnya (urut, fitness, bekam, yoga, vitamin, dsb.)","B. ANEKA BARANG DAN JASA",06302000,tahun
+292,R292,"Sumbangan pembangunan sekolah (uang pangkal)","B. ANEKA BARANG DAN JASA",10000000,tahun
+293,R293,"Uang sekolah (SPP/UKT) dan iuran komite sekolah/POMG","B. ANEKA BARANG DAN JASA",10000000,bulan
+294,R294,"Iuran sekolah lainnya (keterampilan, les, tes, dsb.)","B. ANEKA BARANG DAN JASA",10000000,bulan
+295,R295,"Buku pelajaran dan fotokopi bahan pelajaran","B. ANEKA BARANG DAN JASA",09510000,tahun
+296,R296,"Alat-alat tulis untuk keperluan sekolah","B. ANEKA BARANG DAN JASA",09540000,tahun
+297,R297,"Uang kursus/bimbingan belajar di luar sekolah","B. ANEKA BARANG DAN JASA",10500000,bulan
+298,R298,"Transportasi darat (becak, ojek, taksi, mikrolet, bus, kereta api, sewa mobil, dsb.)","B. ANEKA BARANG DAN JASA",07310000,bulan
+299,R299,"Transportasi udara/pesawat (tiket, airport tax, dsb.)","B. ANEKA BARANG DAN JASA",07330000,tahun
+300,R300,"Transportasi laut/kapal feri, kapal laut","B. ANEKA BARANG DAN JASA",07340000,tahun
+301,R301,"Transportasi lainnya (uang parkir, karcis tol, dsb.)","B. ANEKA BARANG DAN JASA",07240000,bulan
+302,R302,Hotel/motel/penginapan,"B. ANEKA BARANG DAN JASA",11200001,tahun
+303,R303,"Hiburan (bioskop, pertunjukan, langganan TV kabel, rekreasi lain)","B. ANEKA BARANG DAN JASA",09400000,bulan
+304,R304,"Gaji/upah pembantu rumah tangga, satpam, tukang kebun, dan sopir","B. ANEKA BARANG DAN JASA",05621000,bulan
+305,R305,"Jasa lembaga keuangan (jasa ATM, kartu kredit, biaya transfer, dsb.)","B. ANEKA BARANG DAN JASA",12621000,bulan
+306,R306,"Jasa lainnya (pembuatan KTP, SIM, akta kelahiran, fotokopi, foto, dsb.)","B. ANEKA BARANG DAN JASA",12700000,bulan
+308,R308,"Pakaian jadi untuk laki-laki dewasa","C. PAKAIAN, ALAS KAKI, DAN TUTUP KEPALA",03121000,tahun
+309,R309,"Pakaian jadi untuk perempuan dewasa","C. PAKAIAN, ALAS KAKI, DAN TUTUP KEPALA",03122000,tahun
+310,R310,"Pakaian jadi untuk anak-anak","C. PAKAIAN, ALAS KAKI, DAN TUTUP KEPALA",03123000,tahun
+311,R311,"Bahan pakaian untuk laki-laki, perempuan, dan anak-anak","C. PAKAIAN, ALAS KAKI, DAN TUTUP KEPALA",03110000,tahun
+312,R312,"Upah menjahit, memperbaiki pakaian, benang jahit, dan barang keperluan menjahit","C. PAKAIAN, ALAS KAKI, DAN TUTUP KEPALA",03140000,tahun
+313,R313,"Alas kaki (sepatu, sandal, kaus kaki, dsb.)","C. PAKAIAN, ALAS KAKI, DAN TUTUP KEPALA",03210000,tahun
+314,R314,"Tutup kepala untuk laki-laki, perempuan, dan anak-anak (topi, kopiah, kerudung, dsb.)","C. PAKAIAN, ALAS KAKI, DAN TUTUP KEPALA",03130001,tahun
+315,R315,"Perlengkapan pakaian lainnya (handuk, ikat pinggang, laundry, mukena, jas hujan, dsb.)","C. PAKAIAN, ALAS KAKI, DAN TUTUP KEPALA",03220000,tahun
+317,R317,"Meubelair (meja, kursi, tempat tidur, lemari, kaca/cermin, rak sepatu, dsb.)","D. BARANG TAHAN LAMA",05110000,tahun
+318,R318,"Peralatan rumah tangga (mesin jahit, lemari es, kipas angin, mesin cuci, AC, dsb.)","D. BARANG TAHAN LAMA",05300000,tahun
+319,R319,"Perlengkapan perabot rumah tangga (kasur, bantal, seprai, gorden, karpet, tikar, dsb.)","D. BARANG TAHAN LAMA",05200000,tahun
+320,R320,"Perkakas rumah tangga (setrika, sapu, gunting, pisau, gergaji, vacuum cleaner, dsb.)","D. BARANG TAHAN LAMA",05520000,tahun
+321,R321,"Alat-alat dapur/makan (kompor, panci, penggorengan, piring, gelas, rice cooker, dsb.)","D. BARANG TAHAN LAMA",05400000,tahun
+322,R322,"Barang-barang pajangan/hiasan (hiasan dinding, akuarium, keramik, marmer, dsb.)","D. BARANG TAHAN LAMA",05110000,tahun
+323,R323,"Perbaikan perabot, perlengkapan, dan perkakas rumah tangga","D. BARANG TAHAN LAMA",05523000,tahun
+324,R324,"Pembelian HP/smartphone dan aksesorinya termasuk perbaikannya","D. BARANG TAHAN LAMA",08200007,tahun
+325,R325,"Pembelian kamera, kacamata, video camera, alat optik lainnya termasuk perbaikannya","D. BARANG TAHAN LAMA",09120000,tahun
+326,R326,"Pembelian arloji, jam, payung, tas, koper termasuk perbaikannya","D. BARANG TAHAN LAMA",12300000,tahun
+327,R327,"Perhiasan mahal dari logam dan batu mulia (emas, berlian, mutiara) termasuk perbaikannya","D. BARANG TAHAN LAMA",12310000,tahun
+328,R328,"Pembelian mainan anak, perhiasan murah dan imitasi termasuk perbaikannya","D. BARANG TAHAN LAMA",09310001,tahun
+329,R329,"Pembelian televisi, radio, komputer, laptop, tablet, alat musik termasuk perbaikannya","D. BARANG TAHAN LAMA",09110000,tahun
+330,R330,"Pembelian alat dan perlengkapan olahraga termasuk perbaikannya","D. BARANG TAHAN LAMA",09320000,tahun
+331,R331,"Pembelian kendaraan untuk transportasi (mobil, sepeda motor, sepeda, perahu motor, dsb.)","D. BARANG TAHAN LAMA",07100000,tahun
+332,R332,"Binatang dan tanaman peliharaan termasuk biaya pemeliharaannya","D. BARANG TAHAN LAMA",09340000,tahun
+333,R333,"Barang tahan lama lainnya (instalasi listrik/telepon/leding, kereta bayi, dsb.)","D. BARANG TAHAN LAMA",04500000,tahun
+335,R335,"Pajak bumi dan bangunan (PBB)","E. PAJAK, PUNGUTAN, DAN ASURANSI",,tahun
+336,R336,"Pajak kendaraan bermotor (STNK) dan tak bermotor","E. PAJAK, PUNGUTAN, DAN ASURANSI",,tahun
+337,R337,"Pungutan/retribusi (iuran RT/RW, sampah, keamanan, kuburan, dsb.)","E. PAJAK, PUNGUTAN, DAN ASURANSI",,bulan
+338,R338,"Asuransi kesehatan","E. PAJAK, PUNGUTAN, DAN ASURANSI",12530000,tahun
+339,R339,"Asuransi jiwa lainnya dan asuransi kerugian (kematian, kecelakaan, mobil, rumah, dsb.)","E. PAJAK, PUNGUTAN, DAN ASURANSI",12500000,tahun
+340,R340,"Pajak/pungutan lainnya (tilang, PPh, dsb.)","E. PAJAK, PUNGUTAN, DAN ASURANSI",,tahun
+342,R342,"Perkawinan (sewa peralatan pengantin, kursi, tenda, jasa perias, penghulu, sewa gedung, dsb.)","F. KEPERLUAN PESTA DAN UPACARA/KENDURI",,tahun
+343,R343,"Khitanan dan ulang tahun (ongkos bengkong, biaya sunat, sewa kursi/gedung, dsb.)","F. KEPERLUAN PESTA DAN UPACARA/KENDURI",,tahun
+344,R344,"Perayaan hari raya agama (sewa kursi, sewa tenda, dsb.)","F. KEPERLUAN PESTA DAN UPACARA/KENDURI",,tahun
+345,R345,"Biaya Penyelenggaraan Ibadah Haji (BPIH), umrah, perjalanan rohani","F. KEPERLUAN PESTA DAN UPACARA/KENDURI",09600002,tahun
+346,R346,"Upacara agama atau adat lainnya (memanggil ustadz/pendeta, sesajen, dsb.)","F. KEPERLUAN PESTA DAN UPACARA/KENDURI",,tahun
+347,R347,"Biaya pemakaman (memandikan jenazah, kain kafan, penggali kubur, peti mati, ngaben, dsb.)","F. KEPERLUAN PESTA DAN UPACARA/KENDURI",,tahun

@@ -1,0 +1,46 @@
+# Sistem SUSENAS — susunan layanan (app php-fpm + nginx + PostgreSQL).
+#   cp .env.production.example .env   (isi DB_* sesuai di bawah, APP_KEY boleh kosong)
+#   docker compose up -d --build
+#   buka http://localhost:8080
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: susenas
+      DB_USERNAME: susenas
+      DB_PASSWORD: ${DB_PASSWORD:-susenas}
+    volumes:
+      - storage:/var/www/html/storage
+    depends_on:
+      - db
+
+  web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./public:/var/www/html/public:ro   # aset statis (css/js) dilayani nginx
+    depends_on:
+      - app
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: susenas
+      POSTGRES_USER: susenas
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-susenas}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  storage:
+  pgdata:
