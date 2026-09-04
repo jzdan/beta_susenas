@@ -7,6 +7,7 @@
 <p class="muted">Tipe:
   @if($b->repeat === 'art') roster (baris dinamis per ART)
   @elseif($b->repeat === 'list') daftar (baris tetap, mis. komoditas)
+  @elseif($b->repeat === 'list_art') daftar baris tetap × per ART (idx = baris×1000 + no ART)
   @else per rumah tangga @endif.
   @if($b->repeat !== 'ruta')Skip pattern tidak berlaku di blok berulang pada MVP ini.@endif</p>
 
@@ -19,7 +20,7 @@
     @csrf
     <input name="title" value="{{ $b->title }}" required style="min-width:280px">
     <select name="repeat">
-      @foreach (['ruta' => 'per rumah tangga', 'art' => 'roster per ART', 'list' => 'daftar baris tetap'] as $k => $lbl)
+      @foreach (['ruta' => 'per rumah tangga', 'art' => 'roster per ART', 'list' => 'daftar baris tetap', 'list_art' => 'daftar baris tetap × per ART'] as $k => $lbl)
       <option value="{{ $k }}" @selected($b->repeat === $k)>{{ $lbl }}</option>
       @endforeach
     </select>
@@ -37,33 +38,88 @@
   </div>
 @endif
 
-@if($b->repeat === 'list')
+@if($b->isRowBlock())
+@php($cols = $refKeys->isNotEmpty() ? $refKeys : collect(['kalori','harga_min','harga_max']))
 <section class="panel">
-  <h2>Baris tetap ({{ $rows->count() }})</h2>
+  <h2>Baris tetap ({{ $rowTotal }})</h2>
+  <p class="muted small">Sunting langsung di tabel — ubah angka lalu klik <em>Simpan</em> pada baris itu.
+    Kolom referensi (mis. <span class="mono">kalori</span>, <span class="mono">harga_min</span>) dipakai aturan sebagai
+    <span class="mono">ref_&lt;nama&gt;</span>.</p>
+
+  <form method="get" class="row-form">
+    <input type="search" name="q" value="{{ $fQ }}" placeholder="cari kode / nama komoditas" style="min-width:240px">
+    <button type="submit">Cari</button>
+    @if($fQ)<a class="btn-ghost" href="{{ route('admin.blok', $b) }}">Reset</a>@endif
+    <span class="muted small">{{ $rows->count() }} ditampilkan</span>
+  </form>
+
+  @foreach ($rows as $r)
+    <form method="post" action="{{ route('admin.baris.save', $b) }}" id="rs{{ $r->id }}" hidden>
+      @csrf<input type="hidden" name="row_id" value="{{ $r->id }}">
+    </form>
+    <form method="post" action="{{ route('admin.baris.del', $r) }}" id="rd{{ $r->id }}" hidden
+      onsubmit="return confirm('Hapus baris ini?')">@csrf</form>
+  @endforeach
+
+  <div class="tablewrap tall mt">
   <table class="tbl">
-    <thead><tr><th>#</th><th>Kode</th><th>Label</th><th>Referensi (kalori / harga)</th></tr></thead>
+    <thead><tr><th style="width:52px">#</th><th style="width:76px">Kode</th><th>Label</th>
+      @foreach ($cols as $c)<th style="width:86px">{{ $c }}</th>@endforeach<th></th></tr></thead>
     <tbody>
-    @forelse ($rows->sortBy('row_index') as $r)
-      <tr><td class="mono muted">{{ $r->row_index }}</td><td class="mono">{{ $r->code }}</td>
-        <td>{{ $r->label }}</td>
-        <td class="mono small muted">{{ $r->ref ? json_encode($r->ref, JSON_UNESCAPED_SLASHES) : '—' }}</td></tr>
+    @forelse ($rows as $r)
+      <tr>
+        <td><input form="rs{{ $r->id }}" name="row_index" value="{{ $r->row_index }}" style="width:44px" class="mono"></td>
+        <td><input form="rs{{ $r->id }}" name="code" value="{{ $r->code }}" style="width:66px" class="mono"></td>
+        <td><input form="rs{{ $r->id }}" name="label" value="{{ $r->label }}" required style="width:100%;min-width:220px"></td>
+        @foreach ($cols as $c)
+        <td><input form="rs{{ $r->id }}" name="ref[{{ $c }}]" value="{{ $r->ref[$c] ?? '' }}" style="width:78px" class="mono" inputmode="decimal"></td>
+        @endforeach
+        <td class="nowrap">
+          <button form="rs{{ $r->id }}" class="btn-ghost">Simpan</button>
+          <button form="rd{{ $r->id }}" class="btn-ghost">Hapus</button>
+        </td>
+      </tr>
     @empty
-      <tr><td colspan="4" class="muted">Belum ada baris.</td></tr>
+      <tr><td colspan="{{ 4 + $cols->count() }}" class="muted">{{ $fQ ? 'Tidak ada yang cocok.' : 'Belum ada baris.' }}</td></tr>
     @endforelse
     </tbody>
   </table>
-  <form method="post" action="{{ route('admin.baris.import', $b) }}" class="stack-form mt">
-    @csrf
-    <label>Impor baris CSV — kolom wajib <span class="mono">row_index, label</span>; opsional
-      <span class="mono">code, kalori, harga_min, harga_max</span>
-      <textarea name="data" rows="8" class="mono" required
-        placeholder="row_index,code,label,kalori,harga_min,harga_max&#10;1,01,Beras,3600,12000,16000&#10;2,02,Telur ayam ras,1600,24000,30000"></textarea>
-    </label>
-    <div class="row-form">
-      <label><input type="checkbox" name="mode" value="replace"> ganti semua baris</label>
-      <button type="submit">Impor baris</button>
-    </div>
-  </form>
+  </div>
+
+  <details class="mt">
+    <summary style="cursor:pointer">Tambah baris baru</summary>
+    <form method="post" action="{{ route('admin.baris.save', $b) }}" class="row-form mt">
+      @csrf
+      <input name="row_index" placeholder="no" style="width:56px" class="mono" value="{{ $rowTotal + 1 }}" required>
+      <input name="code" placeholder="kode" style="width:80px" class="mono">
+      <input name="label" placeholder="nama komoditas" required style="flex:1;min-width:200px">
+      @foreach ($cols as $c)<input name="ref[{{ $c }}]" placeholder="{{ $c }}" style="width:90px" class="mono">@endforeach
+      <button type="submit">Tambah</button>
+    </form>
+  </details>
+
+  <details class="mt">
+    <summary style="cursor:pointer">Impor / ganti banyak baris sekaligus (Excel / CSV)</summary>
+    <form method="post" action="{{ route('admin.baris.import', $b) }}" class="stack-form mt" enctype="multipart/form-data">
+      @csrf
+      <p class="muted small">Kolom wajib <span class="mono">row_index, label</span>; opsional
+        <span class="mono">code, kalori, harga_min, harga_max, satuan, max_kons</span> (kolom lain jadi data referensi baris).</p>
+      <label>Unggah berkas <span class="mono">.xlsx</span> / <span class="mono">.csv</span>
+        <input type="file" name="file" accept=".xlsx,.csv,.txt">
+      </label>
+      <label>Sheet (opsional, untuk .xlsx)
+        <input type="text" name="sheet" placeholder="mis. KALORI">
+      </label>
+      <label>atau tempel data CSV
+        <textarea name="data" rows="5" class="mono"
+          placeholder="row_index,code,label,kalori,harga_min,harga_max&#10;1,002,Beras,3622,10000,25000"></textarea>
+      </label>
+      <div class="row-form">
+        <label><input type="checkbox" name="mode" value="replace"> ganti semua baris</label>
+        <button type="submit">Impor baris</button>
+      </div>
+    </form>
+  </details>
 </section>
 @endif
 

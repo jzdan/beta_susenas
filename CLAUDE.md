@@ -31,9 +31,11 @@ survey_cycle → questionnaire_version → block → question → response_optio
 ```
 
 Semua bertag `qversion_id`. `block.repeat`: `ruta` (1 jawaban/ruta), `art` (roster
-dinamis per ART), `list` (baris tetap dari `block_row`, mis. 194 komoditas).
+dinamis per ART), `list` (baris tetap dari `block_row`, mis. 194 komoditas),
+`list_art` (baris tetap × per ART — untuk MBG, mis. Blok IV.1M).
 Jawaban di `answers` (raw_value + clean_value; `art_index` = 0 utk ruta, nomor ART,
-atau `block_row.row_index` utk list).
+`block_row.row_index` utk list, atau `row*1000 + no_art` utk list_art —
+`Block::packRowArt` / `unpackRowArt`).
 
 ## Mesin ekspresi & aturan (kritis-keamanan)
 

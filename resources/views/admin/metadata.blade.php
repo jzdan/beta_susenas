@@ -32,7 +32,7 @@
 <section class="panel">
   <div class="panel-head">
     <h2>Blok {{ $b->code }} — {{ $b->title }}
-      @if($b->repeat !== 'ruta')<span class="chip d-draft">{{ $b->repeat === 'art' ? 'roster ART' : 'daftar baris tetap' }}</span>@endif</h2>
+      @if($b->repeat !== 'ruta')<span class="chip d-draft">{{ ['art'=>'roster ART','list'=>'daftar baris tetap','list_art'=>'daftar × ART'][$b->repeat] ?? $b->repeat }}</span>@endif</h2>
     <span>
       <form method="post" action="{{ route('admin.blok.order', $b) }}" style="display:inline">
         @csrf
@@ -73,6 +73,7 @@
       <option value="ruta">per rumah tangga</option>
       <option value="art">roster per ART</option>
       <option value="list">daftar baris tetap (komoditas dsb.)</option>
+      <option value="list_art">daftar baris tetap × per ART (mis. makanan jadi / MBG)</option>
     </select>
     <button type="submit">Tambah</button>
   </form>

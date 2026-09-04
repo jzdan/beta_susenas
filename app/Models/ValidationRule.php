@@ -10,11 +10,46 @@ class ValidationRule extends Model
 
     protected $fillable = [
         'qversion_id', 'code', 'scope', 'row_block', 'target_var', 'expr',
-        'severity', 'message', 'active',
+        'severity', 'message', 'note', 'active',
     ];
 
     protected function casts(): array
     {
         return ['active' => 'boolean'];
+    }
+
+    /**
+     * Bila ekspresi memuat tepat satu angka ambang perbandingan (mis. `> 0.25`),
+     * kembalikan angka itu sebagai string — supaya bisa diubah tanpa menyentuh
+     * ekspresi. `0` diabaikan (penjaga tanda, bukan ambang). Null bila ambigu.
+     */
+    public function soleThreshold(): ?string
+    {
+        preg_match_all('/(?:>=|<=|>|<)\s*(-?\d+(?:\.\d+)?)/', $this->expr, $m);
+        $nums = array_values(array_unique(array_filter($m[1], fn ($n) => (float) $n != 0.0)));
+        if (count($nums) !== 1) {
+            return null;
+        }
+        preg_match_all('/(-?\d+(?:\.\d+)?)\s*(?:>=|<=|>|<)/', $this->expr, $m2);
+        if (array_filter($m2[1], fn ($n) => (float) $n != 0.0)) {
+            return null;
+        }
+
+        return $nums[0];
+    }
+
+    /** Ekspresi dengan angka ambang tunggal diganti nilai baru. */
+    public function withThreshold(string $new): string
+    {
+        $old = $this->soleThreshold();
+        if ($old === null) {
+            return $this->expr;
+        }
+
+        return preg_replace(
+            '/((?:>=|<=|>|<)\s*)'.preg_quote($old, '/').'(?![\d.])/',
+            '${1}'.$new,
+            $this->expr,
+        );
     }
 }

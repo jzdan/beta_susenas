@@ -66,7 +66,7 @@ class AdminController extends Controller
             'params' => $qv->parameters,
             'derived' => $qv->derived,
             'aggregates' => $qv->aggregates,
-            'repeatBlocks' => $qv->blocks->whereIn('repeat', ['art', 'list']),
+            'repeatBlocks' => $qv->blocks->whereIn('repeat', ['art', 'list', 'list_art']),
             'rules' => $rules,
             'ruleErrs' => $rules->mapWithKeys(fn ($r) => [$r->id => $this->ev->checkSyntax($r->expr, RuleEngine::ROSTER_FUNCS)]),
             'versions' => QuestionnaireVersion::orderByDesc('id')->get(),
@@ -113,7 +113,7 @@ class AdminController extends Controller
 
     // -------------------------------------------------------- Blok
 
-    private const BLOCK_REPEAT = ['ruta', 'art', 'list'];
+    private const BLOCK_REPEAT = Block::REPEATS;
 
     public function addBlock(Request $request)
     {
@@ -165,21 +165,90 @@ class AdminController extends Controller
         return redirect()->route('admin.blok', $block);
     }
 
-    public function blockEditor(Block $block)
+    public function blockEditor(Request $request, Block $block)
     {
+        $rows = $block->rows()->orderBy('row_index')->get();
+        // kolom referensi yang dipakai di blok ini (mis. kalori, harga_min, harga_max)
+        $refKeys = $rows->flatMap(fn ($r) => array_keys($r->ref ?? []))
+            ->unique()->reject(fn ($k) => $k === 'group')->values();
+
+        $fQ = trim((string) $request->query('q', ''));
+        if ($fQ !== '') {
+            $rows = $rows->filter(fn ($r) => stripos($r->code.' '.$r->label, $fQ) !== false)->values();
+        }
+
         return view('admin.block_editor', [
             'b' => $block,
             'questions' => $block->questions,
-            'rows' => $block->rows,
+            'rows' => $rows,
+            'refKeys' => $refKeys,
+            'fQ' => $fQ,
+            'rowTotal' => $block->rows()->count(),
             'qtypes' => self::QTYPES,
         ]);
     }
 
-    /** Impor baris tetap (block_rows) untuk blok repeat='list'. */
+    public function saveRow(Request $request, Block $block)
+    {
+        abort_unless($block->isRowBlock(), 400, 'Blok ini bukan tipe daftar.');
+        $d = $request->validate([
+            'row_id' => 'nullable|integer',
+            'row_index' => 'required|integer|min:1',
+            'code' => 'nullable|string|max:24',
+            'label' => 'required|string|max:300',
+            'ref' => 'nullable|array',
+        ]);
+        $ref = collect($d['ref'] ?? [])->map(fn ($v) => is_string($v) ? trim($v) : $v)
+            ->filter(fn ($v) => $v !== '' && $v !== null)->all();
+
+        $existing = \App\Models\BlockRow::where('block_id', $block->id)
+            ->where('row_index', $d['row_index'])->first();
+        if ($existing && (int) $existing->id !== (int) ($d['row_id'] ?? 0)) {
+            return back()->withErrors(['row_index' => "Nomor baris {$d['row_index']} sudah dipakai."]);
+        }
+
+        $payload = [
+            'code' => trim($d['code'] ?? ''), 'label' => trim($d['label']),
+            'row_index' => $d['row_index'], 'ref' => $ref ?: null,
+        ];
+        if ($d['row_id'] ?? null) {
+            \App\Models\BlockRow::where('id', $d['row_id'])->update($payload);
+        } else {
+            $payload['order'] = (int) \App\Models\BlockRow::where('block_id', $block->id)->max('order') + 1;
+            \App\Models\BlockRow::create($payload + ['block_id' => $block->id]);
+        }
+        AuditLog::record('block_row', $block->code, 'simpan', "baris {$d['row_index']}");
+
+        return back()->with('ok', 'Baris disimpan.');
+    }
+
+    public function delRow(\App\Models\BlockRow $row)
+    {
+        $bid = $row->block_id;
+        $row->delete();
+        AuditLog::record('block_row', $bid, 'hapus', "baris {$row->row_index}");
+
+        return back()->with('ok', 'Baris dihapus.');
+    }
+
+    /** Impor baris tetap (block_rows) untuk blok tipe daftar — CSV atau Excel. */
     public function importRows(Request $request, Block $block)
     {
-        abort_unless($block->repeat === 'list', 400, 'Blok ini bukan tipe daftar (list)');
-        $d = $request->validate(['data' => 'required|string', 'mode' => 'nullable|string']);
+        abort_unless($block->isRowBlock(), 400, 'Blok ini bukan tipe daftar (list)');
+        $d = $request->validate([
+            'data' => 'nullable|string', 'mode' => 'nullable|string',
+            'file' => 'nullable|file|mimes:xlsx,csv,txt|max:5120', 'sheet' => 'nullable|string|max:64',
+        ]);
+        try {
+            $rows = $request->hasFile('file')
+                ? \App\Services\XlsxReader::fromUpload($request->file('file'), ($d['sheet'] ?? null) ?: null)
+                : \App\Services\XlsxReader::csvRows((string) ($d['data'] ?? ''));
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['file' => $e->getMessage()]);
+        }
+        if (! $rows || ! array_key_exists('row_index', $rows[0] ?? []) || ! array_key_exists('label', $rows[0] ?? [])) {
+            return back()->withErrors(['file' => 'Kolom wajib: row_index, label (opsional code, kalori, harga_min, harga_max, satuan, max_kons).']);
+        }
         if (($d['mode'] ?? '') === 'replace') {
             \App\Models\BlockRow::where('block_id', $block->id)->delete();
         }
@@ -187,7 +256,8 @@ class AdminController extends Controller
         $n = (int) \App\Models\BlockRow::where('block_id', $block->id)->max('order');
         $dibuat = 0;
         $dilewati = [];
-        foreach ($this->csvRows($d['data'], ['row_index', 'label']) as [$ln, $row]) {
+        foreach ($rows as $i => $row) {
+            $ln = $i + 2;
             $idx = (int) ($row['row_index'] ?? 0);
             if ($idx < 1 || ! ($row['label'] ?? '')) {
                 $dilewati[] = "baris {$ln}: row_index/label tidak valid";
@@ -514,9 +584,25 @@ class AdminController extends Controller
             return true;
         })->values();
 
+        $blockTitles = $qv->blocks->pluck('title', 'code');
+        $scopeLabels = [
+            'dokumen' => 'Tingkat dokumen', 'identitas' => 'Identitas & wilayah',
+            'neraca' => 'Neraca rumah tangga', 'kalori' => 'Kalori & gizi',
+            'roster' => 'Antar anggota rumah tangga (roster)', 'baris' => 'Per baris',
+        ];
+        $groups = $rules->groupBy(function ($r) use ($blockTitles, $scopeLabels) {
+            if ($r->row_block) {
+                return 'Blok '.$r->row_block.($blockTitles[$r->row_block] ?? '' ? ' — '.$blockTitles[$r->row_block] : '');
+            }
+
+            return $scopeLabels[$r->scope] ?? ('Lainnya ('.$r->scope.')');
+        })->sortKeys();
+
         return view('admin.rules', [
             'rules' => $rules,
+            'groups' => $groups,
             'total' => $all->count(),
+            'activeCount' => $all->where('active', true)->count(),
             'ruleErrs' => $rules->mapWithKeys(fn ($r) => [$r->id => $this->ev->checkSyntax($r->expr, RuleEngine::ROSTER_FUNCS)]),
             'docs' => Document::orderBy('id')->get(),
             'edit' => $edit,
@@ -545,7 +631,7 @@ class AdminController extends Controller
         $d = $request->validate([
             'code' => 'required|string', 'expr' => 'required|string', 'message' => 'required|string',
             'severity' => 'nullable|string', 'scope' => 'nullable|string', 'row_block' => 'nullable|string',
-            'target_var' => 'nullable|string', 'rule_id' => 'nullable|integer',
+            'target_var' => 'nullable|string', 'note' => 'nullable|string', 'rule_id' => 'nullable|integer',
         ]);
         if ($err = $this->ev->checkSyntax($d['expr'], RuleEngine::ROSTER_FUNCS)) {
             abort(400, "Ekspresi tidak valid: {$err}");
@@ -556,6 +642,7 @@ class AdminController extends Controller
             'severity' => $sev, 'scope' => trim($d['scope'] ?? 'dokumen'),
             'row_block' => trim($d['row_block'] ?? ''),
             'target_var' => trim($d['target_var'] ?? ''),
+            'note' => trim($d['note'] ?? '') ?: null,
         ];
         if ($d['rule_id'] ?? null) {
             ValidationRule::where('id', $d['rule_id'])->update($payload);
@@ -565,6 +652,26 @@ class AdminController extends Controller
             AuditLog::record('rule', 'baru', 'tambah', $d['code']);
         }
         return redirect()->route('admin.aturan');
+    }
+
+    /** Sunting cepat: keterangan + angka ambang, tanpa menyentuh ekspresi. */
+    public function quickRule(Request $request, ValidationRule $rule)
+    {
+        $d = $request->validate([
+            'note' => 'nullable|string|max:500',
+            'threshold' => 'nullable|numeric',
+        ]);
+        $payload = ['note' => trim($d['note'] ?? '') ?: null];
+        if (($d['threshold'] ?? null) !== null && $rule->soleThreshold() !== null) {
+            $newExpr = $rule->withThreshold((string) $d['threshold']);
+            if (! $this->ev->checkSyntax($newExpr, RuleEngine::ROSTER_FUNCS)) {
+                $payload['expr'] = $newExpr;
+            }
+        }
+        $rule->update($payload);
+        AuditLog::record('rule', $rule->id, 'sunting-cepat', $rule->code);
+
+        return back()->with('ok', "Aturan {$rule->code} diperbarui.");
     }
 
     public function delRule(ValidationRule $rule)
@@ -822,7 +929,7 @@ class AdminController extends Controller
     {
         $cols = ['wilayah_code', 'no_bs', 'no_ruta', 'krt_name'];
         foreach ($qv->blocks()->orderBy('order')->get() as $b) {
-            if ($b->repeat === 'list') {
+            if ($b->isRowBlock()) {
                 continue;
             }
             foreach ($b->questions()->orderBy('order')->get() as $q) {
@@ -860,7 +967,7 @@ class AdminController extends Controller
         $cols = $this->docColumns($qv, $maxArt);
         $varToCol = [];   // "qid:artIndex" => nama kolom
         foreach ($qv->blocks()->with('questions')->get() as $b) {
-            if ($b->repeat === 'list') {
+            if ($b->isRowBlock()) {
                 continue;
             }
             foreach ($b->questions as $q) {
@@ -918,12 +1025,29 @@ class AdminController extends Controller
 
     public function hargaImport(Request $request)
     {
-        $d = $request->validate(['cycle_id' => 'required|integer', 'data' => 'required|string']);
+        $d = $request->validate([
+            'cycle_id' => 'required|integer',
+            'data' => 'nullable|string',
+            'file' => 'nullable|file|mimes:xlsx,csv,txt|max:5120',
+            'sheet' => 'nullable|string|max:64',
+        ]);
         $qv = QuestionnaireVersion::where('cycle_id', $d['cycle_id'])->orderByDesc('id')->firstOrFail();
+
+        try {
+            $rows = $request->hasFile('file')
+                ? \App\Services\XlsxReader::fromUpload($request->file('file'), ($d['sheet'] ?? null) ?: null)
+                : \App\Services\XlsxReader::csvRows((string) ($d['data'] ?? ''));
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['file' => $e->getMessage()]);
+        }
+        if (! $rows || ! array_key_exists('code', $rows[0] ?? []) || ! array_key_exists('harga_min', $rows[0] ?? [])) {
+            return back()->withErrors(['file' => 'Kolom wajib: code, harga_min, harga_max (opsional wilayah_prefix).']);
+        }
 
         $n = 0;
         $skip = [];
-        foreach ($this->csvRows($d['data'], ['code', 'harga_min', 'harga_max']) as [$ln, $row]) {
+        foreach ($rows as $i => $row) {
+            $ln = $i + 2;
             $code = trim($row['code'] ?? '');
             $min = $row['harga_min'] ?? '';
             $max = $row['harga_max'] ?? '';

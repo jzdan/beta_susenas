@@ -166,7 +166,7 @@ class CleaningController extends Controller
         }
         $rowLabels = [];
         foreach ($blocks as $b) {
-            if ($b->repeat === 'list') {
+            if ($b->isRowBlock()) {
                 foreach ($b->rows as $r) {
                     $rowLabels[$b->id][$r->row_index] = $r->label;
                 }
@@ -213,9 +213,14 @@ class CleaningController extends Controller
                 'qid' => $a->question_id, 'art' => $a->art_index,
                 'block' => $meta['block']->code, 'code' => $meta['q']->code_rincian,
                 'label' => $meta['q']->label, 'var' => $meta['q']->var_name,
-                'row_label' => $meta['block']->repeat === 'list'
-                    ? ($rowLabels[$meta['block']->id][$a->art_index] ?? "baris {$a->art_index}")
-                    : ($a->art_index > 0 ? "ART {$a->art_index}" : ''),
+                'row_label' => match ($meta['block']->repeat) {
+                    'list' => $rowLabels[$meta['block']->id][$a->art_index] ?? "baris {$a->art_index}",
+                    'list_art' => (function () use ($meta, $a, $rowLabels) {
+                        [$cr, $an] = \App\Models\Block::unpackRowArt((int) $a->art_index);
+                        return ($rowLabels[$meta['block']->id][$cr] ?? "baris {$cr}")." · ART {$an}";
+                    })(),
+                    default => $a->art_index > 0 ? "ART {$a->art_index}" : '',
+                },
                 'raw' => $a->raw_value, 'clean' => $a->clean_value,
                 'reason' => $lastReason[$a->question_id.':'.$a->art_index] ?? '',
                 'warnings' => $w,

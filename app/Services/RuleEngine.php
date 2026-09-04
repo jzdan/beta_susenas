@@ -409,17 +409,23 @@ class RuleEngine
                 ($a->clean_value !== null && $a->clean_value !== '') ? $a->clean_value : $a->raw_value;
         }
 
+        $isListArt = $block->repeat === 'list_art';
+
         $out = [];
         foreach ($byRow as $rowIdx => $vals) {
+            // list_art: art_index = row_index_komoditas * 1000 + no_art
+            [$comRow, $artNo] = $isListArt ? Block::unpackRowArt((int) $rowIdx) : [(int) $rowIdx, 0];
+            $refRow = $refByRow[$comRow] ?? null;
+
             $rc = $baseCtx;
             foreach ($vals as $var => $v) {
                 $rc[$var] = $v;
             }
-            foreach (($refByRow[$rowIdx]->ref ?? []) as $k => $v) {
+            foreach (($refRow->ref ?? []) as $k => $v) {
                 $rc["ref_{$k}"] = $v;
             }
             // override rentang harga wajar berdasarkan wilayah sampel
-            if ($priceIndex && ($rowCode = $refByRow[$rowIdx]->code ?? '') !== '') {
+            if ($priceIndex && ($rowCode = $refRow->code ?? '') !== '') {
                 $range = \App\Models\ReferencePrice::pick($priceIndex, $rowCode, $wilCode);
                 if ($range) {
                     if ($range['min'] !== null) {
@@ -430,8 +436,11 @@ class RuleEngine
                     }
                 }
             }
-            $rc['baris_label'] = $refByRow[$rowIdx]->label ?? (string) $rowIdx;
-            $rc['_row_index'] = (float) $rowIdx;
+            $rc['baris_label'] = $refRow->label ?? (string) $comRow;
+            $rc['_row_index'] = (float) $comRow;
+            if ($isListArt) {
+                $rc['_art_no'] = (float) $artNo;
+            }
             $out[$rowIdx] = $rc;
         }
         return $out;

@@ -122,20 +122,29 @@ h3 { font-size: .9rem; margin: 18px 0 6px; text-transform: uppercase; letter-spa
 /* wadah tabel lebar — scroll horizontal di dalam kontainernya, bukan seluruh halaman */
 .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .tablewrap > .tbl { min-width: 560px; }
-/* daftar panjang: scroll 2 arah + header lengket di dalam wadah */
+/* daftar panjang: scroll 2 arah + header lengket DI DALAM wadah (kontainer scroll sendiri) */
 .tablewrap.tall { max-height: 76vh; overflow-y: auto; }
-.tablewrap.tall .tbl thead th { top: 0; }
+.tablewrap.tall .tbl thead th {
+  position: sticky; top: 0; z-index: 4; background: var(--surface);
+}
 
 .tbl { width: 100%; border-collapse: collapse; font-size: .88rem; }
 .tbl th, .tbl td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .tbl thead th {
   font-family: "IBM Plex Mono", monospace; font-size: .68rem; text-transform: uppercase;
   letter-spacing: .06em; color: var(--muted); font-weight: 500;
-  position: sticky; top: 44px; z-index: 4; background: var(--surface);
 }
 .tbl tbody tr:last-child td { border-bottom: 0; }
 .tbl.mini td { padding: 5px 6px; font-size: .82rem; }
 .row-off { opacity: .5; }
+
+.rule-group { border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; padding: 4px 12px; }
+.rule-group[open] { padding-bottom: 12px; }
+.rule-group > summary { list-style: none; }
+.rule-group > summary::-webkit-details-marker { display: none; }
+.rule-group > summary::before { content: "▸ "; color: var(--muted); }
+.rule-group[open] > summary::before { content: "▾ "; }
+.rule-group .tbl td { vertical-align: top; }
 
 .bar { display: inline-block; width: 120px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; vertical-align: middle; }
 .bar i { display: block; height: 100%; background: var(--accent); }

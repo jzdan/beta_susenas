@@ -19,8 +19,11 @@ use Illuminate\Http\Request;
 
 class EntryController extends Controller
 {
-    private const MAX_ART = 15;      // batas baris ART yang ditampilkan
-    private const MAX_ROW = 500;     // batas art_index/row_index yang diterima saat simpan
+    private const MAX_ART = 30;      // batas baris ART yang ditampilkan
+    private const MAX_ROW = 999_999; // batas art_index yang diterima (list_art: baris*1000 + no_art)
+
+    /** var_name yang bisa menjadi "Banyaknya ART" (beda antar-kuesioner). */
+    private const ART_COUNT_VARS = ['banyak_art', 'r301', 'jml_art', 'jumlah_art'];
 
     public function __construct(
         private RuleEngine $engine,
@@ -83,6 +86,7 @@ class EntryController extends Controller
                         ->filter(fn ($k) => $qs->contains('id', (int) explode(':', $k)[0]))
                         ->map(fn ($k) => (int) explode(':', $k)[1])->filter()->sort()->all()));
                 $labelByIdx = $b->rows->pluck('label', 'row_index');
+                $isListArt = $b->repeat === 'list_art';
                 $rows = [];
                 foreach ($idxs as $i) {
                     $cells = $qs->map(fn ($q) => [
@@ -93,7 +97,13 @@ class EntryController extends Controller
                     if (collect($cells)->every(fn ($c) => $c['raw'] === '' && $c['clean'] === null)) {
                         continue;   // baris kosong tak dicetak
                     }
-                    $rows[] = ['idx' => $i, 'label' => $labelByIdx[$i] ?? null, 'cells' => $cells];
+                    if ($isListArt) {
+                        [$cr, $an] = \App\Models\Block::unpackRowArt((int) $i);
+                        $lbl = ($labelByIdx[$cr] ?? "baris {$cr}").' · ART '.$an;
+                    } else {
+                        $lbl = $labelByIdx[$i] ?? null;
+                    }
+                    $rows[] = ['idx' => $i, 'label' => $lbl, 'cells' => $cells];
                 }
             }
             $out[] = ['code' => $b->code, 'title' => $b->title, 'repeat' => $b->repeat,
@@ -174,6 +184,59 @@ class EntryController extends Controller
         ]);
     }
 
+    /**
+     * Setel Banyaknya ART (R301) lalu sesuaikan baris roster/list_art:
+     * hapus isian untuk nomor ART di atas jumlah baru.
+     */
+    public function setArtCount(Request $request, Document $document)
+    {
+        abort_if($document->status === 'bersih', 409, 'Dokumen sudah dikunci (bersih)');
+        abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        $d = $request->validate(['count' => 'required|integer|min:0|max:'.self::MAX_ART]);
+        $n = (int) $d['count'];
+
+        $q = Question::whereIn('block_id', Block::where('qversion_id', $document->qversion_id)->pluck('id'))
+            ->whereIn('var_name', self::ART_COUNT_VARS)->first();
+        if ($q) {
+            $a = Answer::firstOrNew(['document_id' => $document->id, 'question_id' => $q->id, 'art_index' => 0]);
+            $old = $a->raw_value ?? '';
+            $a->raw_value = (string) $n;
+            $a->save();
+            if ($old !== (string) $n) {
+                AnswerHistory::create([
+                    'document_id' => $document->id, 'question_id' => $q->id, 'art_index' => 0,
+                    'old_value' => $old, 'new_value' => (string) $n,
+                    'by_user' => $request->user()->id, 'reason' => 'setel jumlah ART', 'at' => now(),
+                ]);
+            }
+        }
+
+        // buang isian ART di atas jumlah baru
+        $dropped = 0;
+        foreach (Block::where('qversion_id', $document->qversion_id)->get() as $b) {
+            $qids = $b->questions()->pluck('id');
+            if ($qids->isEmpty()) {
+                continue;
+            }
+            if ($b->repeat === 'art') {
+                $dropped += Answer::where('document_id', $document->id)->whereIn('question_id', $qids)
+                    ->where('art_index', '>', $n)->delete();
+            } elseif ($b->repeat === 'list_art') {
+                $dropped += Answer::where('document_id', $document->id)->whereIn('question_id', $qids)
+                    ->where('art_index', '>=', Block::LIST_ART_FACTOR)
+                    ->whereRaw('art_index % '.Block::LIST_ART_FACTOR.' > ?', [$n])->delete();
+            }
+        }
+
+        $sum = $this->engine->run($document);
+
+        return response()->json([
+            'ok' => true, 'dropped' => $dropped,
+            'n_err' => $sum['errors'], 'n_warn' => $sum['warnings'],
+            'state' => $this->formState($document),
+        ]);
+    }
+
     public function finalize(Request $request, Document $document)
     {
         abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
@@ -206,9 +269,12 @@ class EntryController extends Controller
     private function artCount(array $ctx, array $answersByKey, array $rosterQids): int
     {
         $n = 1;
-        $ba = ExpressionEvaluator::toNum($ctx['banyak_art'] ?? null);
-        if ($ba !== null) {
-            $n = max($n, (int) $ba);
+        foreach (self::ART_COUNT_VARS as $v) {
+            $ba = ExpressionEvaluator::toNum($ctx[$v] ?? null);
+            if ($ba !== null) {
+                $n = max($n, (int) $ba);
+                break;
+            }
         }
         foreach (array_keys($answersByKey) as $key) {
             [$qid, $idx] = explode(':', $key);
@@ -237,6 +303,13 @@ class EntryController extends Controller
             }
         }
         $nArt = $this->artCount($ctx, $answers, $rosterQids);
+
+        // var_name yang jadi "Banyaknya ART" di kuesioner ini (untuk tombol "Terapkan jumlah ART")
+        $qVars = Question::whereIn('block_id', $blocks->pluck('id'))->pluck('var_name')->all();
+        $hasRoster = $blocks->contains(fn ($b) => in_array($b->repeat, ['art', 'list_art'], true));
+        $artVar = $hasRoster
+            ? (collect(self::ART_COUNT_VARS)->first(fn ($v) => in_array($v, $qVars, true)))
+            : null;
 
         $byVar = [];       // target_var => [entry, ...]   (row_index 0)
         $byCell = [];      // "var:rowIdx" => [entry, ...]  (row_index > 0)
@@ -295,14 +368,28 @@ class EntryController extends Controller
             foreach ($cols as $c) {
                 $tally($c['warnings']);
             }
-            if ($b->repeat === 'art' || $b->repeat === 'list') {
-                // 'art' = baris dinamis (1..banyak ART); 'list' = baris tetap (block_rows)
-                $rowDefs = $b->repeat === 'list'
-                    ? $b->rows->map(fn ($r) => [
+            if (in_array($b->repeat, ['art', 'list', 'list_art'], true)) {
+                // 'art' = baris dinamis (1..banyak ART); 'list' = baris tetap (block_rows);
+                // 'list_art' = tiap baris tetap × tiap ART (idx = row*1000 + no_art)
+                if ($b->repeat === 'list') {
+                    $rowDefs = $b->rows->map(fn ($r) => [
                         'idx' => $r->row_index, 'label' => $r->label,
                         'group' => $r->ref['group'] ?? null,
-                    ])->all()
-                    : array_map(fn ($i) => ['idx' => $i, 'label' => null, 'group' => null], range(1, max(1, $nArt)));
+                    ])->all();
+                } elseif ($b->repeat === 'list_art') {
+                    $rowDefs = [];
+                    foreach ($b->rows->sortBy('order') as $r) {
+                        for ($a = 1; $a <= max(1, $nArt); $a++) {
+                            $rowDefs[] = [
+                                'idx' => \App\Models\Block::packRowArt($r->row_index, $a),
+                                'label' => 'ART '.$a,
+                                'group' => $a === 1 ? trim(($r->code ? $r->code.' ' : '').$r->label) : null,
+                            ];
+                        }
+                    }
+                } else {
+                    $rowDefs = array_map(fn ($i) => ['idx' => $i, 'label' => null, 'group' => null], range(1, max(1, $nArt)));
+                }
                 $rows = [];
                 $lastGroup = null;
                 foreach ($rowDefs as $rd) {
@@ -369,7 +456,7 @@ class EntryController extends Controller
 
         return [
             'blocks' => $outBlocks, 'doc_level' => $docLevel, 'derived' => $derived, 'rekap' => $rekap,
-            'n_err' => $nErr, 'n_warn' => $nWarn,
+            'n_err' => $nErr, 'n_warn' => $nWarn, 'art_var' => $artVar,
             'progress' => [
                 'filled' => $expFilled, 'expected' => $expTotal,
                 'pct' => $expTotal ? (int) round(100 * $expFilled / $expTotal) : 100,

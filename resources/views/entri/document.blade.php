@@ -31,17 +31,18 @@
         {{ $b['code'] }} — {{ $b['title'] }}
         @if($b['repeat'] === 'art')<span class="chip d-draft">roster per ART</span>@endif
         @if($b['repeat'] === 'list')<span class="chip d-draft">daftar (baris tetap)</span>@endif
+        @if($b['repeat'] === 'list_art')<span class="chip d-draft">daftar × per ART</span>@endif
         @if($b['n_err'])<span class="flag error" style="display:inline-block">{{ $b['n_err'] }} error</span>@endif
         @if($b['n_warn'])<span class="flag warning" style="display:inline-block">{{ $b['n_warn'] }} warning</span>@endif
       </h2>
       <div class="block-body">
 
-      @if(in_array($b['repeat'], ['art','list']))
+      @if(in_array($b['repeat'], ['art','list','list_art']))
       <div class="roster-scroll">
       <table class="roster">
         <thead>
           <tr>
-            <th>{{ $b['repeat'] === 'list' ? 'Rincian' : 'ART' }}</th>
+            <th>{{ $b['repeat'] === 'list' ? 'Rincian' : ($b['repeat'] === 'list_art' ? 'Komoditas / ART' : 'ART') }}</th>
             @foreach ($b['columns'] as $c)
             <th data-var="{{ $c['var'] }}">
               <span class="mono">{{ $c['code'] }}</span> {{ $c['label'] }}
@@ -86,7 +87,7 @@
         </tbody>
       </table>
       </div>
-      @if($b['repeat'] === 'art')<p class="muted small">Jumlah baris mengikuti Banyaknya ART (R301) — baris otomatis bertambah saat R301 dinaikkan. Untuk mengurangi baris, muat ulang halaman.</p>@endif
+      @if(in_array($b["repeat"], ["art","list_art"]))<p class="muted small">Jumlah baris mengikuti Banyaknya ART (R301). Ubah R301 lalu klik <em>Terapkan jumlah ART</em> di Blok POKOK — baris bertambah / berkurang otomatis (isian ART yang dihapus tak bisa dikembalikan).</p>@endif
 
       @else
       @foreach ($b['questions'] as $q)
@@ -107,6 +108,10 @@
           <input class="answer" inputmode="decimal" value="{{ $q['value'] }}"
                  @disabled($q['skipped'] || !$canEdit)
                  placeholder="{{ $q['skipped'] ? 'tidak berlaku' : '0' }}">
+        @endif
+        @if(($state['art_var'] ?? null) === $q['var'] && $canEdit)
+          <button type="button" id="apply-art" class="btn-ghost" style="margin-top:6px">Terapkan jumlah ART</button>
+          <span class="muted small" id="apply-art-note">tabel roster &amp; makanan-jadi disesuaikan ke angka ini</span>
         @endif
         @if($q['help'])<div class="q-help">{{ $q['help'] }}</div>@endif
         <div class="q-flags">

@@ -990,6 +990,169 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   (`.tall`), daftar pengguna, master wilayah.
 - 172 tes lulus. Fokus increment berikutnya: poles UX (bukan kuesioner).
 
+### Increment 91 — sunting baris tetap (komoditas) langsung di admin
+
+- Editor blok `list` (IV.1 dll.): tiap baris kini **form sunting inline** — kode,
+  label, + kolom referensi (kalori, harga_min, harga_max, atau apa pun yang ada
+  di `ref`). Ubah angka → klik Simpan pada baris itu. Tak perlu CSV.
+- Kotak **cari** (kode/nama, 194 baris jadi terkelola) + collapsible "Tambah baris
+  baru" + form impor CSV massal tetap ada.
+- `saveRow` / `delRow` (`admin.baris.save` / `.del`). Kolom `ref` dibangun dari
+  input `ref[<nama>]`; nilai kosong dibuang; nomor baris bentrok ditolak.
+  Pola HTML: `<form hidden id="rsN">` + `<input form="rsN">` (form di luar `<tr>`).
+- 174 tes lulus (`AdminMetadataTest` +2: sunting ref inline + kolom baru
+  `max_kons`, tambah/hapus baris + tolak nomor bentrok).
+
+### Increment 92 — MAX KONS + aturan IV1-KUANTITAS-MAX
+
+- Kolom `max_kons` ditambahkan ke `database/data/iv1_komoditas.csv` (194 nilai
+  dari sheet `KALORI` file `6203_...MISKU - Salin - Salin.xlsx`, dipetakan lewat
+  kode = No KALORI). Seeder menyimpannya ke `block_rows.ref` → `ref_max_kons`.
+- Aturan baru **`IV1-KUANTITAS-MAX`** (per baris IV.1, warning):
+  `filled(iv1_kuantitas) and n(iv1_kuantitas) > 0 and filled(ref_max_kons) and n(iv1_kuantitas) > n(ref_max_kons)`
+  — **per rumah tangga per minggu** (sesuai permintaan, tanpa × jumlah ART).
+- ⚠ Dengan basis per-ruta, aturan menyala di **25 dari 36 dokumen seed** (rumah
+  tangga normal 4+ orang melampaui beras 7 kg/mgg). Nilai MAX KONS tampak
+  **per kapita**. Untuk ubah ke per-kapita: sunting ekspresi di admin →
+  `... n(iv1_kuantitas) > n(ref_max_kons) * n(banyak_art)`.
+- 175 tes lulus (`ReferencePriceTest` +1: 5 kg aman, 40 kg menyala).
+
+### Increment 93 — fondasi blok `list_art` (daftar baris tetap × per ART) untuk MBG
+
+- Tipe blok berulang baru **`list_art`**: tiap baris tetap (komoditas) × tiap ART.
+  `answers.art_index = row_index * 1000 + no_art` (`Block::packRowArt` /
+  `unpackRowArt`; `Block::REPEATS`, `isRowBlock()`).
+- `RuleEngine::rowContexts` membuka index — konteks per (komoditas, ART) dengan
+  `ref_<key>` dari baris komoditas + `_art_no`. `EntryController` (formState +
+  printView), `CleaningController` (row_label), `AdminController` (block editor,
+  add-block, agregat dropdown, docExport skip) menangani `list_art`.
+- Seed **Blok IV.1M** di VSEN26.KP (`list_art`): 6 komoditas makanan/minuman jadi
+  (188 Roti tawar … 196 Nasi rames … 217 Es krim, kolom `ref.satuan`), 3 rincian
+  (`mj_kuantitas`, `mj_nilai`, `mj_sumber` dgn opsi 4=MBG), 3 aturan per-baris
+  (`IV1M-NEGATIF`, `IV1M-NILAI-KOSONG`, `IV1M-MBG-KUANTITAS`).
+- Entri: blok tampil sebagai tabel — header kelompok per komoditas, baris "ART N".
+- 179 tes lulus (`ListArtBlockTest` ×4: pack/unpack, blok terseed, aturan
+  per-(komoditas,ART) menyala/bersih, form entri render 6×N baris).
+- **Belum:** lapisan penuh R.187–225, kolom `satuan` untuk seluruh IV.1,
+  cek silang MBG antar-blok (flag Pokok ↔ IV.1M), tabulasi/ekspor `list_art`.
+
+### Increment 94 — list_art ikut Banyaknya ART + perbaikan clamp art_index
+
+- **Bug**: `saveAnswer` meng-clamp `art_index` ke `MAX_ROW=500` — untuk `list_art`
+  (`art_index = row*1000 + no_art`, mis. 217004) semua isian jadi tertimpa ke 500.
+  `MAX_ROW` dinaikkan → 999.999.
+- **Bug**: `MAX_ART=15` → naik R301 ke 18 tak menambah baris. Cap dinaikkan → 30
+  (roster & list_art ikut Banyaknya ART s.d. 30).
+- **JS**: `repaint` kini membangun ulang seluruh isi tabel `list_art` saat jumlah
+  baris berubah (menangani header kelompok), bukan cuma menambah 1 baris seperti `art`.
+- 181 tes lulus (`ListArtBlockTest` +2: art_index tersimpan utuh, form ikut R301=18).
+
+### Increment 95 — tombol "Terapkan jumlah ART" + urutan blok POKOK→III
+
+- Urutan blok VSEN26.KP diperbaiki: **POKOK** (R301) sekarang **sebelum III**
+  (roster) — dulu kebalik. IV.1M diselipkan urut 2, IV.2/V/VII digeser.
+- Tombol **"Terapkan jumlah ART"** di sebelah R301 (`POST /entri/{doc}/jumlah-art`,
+  `setArtCount`): setel R301 → sesuaikan baris roster (`art`) & makanan-jadi
+  (`list_art`) **naik atau turun**. Saat mengurangi, konfirmasi + **hapus isian
+  ART di atas jumlah baru** (roster: `art_index > n`; list_art: `art_index % 1000 > n`).
+- JS `repaint`: baris roster/list_art dibangun ulang saat jumlahnya berubah
+  (grow & shrink), bukan cuma menambah.
+- 182 tes lulus (`ListArtBlockTest` +1: shrink menghapus isian yatim di `art` & `list_art`).
+
+### Increment 96 — "Terapkan jumlah ART" berlaku di semua kuesioner
+
+- Var "Banyaknya ART" beda antar-kuesioner: KP pakai `banyak_art`, KOR pakai
+  `r301`. `EntryController::ART_COUNT_VARS = ['banyak_art','r301','jml_art','jumlah_art']`.
+- `artCount` & `setArtCount` mengenali semua var itu; `formState` mengembalikan
+  `art_var` (var yang resolve), view menampilkan tombol di field itu, JS mencari
+  input lewat `.closest('.field')` (tak lagi hardcode `banyak_art`).
+- Hasil: tombol **Terapkan jumlah ART** + sinkron baris roster/list_art kini
+  aktif di **semua 36 dokumen** (KP, KOR, demo), bukan cuma VSEN26.KP.
+- 183 tes lulus (`ListArtBlockTest` +1: tombol & set-art jalan utk 3 versi).
+
+### Increment 97 — perbaiki header lengket yang menutupi baris pertama
+
+- Inc 90 memasang `.tbl thead th { position: sticky; top: 44px }` untuk SEMUA
+  tabel. Pada tabel di `.tablewrap` biasa (mis. "Tugas Saya" → Sampel belum
+  tuntas) header jadi menutupi baris pertama.
+- Perbaikan: header lengket **hanya di dalam `.tablewrap.tall`** (kontainer
+  scroll sendiri, `overflow-y: auto` + `max-height`, `top: 0`). Tabel lain
+  memakai header biasa (tak lengket).
+- 183 tes lulus (CSS-only, tanpa perubahan logika).
+
+### Increment 98 — impor harga & kalori lewat Excel (.xlsx) / CSV
+
+- Permintaan: "untuk data harga bahan bisa diupload lewat excel dan jangan lupa
+  yang kalori itu".
+- Baru `app/Services/XlsxReader.php` — pembaca `.xlsx` tanpa dependency
+  (`ZipArchive` + regex `sharedStrings.xml` + XML sheet). `rows($path, $sheet)`
+  mengembalikan baris asosiatif berkunci header (baris pertama non-kosong,
+  di-lowercase). `fromUpload()` mendeteksi `.csv`/`.txt` vs `.xlsx`;
+  `csvRows()` untuk data tempelan.
+- **Harga Referensi** (`/admin/harga`) — form kini `multipart/form-data` dengan
+  input berkas (`.xlsx`/`.csv`) + isian nama *sheet* opsional; tempel CSV tetap
+  ada sebagai alternatif. `hargaImport` menerima `file` atau `data`, kolom wajib
+  `code, harga_min, harga_max` (+`wilayah_prefix` opsional).
+- **Editor blok → "Impor / ganti banyak baris sekaligus"** — idem: unggah
+  `.xlsx`/`.csv` untuk `block_rows`. Kolom wajib `row_index, label`; kolom lain
+  (`kalori, harga_min, harga_max, satuan, max_kons`, dll.) tersimpan sebagai
+  `ref` per baris. Inilah jalur data **kalori / MAX KONS** untuk Blok IV.1.
+- Tes baru `XlsxImportTest` (4): parser xlsx per-header, impor harga dari xlsx,
+  impor baris blok + data kalori dari xlsx, impor baris dari unggahan CSV.
+  **187 tes lulus (~16 dtk).** Reseed + `susenas:health` bersih.
+
+### Increment 99 — Blok IV.1 kolom lengkap sesuai WTF (tahap 1)
+
+- Permintaan: "coba lengkapi sesuai dengan yang di excel" — struktur WTF dipilih.
+- **Temuan** (dari WTF `6203_...MISKU` + PDF VSEN26.KP/K):
+  - Struktur WTF IV.1 per komoditas: (5)(6) dari pembelian, (6a) asal;
+    (7)(8) dari produksi sendiri/pemberian, (8a) asal; (9)=(5)+(7) &
+    (10)=(6)+(8) jumlah konsumsi; kolom subsidi (nilai dibayar, sumber).
+  - WTF berbasis **VSEN24.KP** (sheet Menu menyebut "VSEN24.KP halaman 2-3").
+    Kuesioner VSEN26.KP cetak lebih ramping (R.1–186 tanpa kode "asal";
+    R.187–225 pakai kode Sumber Perolehan {0,1,2,3} + Banyak/Nilai).
+  - Sheet `IV.1_ART1…12` = makanan & minuman jadi R.187–225 **per ART**.
+  - MBG per-ART sebenarnya di **VSEN26.K KOR Blok VI R.617–618** (menu MBG
+    A Nasi … J Lainnya, X Tdk tahu).
+- **Tahap 1 (increment ini)** — Blok IV.1 VSEN26.KP: pisah kuantitas jadi
+  `iv1_kuantitas_beli` (5) & `iv1_kuantitas_lain` (7); relabel `iv1_nilai_beli`
+  (6) & `iv1_nilai_lain` (8); tambah `iv1_kuantitas` (9)=(5)+(7) & baru
+  `iv1_nilai` (10)=(6)+(8). Aturan cek-silang baru `IV1-JUMLAH-BANYAK` &
+  `IV1-JUMLAH-NILAI` (warning, hanya menyala bila (9)/(10) ≠ jumlah). Seeder
+  dokumen contoh mengisi set kolom penuh secara konsisten. Aturan lama
+  (IV1-HARGA, IV1-KUANTITAS, IV1-KUANTITAS-MAX, rekap kalori/neraca) tetap
+  jalan — `iv1_kuantitas`/`iv1_nilai_beli` tak berubah maknanya.
+- Tes baru `Iv1ColumnsTest` (2). **189 tes lulus (~15 dtk).** Reseed +
+  `susenas:health` bersih (11 error / 155 warning contoh).
+- **Belum (tahap berikutnya, perlu masukan):** kode+label kolom "Asal" (6a/8a)
+  & "Sumber subsidi"; makanan jadi R.187–225 jadi `list_art` penuh + kode
+  Sumber Perolehan; keputusan rokok R.220–225 per-ART atau rumah tangga;
+  VSEN27.KP (crosscheck) masih struktur lama.
+
+### Increment 100 — halaman "Aturan Validasi" dirombak untuk non-teknis
+
+- Keluhan user: halaman aturan membingungkan (ekspresi mentah + jargon di depan,
+  145 aturan dalam satu tabel datar).
+- **Tampilan baru** (`resources/views/admin/rules.blade.php`): daftar
+  dikelompokkan **per blok / topik** (accordion `<details>`), tiap aturan tampil
+  = **pesan ke pemeriksa** + tingkat (error/warning) + tombol nyalakan/matikan.
+  Ekspresi disembunyikan.
+- **Sunting cepat per baris**: kolom "keterangan" (bebas, kolom baru
+  `validation_rules.note`) + kotak **"ambang"** untuk aturan yang punya tepat
+  satu angka ambang perbandingan (`ValidationRule::soleThreshold()` /
+  `withThreshold()` — regex, `0` diabaikan sbg penjaga tanda). Route
+  `admin.aturan.cepat` (`POST /admin/aturan/{rule}/cepat`) → `quickRule()`;
+  menyimpan `note` + mengganti angka ambang tanpa menyentuh ekspresi (dicek
+  sintaks dulu).
+- Editor ekspresi + penguji + pratinjau dampak + referensi fungsi → pindah ke
+  panel **"Mode lanjutan"** (`<details>`, auto-terbuka saat menyunting 1 aturan),
+  plus tabel "Ekspresi mentah" untuk yang mau lihat semua.
+- Migrasi `2026_09_04_120000_add_note_to_validation_rules`. Model +fillable +2
+  helper. `rulesView()` bikin `groups` (groupBy blok/scope) + `blockTitles`.
+  `saveRule()` terima `note`.
+- Tes `AdminMetadataTest::test_rules_page_groups_and_quick_edit`. **190 tes lulus.**
+  Reseed + health bersih.
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

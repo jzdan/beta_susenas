@@ -36,7 +36,7 @@
     </table>
   @else
     <table class="tbl mini">
-      <thead><tr><th>{{ $b['repeat'] === 'list' ? 'Rincian' : 'ART' }}</th>
+      <thead><tr><th>{{ in_array($b['repeat'], ['list','list_art']) ? 'Rincian' : 'ART' }}</th>
         @foreach ($b['columns'] as $col)<th><span class="mono muted">{{ $col['code'] }}</span> {{ $col['label'] }}</th>@endforeach
       </tr></thead>
       <tbody>

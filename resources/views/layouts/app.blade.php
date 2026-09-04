@@ -21,7 +21,7 @@
 @auth
   @php($u = auth()->user())
   <header class="topbar">
-    <div class="brand"><span class="dot"></span> Sistem SUSENAS <span class="ver">Laravel</span></div>
+    <div class="brand"><span class="dot"></span> Sistem SUSENAS </div>
     <div class="whoami">
       @php($unread = $u->unreadNotifications()->count())
       <a href="{{ route('notifikasi.index') }}" class="notif-bell @if($unread) has-unread @endif" aria-label="Notifikasi">

@@ -79,6 +79,8 @@ Route::middleware('role')->group(function () {
         Route::get('/{document}', [EntryController::class, 'form'])->name('form');
         Route::post('/{document}/jawaban', [EntryController::class, 'saveAnswer'])
             ->middleware('role:operator,admin')->name('answer');
+        Route::post('/{document}/jumlah-art', [EntryController::class, 'setArtCount'])
+            ->middleware('role:operator,admin')->name('set-art');
         Route::post('/{document}/finalisasi', [EntryController::class, 'finalize'])
             ->middleware('role:operator,pml,admin')->name('finalize');
     });
@@ -92,6 +94,8 @@ Route::middleware('role')->group(function () {
         Route::post('/blok/{block}/hapus', [AdminController::class, 'delBlock'])->name('blok.del');
         Route::post('/blok/{block}/rincian', [AdminController::class, 'addQuestion'])->name('rincian.add');
         Route::post('/blok/{block}/baris', [AdminController::class, 'importRows'])->name('baris.import');
+        Route::post('/blok/{block}/baris-satu', [AdminController::class, 'saveRow'])->name('baris.save');
+        Route::post('/baris/{row}/hapus', [AdminController::class, 'delRow'])->name('baris.del');
         Route::get('/rincian/{question}', [AdminController::class, 'questionEditor'])->name('rincian');
         Route::post('/rincian/{question}', [AdminController::class, 'updateQuestion'])->name('rincian.update');
         Route::post('/rincian/{question}/hapus', [AdminController::class, 'delQuestion'])->name('rincian.del');
@@ -113,6 +117,7 @@ Route::middleware('role')->group(function () {
         Route::post('/aturan', [AdminController::class, 'saveRule'])->name('aturan.save');
         Route::post('/aturan/{rule}/hapus', [AdminController::class, 'delRule'])->name('aturan.del');
         Route::post('/aturan/{rule}/toggle', [AdminController::class, 'toggleRule'])->name('aturan.toggle');
+        Route::post('/aturan/{rule}/cepat', [AdminController::class, 'quickRule'])->name('aturan.cepat');
         Route::post('/aturan-toggle-massal', [AdminController::class, 'bulkToggleRules'])->name('aturan.toggle-massal');
         Route::post('/aturan/uji', [AdminController::class, 'testRule'])->name('aturan.test');
         Route::post('/aturan/dampak', [AdminController::class, 'ruleImpact'])->name('aturan.impact');

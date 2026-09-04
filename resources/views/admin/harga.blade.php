@@ -12,15 +12,21 @@
 @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
 
 <section class="panel">
-  <form method="post" action="{{ route('admin.harga.import') }}" class="stack-form">
+  <form method="post" action="{{ route('admin.harga.import') }}" class="stack-form" enctype="multipart/form-data">
     @csrf
     <label>Siklus survei
       <select name="cycle_id" required>
         @foreach ($cycles as $c)<option value="{{ $c->id }}">{{ $c->name }} ({{ $c->period }})</option>@endforeach
       </select>
     </label>
-    <label>Data CSV — kolom: <span class="mono">code, wilayah_prefix, harga_min, harga_max</span>
-      <textarea name="data" rows="8" class="mono" required
+    <label>Unggah berkas Excel / CSV — kolom: <span class="mono">code, wilayah_prefix, harga_min, harga_max</span>
+      <input type="file" name="file" accept=".xlsx,.csv,.txt">
+    </label>
+    <label>Sheet (opsional, untuk .xlsx — kosong = sheet pertama)
+      <input type="text" name="sheet" placeholder="mis. HARGA">
+    </label>
+    <label>atau tempel data CSV
+      <textarea name="data" rows="6" class="mono"
         placeholder="code,wilayah_prefix,harga_min,harga_max&#10;002,3526,11000,15000&#10;075,3526,1800,2600"></textarea>
     </label>
     <button type="submit">Impor</button>

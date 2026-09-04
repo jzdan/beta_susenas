@@ -64,6 +64,28 @@ class ReferencePriceTest extends TestCase
         $this->assertFalse($this->hargaFired($doc), 'tanpa override wilayah, 20rb masih di dalam rentang nasional');
     }
 
+    public function test_max_kons_rule_flags_excessive_quantity(): void
+    {
+        [$qv, $doc, $b] = $this->kpDoc();
+        $engine = app(RuleEngine::class);
+
+        // baris 1 = Beras, ref max_kons = 7 (per ruta/minggu)
+        $br = \App\Models\BlockRow::where('block_id', $b->id)->where('row_index', 1)->firstOrFail();
+        $this->assertArrayHasKey('max_kons', $br->ref, 'seed harus memuat max_kons');
+
+        $fired = fn () => RuleResult::where('document_id', $doc->id)->where('row_index', 1)
+            ->whereIn('status', ['error', 'warning'])
+            ->whereHas('rule', fn ($q) => $q->where('code', 'IV1-KUANTITAS-MAX'))->exists();
+
+        $this->setBeras($doc, $b, '5', '60000');   // 5 kg <= 7 -> aman
+        $engine->run($doc);
+        $this->assertFalse($fired());
+
+        $this->setBeras($doc, $b, '40', '480000'); // 40 kg > 7 -> menyala
+        $engine->run($doc);
+        $this->assertTrue($fired());
+    }
+
     public function test_admin_imports_reference_prices(): void
     {
         $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();

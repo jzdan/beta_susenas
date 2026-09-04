@@ -216,43 +216,61 @@
       });
     });
 
-    // blok roster ART: tambah baris bila jumlah ART bertambah (tanpa muat ulang)
+    // blok roster ART / list_art: sesuaikan jumlah baris bila jumlah ART berubah (tanpa muat ulang)
+    function makeCell(col, cell, artIdx) {
+      var td = document.createElement("td");
+      td.className = "rcell";
+      td.dataset.qid = cell.qid;
+      td.dataset.art = artIdx;
+      td.dataset.var = cell.var;
+      var inp;
+      if (col.options && col.options.length) {
+        inp = document.createElement("select");
+        inp.innerHTML = '<option value="">—</option>';
+        col.options.forEach(function (o) {
+          var op = document.createElement("option");
+          op.value = o.code;
+          op.textContent = o.code + " · " + o.label;
+          inp.appendChild(op);
+        });
+      } else {
+        inp = document.createElement("input");
+      }
+      inp.className = "answer";
+      inp.value = cell.value || "";
+      td.appendChild(inp);
+      bind(inp, cell.qid, artIdx);
+      return td;
+    }
+
     state.blocks.forEach(function (b) {
-      if (b.repeat !== "art" || !b.rows) return;
+      if (!b.rows || (b.repeat !== "art" && b.repeat !== "list_art")) return;
       var tbody = root.querySelector('.block[data-block="' + b.code + '"] .roster tbody');
       if (!tbody) return;
+
+      // bila jumlah baris data (bukan header/warning) beda dengan state -> bangun ulang isi tabel
+      var domData = tbody.querySelectorAll("tr:not(.group-header):not(.row-warn)").length;
+      var stateData = (b.rows || []).filter(function (r) { return !r.group_header; }).length;
+      if (domData === stateData) return;
+
+      tbody.innerHTML = "";
       b.rows.forEach(function (row) {
-        if (tbody.querySelector('tr > .rcell[data-art="' + row.idx + '"]')) return;
         var tr = document.createElement("tr");
-        var th = document.createElement("th");
-        th.textContent = row.idx;
-        tr.appendChild(th);
-        (b.columns || []).forEach(function (col, ci) {
-          var cell = (row.cells || [])[ci] || {};
-          var td = document.createElement("td");
-          td.className = "rcell";
-          td.dataset.qid = cell.qid;
-          td.dataset.art = row.idx;
-          td.dataset.var = cell.var;
-          var inp;
-          if (col.options && col.options.length) {
-            inp = document.createElement("select");
-            inp.innerHTML = '<option value="">—</option>';
-            col.options.forEach(function (o) {
-              var op = document.createElement("option");
-              op.value = o.code;
-              op.textContent = o.code + " · " + o.label;
-              inp.appendChild(op);
-            });
-          } else {
-            inp = document.createElement("input");
-          }
-          inp.className = "answer";
-          inp.value = cell.value || "";
-          td.appendChild(inp);
-          tr.appendChild(td);
-          bind(inp, cell.qid, row.idx);
-        });
+        if (row.group_header) {
+          tr.className = "group-header";
+          var gh = document.createElement("th");
+          gh.colSpan = (b.columns || []).length + 1;
+          gh.textContent = row.group_header;
+          tr.appendChild(gh);
+        } else {
+          var rh = document.createElement("th");
+          if (row.label) rh.className = "row-label";
+          rh.textContent = row.label != null ? row.label : row.idx;
+          tr.appendChild(rh);
+          (b.columns || []).forEach(function (col, ci) {
+            tr.appendChild(makeCell(col, (row.cells || [])[ci] || {}, row.idx));
+          });
+        }
         tbody.appendChild(tr);
       });
     });
@@ -353,6 +371,37 @@
     var err = Array.prototype.some.call(flags, function (s) { return s.classList.contains("error"); });
     f.classList.add(err ? "has-error" : "has-warning");
   });
+
+  // Tombol "Terapkan jumlah ART": setel R301 lalu sesuaikan baris roster & list_art
+  var applyArt = document.getElementById("apply-art");
+  if (applyArt) {
+    var artField = applyArt.closest(".field");
+    applyArt.addEventListener("click", function () {
+      var fld = artField && artField.querySelector(".answer");
+      var n = parseInt((fld && fld.value) || "0", 10);
+      if (isNaN(n) || n < 0) { flash("isi Banyaknya ART dulu", false); return; }
+      var domMax = 0;
+      root.querySelectorAll('.block[data-block] .roster tbody tr:not(.group-header) > th').forEach(function (th) {
+        var t = th.textContent.trim();
+        var m = /(\d+)\s*$/.exec(t);
+        if (m) domMax = Math.max(domMax, parseInt(m[1], 10));
+      });
+      if (n < domMax && !confirm("Kurangi jumlah ART ke " + n + "? Isian untuk ART " + (n + 1) + "–" + domMax + " akan dihapus dan tidak bisa dikembalikan.")) return;
+      applyArt.disabled = true;
+      flash("menyesuaikan…", true);
+      fetch("/entri/" + docId + "/jumlah-art", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-TOKEN": CSRF, "X-Requested-With": "XMLHttpRequest" },
+        body: "count=" + n,
+      }).then(function (r) { if (!r.ok) throw new Error("gagal (" + r.status + ")"); return r.json(); })
+        .then(function (d) {
+          repaint(d.state);
+          flash(d.dropped ? d.dropped + " isian ART dihapus" : "baris disesuaikan", true);
+        })
+        .catch(function (e) { flash(e.message, false); })
+        .finally(function () { applyArt.disabled = false; });
+    });
+  }
 
   var jump = document.getElementById("next-issue");
   if (jump) {

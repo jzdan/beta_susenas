@@ -97,6 +97,49 @@ class AdminMetadataTest extends TestCase
         $this->assertSame('ART (judul baru)', $block->fresh()->title);
     }
 
+    public function test_edit_a_fixed_row_reference_inline(): void
+    {
+        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+        $b = Block::where('qversion_id', $qv->id)->where('code', 'IV.1')->firstOrFail();
+        $row = \App\Models\BlockRow::where('block_id', $b->id)->orderBy('row_index')->firstOrFail();
+
+        // editor menampilkan input yg bisa disunting + kolom ref
+        $res = $this->actingAs($this->admin())->get("/admin/blok/{$b->id}");
+        $res->assertOk()->assertSee('name="ref[kalori]"', false);
+        $this->assertTrue($res->viewData('refKeys')->contains('kalori'));
+
+        // ubah kalori & max_kons (kolom baru) pada satu baris
+        $this->actingAs($this->admin())->post("/admin/blok/{$b->id}/baris-satu", [
+            'row_id' => $row->id, 'row_index' => $row->row_index,
+            'code' => $row->code, 'label' => $row->label,
+            'ref' => ['kalori' => '9999', 'harga_min' => '', 'harga_max' => '5000', 'max_kons' => '7'],
+        ])->assertRedirect();
+
+        $row->refresh();
+        $this->assertSame('9999', $row->ref['kalori']);
+        $this->assertSame('7', $row->ref['max_kons']);
+        $this->assertArrayNotHasKey('harga_min', $row->ref);   // kosong -> dibuang
+    }
+
+    public function test_add_and_delete_a_fixed_row(): void
+    {
+        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+        $b = Block::where('qversion_id', $qv->id)->where('code', 'IV.1')->firstOrFail();
+
+        $this->actingAs($this->admin())->post("/admin/blok/{$b->id}/baris-satu", [
+            'row_index' => 9001, 'code' => 'ZZ', 'label' => 'Komoditas uji', 'ref' => ['kalori' => '1000'],
+        ])->assertRedirect();
+        $new = \App\Models\BlockRow::where('block_id', $b->id)->where('row_index', 9001)->firstOrFail();
+
+        // nomor baris bentrok ditolak
+        $this->actingAs($this->admin())->post("/admin/blok/{$b->id}/baris-satu", [
+            'row_index' => 9001, 'label' => 'lain',
+        ])->assertSessionHasErrors('row_index');
+
+        $this->actingAs($this->admin())->post("/admin/baris/{$new->id}/hapus")->assertRedirect();
+        $this->assertDatabaseMissing('block_rows', ['id' => $new->id]);
+    }
+
     public function test_bulk_import_and_reorder_response_options(): void
     {
         $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
@@ -141,6 +184,29 @@ class AdminMetadataTest extends TestCase
             'ids' => $ids->all(), 'aksi' => 'aktif',
         ])->assertRedirect();
         $this->assertSame(3, ValidationRule::whereIn('id', $ids)->where('active', true)->count());
+    }
+
+    public function test_rules_page_groups_and_quick_edit(): void
+    {
+        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+
+        $res = $this->actingAs($this->admin())->get('/admin/aturan');
+        $res->assertOk();
+        $groups = $res->viewData('groups');
+        $this->assertTrue($groups->keys()->contains(fn ($k) => str_contains($k, 'Blok IV.1')));
+
+        // sunting cepat: keterangan + ambang
+        $rule = ValidationRule::where('qversion_id', $qv->id)->where('code', 'IV1-JUMLAH-NILAI')->firstOrFail();
+        $this->assertSame('1', $rule->soleThreshold());
+
+        $this->actingAs($this->admin())->post("/admin/aturan/{$rule->id}/cepat", [
+            'note' => 'Cek (10) = (6)+(8)', 'threshold' => '5',
+        ])->assertRedirect();
+
+        $rule->refresh();
+        $this->assertSame('Cek (10) = (6)+(8)', $rule->note);
+        $this->assertStringContainsString('> 5', $rule->expr);
+        $this->assertSame('', $this->app->make(\App\Services\ExpressionEvaluator::class)->checkSyntax($rule->expr, \App\Services\RuleEngine::ROSTER_FUNCS));
     }
 
     public function test_aggregate_can_be_edited_inline(): void

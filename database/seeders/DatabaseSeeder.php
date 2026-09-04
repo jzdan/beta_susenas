@@ -95,7 +95,7 @@ class DatabaseSeeder extends Seeder
                 continue;
             }
             $ref = [];
-            foreach (['group', 'kalori', 'harga_min', 'harga_max'] as $k) {
+            foreach (['group', 'kalori', 'harga_min', 'harga_max', 'max_kons'] as $k) {
                 if (($row[$k] ?? '') !== '') {
                     $ref[$k] = $row[$k];
                 }
@@ -125,16 +125,62 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        Question::create(['block_id' => $b->id, 'code_rincian' => 'K4', 'var_name' => 'iv1_kuantitas',
-            'label' => 'Kuantitas konsumsi (satuan komoditas, seminggu)', 'qtype' => 'decimal', 'unit' => 'satuan', 'order' => 1]);
-        Question::create(['block_id' => $b->id, 'code_rincian' => 'K5', 'var_name' => 'iv1_nilai_beli',
-            'label' => 'Nilai konsumsi dari pembelian (Rp, seminggu)', 'qtype' => 'decimal', 'unit' => 'Rp', 'order' => 2]);
+        // Kolom sesuai VSEN26.KP / WTF: (5)(6) dari pembelian, (7)(8) dari produksi
+        // sendiri/pemberian, (9)=(5)+(7) & (10)=(6)+(8) jumlah konsumsi.
+        Question::create(['block_id' => $b->id, 'code_rincian' => 'K5', 'var_name' => 'iv1_kuantitas_beli',
+            'label' => 'Banyaknya dari pembelian — kolom (5) (satuan komoditas, seminggu)', 'qtype' => 'decimal', 'unit' => 'satuan', 'order' => 1]);
+        Question::create(['block_id' => $b->id, 'code_rincian' => 'K6', 'var_name' => 'iv1_nilai_beli',
+            'label' => 'Nilai dari pembelian — kolom (6) (Rp, seminggu)', 'qtype' => 'decimal', 'unit' => 'Rp', 'order' => 2]);
+        Question::create(['block_id' => $b->id, 'code_rincian' => 'K7', 'var_name' => 'iv1_kuantitas_lain',
+            'label' => 'Banyaknya dari produksi sendiri / pemberian — kolom (7) (satuan komoditas, seminggu)', 'qtype' => 'decimal', 'unit' => 'satuan', 'order' => 3]);
         Question::create(['block_id' => $b->id, 'code_rincian' => 'K8', 'var_name' => 'iv1_nilai_lain',
-            'label' => 'Nilai konsumsi dari produksi sendiri / pemberian (Rp, seminggu)', 'qtype' => 'decimal', 'unit' => 'Rp', 'order' => 3]);
+            'label' => 'Nilai dari produksi sendiri / pemberian — kolom (8) (Rp, seminggu)', 'qtype' => 'decimal', 'unit' => 'Rp', 'order' => 4]);
         $qa = Question::create(['block_id' => $b->id, 'code_rincian' => 'K8a', 'var_name' => 'iv1_asal_lain',
-            'label' => 'Asal konsumsi selain pembelian', 'qtype' => 'code', 'order' => 4]);
+            'label' => 'Asal konsumsi selain pembelian — kolom (8a)', 'qtype' => 'code', 'order' => 5]);
         foreach ([['1', 'Produksi sendiri'], ['2', 'Pemberian rumah tangga lain'], ['3', 'Pemberian lembaga/pemerintah']] as $j => [$c, $l]) {
             ResponseOption::create(['question_id' => $qa->id, 'code' => $c, 'label' => $l, 'order' => $j + 1]);
+        }
+        Question::create(['block_id' => $b->id, 'code_rincian' => 'K9', 'var_name' => 'iv1_kuantitas',
+            'label' => 'Jumlah konsumsi — kolom (9) = (5)+(7)', 'qtype' => 'decimal', 'unit' => 'satuan', 'order' => 6]);
+        Question::create(['block_id' => $b->id, 'code_rincian' => 'K10', 'var_name' => 'iv1_nilai',
+            'label' => 'Nilai jumlah konsumsi — kolom (10) = (6)+(8)', 'qtype' => 'decimal', 'unit' => 'Rp', 'order' => 7]);
+
+        // Blok IV.1M — Makanan & minuman jadi (R.187–225) dirinci PER ART (untuk MBG)
+        $bm = Block::create(['qversion_id' => $qv->id, 'code' => 'IV.1M',
+            'title' => 'Konsumsi Makanan & Minuman Jadi per Anggota Rumah Tangga', 'order' => 2, 'repeat' => 'list_art']);
+        foreach ([
+            [188, 'Roti tawar', 'Potong'], [189, 'Roti manis / roti lainnya', 'Potong'],
+            [191, 'Kue basah', 'Buah'], [196, 'Nasi rames / nasi campur', 'Porsi'],
+            [203, 'Bakso', 'Porsi'], [217, 'Es krim', 'Mangkok kecil'],
+        ] as $j => [$idx, $lbl, $sat]) {
+            \App\Models\BlockRow::create(['block_id' => $bm->id, 'row_index' => $idx,
+                'code' => str_pad((string) $idx, 3, '0', STR_PAD_LEFT), 'label' => $lbl,
+                'order' => $j + 1, 'ref' => ['satuan' => $sat, 'group' => 'MAKANAN & MINUMAN JADI']]);
+        }
+        Question::create(['block_id' => $bm->id, 'code_rincian' => 'MJ1', 'var_name' => 'mj_kuantitas',
+            'label' => 'Jumlah konsumsi (satuan komoditas, seminggu)', 'qtype' => 'decimal', 'unit' => 'satuan', 'order' => 1]);
+        Question::create(['block_id' => $bm->id, 'code_rincian' => 'MJ2', 'var_name' => 'mj_nilai',
+            'label' => 'Nilai konsumsi (Rp, seminggu)', 'qtype' => 'decimal', 'unit' => 'Rp', 'order' => 2]);
+        $qs = Question::create(['block_id' => $bm->id, 'code_rincian' => 'MJ3', 'var_name' => 'mj_sumber',
+            'label' => 'Sumber utama', 'qtype' => 'code', 'order' => 3]);
+        foreach ([['1', 'Pembelian'], ['2', 'Produksi sendiri'], ['3', 'Pemberian rumah tangga lain'],
+            ['4', 'Program pemerintah / MBG']] as $j => [$c, $l]) {
+            ResponseOption::create(['question_id' => $qs->id, 'code' => $c, 'label' => $l, 'order' => $j + 1]);
+        }
+        foreach ([
+            ['IV1M-NEGATIF', 'IV.1M', 'mj_kuantitas',
+                'filled(mj_kuantitas) and n(mj_kuantitas) < 0', 'error',
+                'Jumlah konsumsi makanan jadi bernilai negatif.'],
+            ['IV1M-NILAI-KOSONG', 'IV.1M', 'mj_nilai',
+                'filled(mj_kuantitas) and n(mj_kuantitas) > 0 and n(mj_sumber) == 1 and (blank(mj_nilai) or n(mj_nilai) == 0)', 'warning',
+                'Sumber = pembelian tetapi nilai konsumsi kosong.'],
+            ['IV1M-MBG-KUANTITAS', 'IV.1M', 'mj_kuantitas',
+                'n(mj_sumber) == 4 and (blank(mj_kuantitas) or n(mj_kuantitas) == 0)', 'warning',
+                'Sumber = program pemerintah/MBG tetapi jumlah konsumsi belum diisi.'],
+        ] as [$code, $rowBlock, $target, $expr, $sev, $msg]) {
+            ValidationRule::create(['qversion_id' => $qv->id, 'code' => $code, 'scope' => 'baris',
+                'row_block' => $rowBlock, 'target_var' => $target, 'expr' => $expr,
+                'severity' => $sev, 'message' => $msg, 'active' => true]);
         }
 
         // Blok I — Keterangan Tempat (identitas; dicek terhadap metadata sampel)
@@ -167,14 +213,14 @@ class DatabaseSeeder extends Seeder
 
         // Blok Pokok ringkas (agar ada banyak_art untuk kalori/kapita)
         $bp = Block::create(['qversion_id' => $qv->id, 'code' => 'POKOK',
-            'title' => 'Keterangan Pokok (ringkas)', 'order' => 0, 'repeat' => 'ruta']);
+            'title' => 'Keterangan Pokok (ringkas)', 'order' => -1, 'repeat' => 'ruta']);
         $this->addQuestions($bp, [
             ['R301', 'banyak_art', 'Banyaknya ART', 'int', 'orang', []],
         ]);
 
         // Blok III — roster keterangan anggota rumah tangga (demografi inti)
         $bIII = Block::create(['qversion_id' => $qv->id, 'code' => 'III',
-            'title' => 'Keterangan Anggota Rumah Tangga', 'order' => -1, 'repeat' => 'art']);
+            'title' => 'Keterangan Anggota Rumah Tangga', 'order' => 0, 'repeat' => 'art']);
         $this->addQuestions($bIII, [
             ['R302', 'art_nama', 'Nama anggota rumah tangga', 'text', '', []],
             ['R303', 'art_hub_krt', 'Hubungan dengan kepala rumah tangga', 'code', '', [
@@ -355,6 +401,17 @@ class DatabaseSeeder extends Seeder
                 'filled(iv1_nilai_beli) and n(iv1_kuantitas) > 0 and filled(ref_harga_min) and filled(ref_harga_max) '
                 . 'and (n(iv1_nilai_beli) / n(iv1_kuantitas) < n(ref_harga_min) or n(iv1_nilai_beli) / n(iv1_kuantitas) > n(ref_harga_max))',
                 'Harga satuan (nilai ÷ kuantitas) di luar rentang wajar komoditas ini.'],
+            ['IV1-KUANTITAS-MAX', 'baris', 'IV.1', 'iv1_kuantitas',
+                'filled(iv1_kuantitas) and n(iv1_kuantitas) > 0 and filled(ref_max_kons) and n(iv1_kuantitas) > n(ref_max_kons)',
+                'Kuantitas komoditas melebihi batas maksimum wajar per rumah tangga per minggu.'],
+            ['IV1-JUMLAH-BANYAK', 'baris', 'IV.1', 'iv1_kuantitas',
+                '(filled(iv1_kuantitas_beli) or filled(iv1_kuantitas_lain)) and filled(iv1_kuantitas) '
+                . 'and abs(n(iv1_kuantitas) - (n(iv1_kuantitas_beli) + n(iv1_kuantitas_lain))) > 0.01',
+                'Jumlah konsumsi kolom (9) tidak sama dengan pembelian (5) + produksi sendiri (7).'],
+            ['IV1-JUMLAH-NILAI', 'baris', 'IV.1', 'iv1_nilai',
+                '(filled(iv1_nilai_beli) or filled(iv1_nilai_lain)) and filled(iv1_nilai) '
+                . 'and abs(n(iv1_nilai) - (n(iv1_nilai_beli) + n(iv1_nilai_lain))) > 1',
+                'Nilai jumlah konsumsi kolom (10) tidak sama dengan pembelian (6) + produksi sendiri (8).'],
         ] as [$code, $scope, $rowBlock, $target, $expr, $msg]) {
             ValidationRule::create(['qversion_id' => $qv->id, 'code' => $code, 'scope' => $scope,
                 'row_block' => $rowBlock, 'target_var' => $target, 'expr' => $expr,
@@ -366,7 +423,7 @@ class DatabaseSeeder extends Seeder
         if (is_file($iv2Path)) {
             $b2 = Block::create(['qversion_id' => $qv->id, 'code' => 'IV.2',
                 'title' => 'Pengeluaran untuk Barang Bukan Makanan (Sebulan & Setahun Terakhir)',
-                'order' => 2, 'repeat' => 'list']);
+                'order' => 3, 'repeat' => 'list']);
             $fh2 = fopen($iv2Path, 'r');
             $h2 = array_map('trim', fgetcsv($fh2));
             $n2 = 0;
@@ -447,7 +504,7 @@ class DatabaseSeeder extends Seeder
         // ============ Blok V (baris jumlah) + Blok VI Rekapitulasi Penerimaan-Pengeluaran ============
         $bV = Block::create(['qversion_id' => $qv->id, 'code' => 'V',
             'title' => 'Pendapatan, Penerimaan, dan Pengeluaran Bukan Konsumsi (baris jumlah, setahun)',
-            'order' => 3, 'repeat' => 'ruta']);
+            'order' => 4, 'repeat' => 'ruta']);
         $this->addQuestions($bV, [
             ['VA', 'v_a_upah', 'Blok V.A Jumlah — upah/gaji uang + barang/jasa + lembur/THR (Kolom 5+6+7)', 'decimal', 'Rp', []],
             ['VB', 'v_b_surplus', 'Blok V.B Jumlah — surplus usaha rumah tangga (Kolom 7)', 'decimal', 'Rp', []],
@@ -486,7 +543,7 @@ class DatabaseSeeder extends Seeder
         // ============ Blok VII — Transaksi Keuangan Rumah Tangga (setahun) ============
         $bVII = Block::create(['qversion_id' => $qv->id, 'code' => 'VII',
             'title' => 'Transaksi Keuangan Rumah Tangga Selama Setahun Terakhir',
-            'order' => 4, 'repeat' => 'ruta']);
+            'order' => 5, 'repeat' => 'ruta']);
         $this->addQuestions($bVII, [
             ['VII-P1', 'vii_p1_ambil_tabungan', 'Penerimaan 1 · pengambilan uang tunai dan tabungan', 'decimal', 'Rp', []],
             ['VII-P2', 'vii_p2_pinjam_uang', 'Penerimaan 2 · meminjam uang', 'decimal', 'Rp', []],
@@ -693,6 +750,7 @@ class DatabaseSeeder extends Seeder
                 }
                 $badPrice = ($seq % 7 === 0);
                 $foodWeek = 0;
+                $firstRi = array_key_first($priced);
                 foreach ($priced as $ri => $w) {
                     $ref = $foodRows[$ri] ?? [];
                     $kal = max(1.0, (float) ($ref['kalori'] ?? 1500));
@@ -702,19 +760,32 @@ class DatabaseSeeder extends Seeder
                     $kuant = round($kcalWeek * $w / max($wkSum, 1), 2);
                     if ($kuant < 0.3) { continue; }
                     $nilai = (int) round($kuant * $unit);                        // harga satuan = tepat $unit
-                    if ($badPrice && $ri === array_key_first($priced)) {
+                    if ($badPrice && $ri === $firstRi) {
                         $nilai = (int) round($nilai * 2.4);               // satu komoditas harga tak wajar
                     }
+                    // kolom (5)(6) dari pembelian; baris pertama sebagian dari produksi sendiri (7)(8)
+                    $qLain = 0.0;
+                    $nLain = 0;
+                    if ($ri === $firstRi) {
+                        $qLain = round($kuant * 0.25, 2);
+                        $nLain = (int) round($qLain * $unit);
+                    }
+                    $qBeli = round($kuant - $qLain, 2);
+                    $nBeli = $nilai - $nLain;
                     $foodWeek += $nilai;
-                    $put($dg, $qmap, 'iv1_kuantitas', $kuant, $ri);
-                    $put($dg, $qmap, 'iv1_nilai_beli', $nilai, $ri);
+                    $put($dg, $qmap, 'iv1_kuantitas_beli', $qBeli, $ri);
+                    $put($dg, $qmap, 'iv1_nilai_beli', $nBeli, $ri);
+                    if ($qLain > 0) {
+                        $put($dg, $qmap, 'iv1_kuantitas_lain', $qLain, $ri);
+                        $put($dg, $qmap, 'iv1_nilai_lain', $nLain, $ri);
+                        $put($dg, $qmap, 'iv1_asal_lain', '1', $ri);
+                    }
+                    $put($dg, $qmap, 'iv1_kuantitas', $kuant, $ri);              // kolom (9) = (5)+(7)
+                    $put($dg, $qmap, 'iv1_nilai', $nilai, $ri);                  // kolom (10) = (6)+(8)
                 }
-                $lainMinggu = mt_rand(5, 30) * 1000;
-                $put($dg, $qmap, 'iv1_nilai_lain', $lainMinggu, 1);
-                $put($dg, $qmap, 'iv1_asal_lain', '1', 1);
 
                 // Blok IV.2 — non-pangan sebagai porsi dari pengeluaran makanan aktual
-                $makananSebulan = (int) round(($foodWeek + $lainMinggu) * 30 / 7);
+                $makananSebulan = (int) round($foodWeek * 30 / 7);
                 $nonFoodBulan = (int) round($makananSebulan * mt_rand(55, 110) / 100);
                 $nfBulan = (int) round($nonFoodBulan * mt_rand(50, 68) / 100);
                 $nfTahunTotal = max(0, $nonFoodBulan - $nfBulan) * 12;
@@ -1043,6 +1114,9 @@ class DatabaseSeeder extends Seeder
                 'filled(iv1_nilai_beli) and n(iv1_kuantitas) > 0 and filled(ref_harga_min) and filled(ref_harga_max) '
                 . 'and (n(iv1_nilai_beli) / n(iv1_kuantitas) < n(ref_harga_min) or n(iv1_nilai_beli) / n(iv1_kuantitas) > n(ref_harga_max))',
                 'warning', 'Harga satuan (nilai ÷ kuantitas) di luar rentang wajar komoditas ini.'],
+            ['IV1-KUANTITAS-MAX', 'baris', 'IV.1', 'iv1_kuantitas',
+                'filled(iv1_kuantitas) and n(iv1_kuantitas) > 0 and filled(ref_max_kons) and n(iv1_kuantitas) > n(ref_max_kons)',
+                'warning', 'Kuantitas komoditas melebihi batas maksimum wajar per rumah tangga per minggu.'],
         ] as [$code, $scope, $rowBlock, $target, $expr, $sev, $msg]) {
             ValidationRule::create(['qversion_id' => $qv->id, 'code' => $code, 'scope' => $scope,
                 'row_block' => $rowBlock, 'target_var' => $target, 'expr' => $expr,
