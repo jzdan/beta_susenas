@@ -859,7 +859,8 @@ class DatabaseSeeder extends Seeder
             ['ppl_ani', 'Ani Kurniawati', 'operator123', 'operator', ''],
             ['ppl_dodi', 'Dodi Firmansyah', 'operator123', 'operator', ''],
             ['ppl_eka', 'Eka Wijaya', 'operator123', 'operator', ''],
-            ['siti_editor', 'Siti Editor', 'editor123', 'editor', '3526'],
+            // pengolah tingkat kantor (dulu peran "editor" — kini dilebur ke pml, tanpa batas kecamatan)
+            ['siti_editor', 'Siti Nurjanah', 'editor123', 'pml', ''],
             ['viewer', 'Peninjau', 'viewer123', 'viewer', ''],
         ];
         $out = [];

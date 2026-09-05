@@ -1153,6 +1153,20 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 - Tes `AdminMetadataTest::test_rules_page_groups_and_quick_edit`. **190 tes lulus.**
   Reseed + health bersih.
 
+### Increment 101 — peran "editor" dilebur ke "pml"
+
+- Permintaan user: "kalo sudah ada pml yang bisa nanganin semua editor ngapain
+  masih pake editor" → hapus peran editor.
+- `User::ROLE_LABELS` tinggal 4: admin, **pml (Pengawas/Pengolah)**, operator,
+  viewer. Middleware `role:pml,editor,admin` → `role:pml,admin` (pengolahan,
+  tabulasi, dokumen.catatan, bulkClean, dashboard/pengolahan blade guards).
+  `assignableUsers()` PML list tak lagi menyertakan editor.
+- Migrasi `2026_09_04_130000_merge_editor_role_into_pml` — `users` role editor →
+  pml. Seed `siti_editor` kini role `pml` tanpa `wilayah_scope` (pengolah tingkat
+  kantor, lihat semua kecamatan). Login demo di halaman login dirapikan.
+- Semua tes lulus tanpa perubahan (akun `siti_editor` tetap ada, kini pml).
+  **190 tes.** Reseed + health bersih.
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

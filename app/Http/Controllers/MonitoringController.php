@@ -413,7 +413,7 @@ class MonitoringController extends Controller
     private function assignableUsers(User $user): array
     {
         $ops = User::where('role', 'operator')->where('active', true)->orderBy('name')->pluck('name', 'id')->all();
-        $pmls = User::whereIn('role', ['pml', 'editor'])->where('active', true)->orderBy('name')->pluck('name', 'id')->all();
+        $pmls = User::where('role', 'pml')->where('active', true)->orderBy('name')->pluck('name', 'id')->all();
         return ['operator' => $ops, 'pml' => $pmls];
     }
 

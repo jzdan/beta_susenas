@@ -384,7 +384,7 @@ class CleaningController extends Controller
     /** Tandai bersih beberapa dokumen sekaligus (hanya yang 0 error). */
     public function bulkClean(Request $request)
     {
-        abort_unless(in_array($request->user()->role, ['pml', 'editor', 'admin'], true), 403);
+        abort_unless(in_array($request->user()->role, ['pml', 'admin'], true), 403);
         $d = $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
 
         $ids = $this->scoped($request)

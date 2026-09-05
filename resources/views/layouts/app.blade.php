@@ -39,10 +39,10 @@
       <a href="{{ route('monitoring.tasks') }}" class="{{ ($nav ?? '')=='tugas' ? 'on' : '' }}">Tugas Saya</a>
       <a href="{{ route('monitoring.peta') }}" class="{{ ($nav ?? '')=='peta' ? 'on' : '' }}">Peta Progres</a>
       <a href="{{ route('monitoring.samples') }}" class="{{ ($nav ?? '')=='sampel' ? 'on' : '' }}">Daftar Sampel</a>
-      @if(in_array($u->role, ['pml','editor','admin']))
+      @if(in_array($u->role, ['pml','admin']))
         <a href="{{ route('pengolahan.index') }}" class="{{ ($nav ?? '')=='pengolahan' ? 'on' : '' }}">Pengolahan</a>
       @endif
-      @if(in_array($u->role, ['pml','editor','admin','viewer']))
+      @if(in_array($u->role, ['pml','admin','viewer']))
         <a href="{{ route('tabulasi.index') }}" class="{{ ($nav ?? '')=='tabulasi' ? 'on' : '' }}">Tabulasi &amp; Ekspor</a>
         <a href="{{ route('tabulasi.indikator') }}" class="{{ ($nav ?? '')=='indikator' ? 'on' : '' }}">Indikator Kesejahteraan</a>
       @endif

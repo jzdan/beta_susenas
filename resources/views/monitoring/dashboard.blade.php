@@ -90,7 +90,7 @@
         <td><span class="flag {{ $tr->severity === 'error' ? 'error' : 'warning' }}" style="display:inline-block">{{ $tr->severity }}</span></td>
         <td class="num">{{ $tr->n_doc }}</td>
         <td class="right">
-          @if(in_array(auth()->user()->role, ['pml','editor','admin']))
+          @if(in_array(auth()->user()->role, ['pml','admin']))
           <a class="btn-ghost" href="{{ route('pengolahan.index', ['rule' => $tr->code]) }}">Lihat</a>
           @endif
         </td>

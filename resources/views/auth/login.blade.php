@@ -23,8 +23,7 @@
       <summary>Akun demo</summary>
       <table>
         <tr><td>admin</td><td>admin123</td><td>Administrator</td></tr>
-        <tr><td>rahmawati</td><td>pengawas123</td><td>Pengawas (wil. 3526)</td></tr>
-        <tr><td>siti_editor</td><td>editor123</td><td>Editor / Pengolah (wil. 3526)</td></tr>
+        <tr><td>rahmawati</td><td>pengawas123</td><td>Pengawas / Pengolah</td></tr>
         <tr><td>ppl_ani</td><td>operator123</td><td>Operator entri</td></tr>
         <tr><td>viewer</td><td>viewer123</td><td>Peninjau</td></tr>
       </table>

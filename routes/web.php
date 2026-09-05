@@ -20,7 +20,7 @@ Route::middleware('role')->group(function () {
     Route::post('/akun/sandi', [\App\Http\Controllers\AccountController::class, 'updatePassword'])->name('akun.sandi');
 
     Route::post('/dokumen/{document}/catatan', [\App\Http\Controllers\DocumentNoteController::class, 'store'])
-        ->middleware('role:operator,pml,editor,admin')->name('dokumen.catatan');
+        ->middleware('role:operator,pml,admin')->name('dokumen.catatan');
 
     Route::prefix('notifikasi')->name('notifikasi.')->group(function () {
         Route::get('/', [\App\Http\Controllers\NotificationController::class, 'index'])->name('index');
@@ -50,7 +50,7 @@ Route::middleware('role')->group(function () {
             ->middleware('role:pml,admin')->name('kinerja');
     });
 
-    Route::prefix('pengolahan')->name('pengolahan.')->middleware('role:pml,editor,admin')->group(function () {
+    Route::prefix('pengolahan')->name('pengolahan.')->middleware('role:pml,admin')->group(function () {
         Route::get('/', [CleaningController::class, 'index'])->name('index');
         Route::post('/revalidasi', [CleaningController::class, 'revalidate'])->name('revalidate');
         Route::post('/bersih-massal', [CleaningController::class, 'bulkClean'])->name('bulk-clean');
@@ -63,7 +63,7 @@ Route::middleware('role')->group(function () {
         Route::post('/{document}/batal-terima-warning', [CleaningController::class, 'unackWarning'])->name('batal-terima-warning');
     });
 
-    Route::prefix('tabulasi')->name('tabulasi.')->middleware('role:pml,editor,admin,viewer')->group(function () {
+    Route::prefix('tabulasi')->name('tabulasi.')->middleware('role:pml,admin,viewer')->group(function () {
         Route::get('/', [TabulationController::class, 'index'])->name('index');
         Route::get('/indikator', [TabulationController::class, 'indicators'])->name('indikator');
         Route::get('/ekspor-data', [TabulationController::class, 'exportRaw'])

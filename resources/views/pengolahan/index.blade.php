@@ -60,7 +60,7 @@
   @endif
 </div>
 
-@php($canBulk = in_array(auth()->user()->role, ['pml','editor','admin']))
+@php($canBulk = in_array(auth()->user()->role, ['pml','admin']))
 @php($eligible = fn($r) => in_array($r['doc']->status, ['selesai','dikembalikan']) && $r['err'] === 0)
 <form method="post" action="{{ route('pengolahan.bulk-clean', ['status' => $fStatus, 'rule' => $fRule, 'q' => $fQ]) }}"
       onsubmit="return confirm('Tandai bersih semua dokumen terpilih?')">
