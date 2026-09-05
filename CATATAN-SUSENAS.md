@@ -1167,6 +1167,21 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 - Semua tes lulus tanpa perubahan (akun `siti_editor` tetap ada, kini pml).
   **190 tes.** Reseed + health bersih.
 
+### Increment 102 — Blok IV.1M: daftar makanan jadi + rokok lengkap
+
+- Blok IV.1M (`list_art`, per ART) diperluas dari 6 komoditas contoh → **37
+  rincian penuh** R.188–225 sesuai VSEN26.KP: makanan & minuman jadi (188–219)
+  + rokok/tembakau (221–225). Tiap baris punya `ref.satuan` + `ref.group`
+  (MAKANAN & MINUMAN JADI / ROKOK & TEMBAKAU); `ref.kalori` diambil otomatis
+  dari daftar komoditas Blok IV.1 (cocokkan lewat `code`).
+- Pertanyaan & aturan blok tidak berubah (`mj_kuantitas`, `mj_nilai`,
+  `mj_sumber` dgn opsi 4 = Program pemerintah/MBG; rules IV1M-*). Blok IV.1
+  (rumah tangga) dibiarkan utuh — IV.1M = lapisan per-ART untuk analisis MBG.
+- `ListArtBlockTest` disesuaikan (jumlah komoditas dinamis, bukan hardcode 6).
+- **190 tes lulus.** Reseed + `susenas:health` bersih.
+- Menu Admin: **Impor Wilkerstat** dipindah ke bagian "Setup awal (sekali)" di
+  bawah; halaman impor wilayah diberi catatan setup.
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

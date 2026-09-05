@@ -6,6 +6,8 @@
 @php($fQ = $fQ ?? '')
 @php($list = $list ?? collect())
 <h1>Master Wilkerstat</h1>
+<p class="muted"><em>Setup awal.</em> Muat daftar kecamatan &amp; desa kabupaten sekali di awal;
+  ulangi hanya jika ada pemekaran/perubahan wilayah. Untuk daftar sampel tiap semester, pakai <strong>Impor Sampel</strong>.</p>
 <p class="muted">Total kode: <strong>{{ $n }}</strong>
   @foreach (['provinsi','kabupaten','kecamatan','desa'] as $lv)
     · {{ $byLevel[$lv] ?? 0 }} {{ $lv }}

@@ -58,10 +58,11 @@
         <div class="nav-sep">Admin · Data</div>
         <a href="{{ route('admin.jadwal') }}" class="{{ ($nav ?? '')=='jadwal' ? 'on' : '' }}">Jadwal Lapangan</a>
         <a href="{{ route('admin.harga') }}" class="{{ ($nav ?? '')=='harga' ? 'on' : '' }}">Harga Referensi</a>
-        <a href="{{ route('admin.impor.wilayah') }}" class="{{ ($nav ?? '')=='wil' ? 'on' : '' }}">Impor Wilkerstat</a>
         <a href="{{ route('admin.impor.sampel') }}" class="{{ ($nav ?? '')=='imsampel' ? 'on' : '' }}">Impor Sampel</a>
         <a href="{{ route('admin.impor.dokumen') }}" class="{{ ($nav ?? '')=='imdok' ? 'on' : '' }}">Impor Dokumen</a>
         <a href="{{ route('admin.pengguna') }}" class="{{ ($nav ?? '')=='pengguna' ? 'on' : '' }}">Pengguna</a>
+        <div class="nav-sep">Setup awal (sekali)</div>
+        <a href="{{ route('admin.impor.wilayah') }}" class="{{ ($nav ?? '')=='wil' ? 'on' : '' }}">Impor Wilkerstat</a>
       @endif
     </nav>
     <main class="content">

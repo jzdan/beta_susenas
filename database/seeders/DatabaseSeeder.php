@@ -145,17 +145,59 @@ class DatabaseSeeder extends Seeder
         Question::create(['block_id' => $b->id, 'code_rincian' => 'K10', 'var_name' => 'iv1_nilai',
             'label' => 'Nilai jumlah konsumsi — kolom (10) = (6)+(8)', 'qtype' => 'decimal', 'unit' => 'Rp', 'order' => 7]);
 
-        // Blok IV.1M — Makanan & minuman jadi (R.187–225) dirinci PER ART (untuk MBG)
+        // Blok IV.1M — Makanan & minuman jadi + rokok (R.188–225) dirinci PER ART.
+        // Daftar lengkap sesuai VSEN26.KP; kalori diambil dari daftar komoditas IV.1.
         $bm = Block::create(['qversion_id' => $qv->id, 'code' => 'IV.1M',
-            'title' => 'Konsumsi Makanan & Minuman Jadi per Anggota Rumah Tangga', 'order' => 2, 'repeat' => 'list_art']);
-        foreach ([
-            [188, 'Roti tawar', 'Potong'], [189, 'Roti manis / roti lainnya', 'Potong'],
-            [191, 'Kue basah', 'Buah'], [196, 'Nasi rames / nasi campur', 'Porsi'],
-            [203, 'Bakso', 'Porsi'], [217, 'Es krim', 'Mangkok kecil'],
-        ] as $j => [$idx, $lbl, $sat]) {
+            'title' => 'Konsumsi Makanan & Minuman Jadi + Rokok per Anggota Rumah Tangga', 'order' => 2, 'repeat' => 'list_art']);
+        $kalByCode = \App\Models\BlockRow::where('block_id', $b->id)->get()
+            ->mapWithKeys(fn ($r) => [(int) $r->code => $r->ref['kalori'] ?? null]);
+        $mjRows = [
+            [188, 'Roti tawar', 'Potong', 'MAKANAN & MINUMAN JADI'],
+            [189, 'Roti manis / roti lainnya', 'Potong', 'MAKANAN & MINUMAN JADI'],
+            [190, 'Kue kering / biskuit / semprong', 'Ons', 'MAKANAN & MINUMAN JADI'],
+            [191, 'Kue basah (kue lapis, bika ambon, lemper, dll.)', 'Buah', 'MAKANAN & MINUMAN JADI'],
+            [192, 'Makanan gorengan (tahu, tempe, bakwan, pisang)', 'Potong', 'MAKANAN & MINUMAN JADI'],
+            [193, 'Makanan gorengan lainnya', 'Potong', 'MAKANAN & MINUMAN JADI'],
+            [194, 'Bubur kacang hijau', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [195, 'Gado-gado / ketoprak / pecel', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [196, 'Nasi campur / rames', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [197, 'Nasi goreng', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [198, 'Nasi putih', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [199, 'Lontong / ketupat sayur', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [200, 'Soto / gule / sop / rawon / cincang', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [201, 'Sayur matang (ditumis, disantan, dll.)', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [202, 'Sate / tongseng', 'Porsi / 5 tusuk', 'MAKANAN & MINUMAN JADI'],
+            [203, 'Mie bakso / mie rebus / mie goreng', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [204, 'Mie instan (matang)', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [205, 'Makanan ringan anak-anak, kerupuk / keripik', 'Ons', 'MAKANAN & MINUMAN JADI'],
+            [206, 'Ikan matang', 'Potong', 'MAKANAN & MINUMAN JADI'],
+            [207, 'Ayam / bebek / daging matang (ayam goreng, rendang, dll.)', 'Potong', 'MAKANAN & MINUMAN JADI'],
+            [208, 'Daging olahan (sosis, nugget, daging asap, dll.) matang', 'Potong', 'MAKANAN & MINUMAN JADI'],
+            [209, 'Bubur ayam', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [210, 'Siomay / batagor', 'Porsi / 5 potong', 'MAKANAN & MINUMAN JADI'],
+            [211, 'Makanan jadi lainnya', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [212, 'Air kemasan', 'Liter', 'MAKANAN & MINUMAN JADI'],
+            [213, 'Air kemasan galon', 'Galon', 'MAKANAN & MINUMAN JADI'],
+            [214, 'Air teh kemasan, minuman bersoda / mengandung CO2', '≥ 250 ml', 'MAKANAN & MINUMAN JADI'],
+            [215, 'Sari buah kemasan, minuman kesehatan, minuman berenergi', '≥ 200 ml', 'MAKANAN & MINUMAN JADI'],
+            [216, 'Minuman jadi (kopi, kopi susu, teh, susu cokelat, dll.)', 'Gelas', 'MAKANAN & MINUMAN JADI'],
+            [217, 'Es krim', 'Mangkok kecil', 'MAKANAN & MINUMAN JADI'],
+            [218, 'Es lainnya', 'Porsi', 'MAKANAN & MINUMAN JADI'],
+            [219, 'Minuman keras / mengandung alkohol', 'Liter', 'MAKANAN & MINUMAN JADI'],
+            [221, 'Rokok kretek filter', 'Batang', 'ROKOK & TEMBAKAU'],
+            [222, 'Rokok kretek tanpa filter', 'Batang', 'ROKOK & TEMBAKAU'],
+            [223, 'Rokok putih', 'Batang', 'ROKOK & TEMBAKAU'],
+            [224, 'Tembakau', 'Ons', 'ROKOK & TEMBAKAU'],
+            [225, 'Rokok lainnya (cerutu, kelembak, dll.)', 'Batang', 'ROKOK & TEMBAKAU'],
+        ];
+        foreach ($mjRows as $j => [$idx, $lbl, $sat, $grp]) {
+            $ref = ['satuan' => $sat, 'group' => $grp];
+            if (($kalByCode[$idx] ?? null) !== null && $kalByCode[$idx] !== '') {
+                $ref['kalori'] = $kalByCode[$idx];
+            }
             \App\Models\BlockRow::create(['block_id' => $bm->id, 'row_index' => $idx,
                 'code' => str_pad((string) $idx, 3, '0', STR_PAD_LEFT), 'label' => $lbl,
-                'order' => $j + 1, 'ref' => ['satuan' => $sat, 'group' => 'MAKANAN & MINUMAN JADI']]);
+                'order' => $j + 1, 'ref' => $ref]);
         }
         Question::create(['block_id' => $bm->id, 'code_rincian' => 'MJ1', 'var_name' => 'mj_kuantitas',
             'label' => 'Jumlah konsumsi (satuan komoditas, seminggu)', 'qtype' => 'decimal', 'unit' => 'satuan', 'order' => 1]);

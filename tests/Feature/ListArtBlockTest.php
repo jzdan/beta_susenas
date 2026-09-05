@@ -125,8 +125,9 @@ class ListArtBlockTest extends TestCase
         $blk = collect($state['blocks'])->firstWhere('code', 'IV.1M');
         $dataRows = collect($blk['rows'])->reject(fn ($r) => isset($r['group_header']));
 
-        // 18 <= 30 (cap) -> 6 komoditas × 18 ART
-        $this->assertSame(6 * 18, $dataRows->count());
+        // 18 <= 30 (cap) -> (jumlah komoditas) × 18 ART
+        $nKom = $b->rows()->count();
+        $this->assertSame($nKom * 18, $dataRows->count());
     }
 
     public function test_apply_art_button_works_across_questionnaires(): void
@@ -167,10 +168,11 @@ class ListArtBlockTest extends TestCase
         $blk = collect($state['blocks'])->firstWhere('code', 'IV.1M');
         $this->assertNotNull($blk);
         $this->assertSame('list_art', $blk['repeat']);
-        // 6 komoditas × N ART baris data (+ 6 group header per komoditas)
+        // (jumlah komoditas) × N ART baris data (+ 1 group header per komoditas)
+        $nKom = $b->rows()->count();
         $dataRows = collect($blk['rows'])->reject(fn ($r) => isset($r['group_header']));
-        $this->assertGreaterThanOrEqual(18, $dataRows->count());
-        $this->assertSame(0, $dataRows->count() % 6);
-        $this->assertSame(6, collect($blk['rows'])->filter(fn ($r) => isset($r['group_header']))->count());
+        $this->assertGreaterThanOrEqual($nKom * 3, $dataRows->count());
+        $this->assertSame(0, $dataRows->count() % $nKom);
+        $this->assertSame($nKom, collect($blk['rows'])->filter(fn ($r) => isset($r['group_header']))->count());
     }
 }
