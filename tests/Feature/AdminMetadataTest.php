@@ -186,6 +186,34 @@ class AdminMetadataTest extends TestCase
         $this->assertSame(3, ValidationRule::whereIn('id', $ids)->where('active', true)->count());
     }
 
+    public function test_version_activate_and_delete(): void
+    {
+        $admin = $this->admin();
+        $kp = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+        $this->assertTrue($kp->is_active);
+
+        // duplikasi -> versi baru, belum aktif
+        $this->actingAs($admin)->post('/admin/versi/duplikat', ['new_code' => 'UJICOBA'])->assertRedirect();
+        $dup = QuestionnaireVersion::where('code', 'UJICOBA')->firstOrFail();
+        $this->assertFalse($dup->fresh()->is_active);
+
+        // jadikan aktif -> yang lama tidak aktif lagi
+        $this->actingAs($admin)->post("/admin/versi/{$dup->id}/aktifkan")->assertRedirect();
+        $this->assertTrue($dup->fresh()->is_active);
+        $this->assertFalse($kp->fresh()->is_active);
+
+        // hapus versi tanpa dokumen -> aktif pindah otomatis
+        $this->actingAs($admin)->post("/admin/versi/{$dup->id}/hapus")->assertRedirect();
+        $this->assertDatabaseMissing('questionnaire_versions', ['id' => $dup->id]);
+        $this->assertSame(1, QuestionnaireVersion::where('is_active', true)->count());
+
+        // versi yang punya dokumen tidak bisa dihapus
+        $this->assertTrue(QuestionnaireVersion::whereHas('documents')->exists());
+        $withDocs = QuestionnaireVersion::whereHas('documents')->first();
+        $this->actingAs($admin)->post("/admin/versi/{$withDocs->id}/hapus")->assertSessionHasErrors('versi');
+        $this->assertDatabaseHas('questionnaire_versions', ['id' => $withDocs->id]);
+    }
+
     public function test_rules_page_groups_and_quick_edit(): void
     {
         $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();

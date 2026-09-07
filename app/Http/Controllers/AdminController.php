@@ -31,7 +31,8 @@ class AdminController extends Controller
 
     private function activeQv(): QuestionnaireVersion
     {
-        return QuestionnaireVersion::orderByDesc('id')->firstOrFail();
+        return QuestionnaireVersion::where('is_active', true)->first()
+            ?? QuestionnaireVersion::orderByDesc('id')->firstOrFail();
     }
 
     private function csvRows(string $data, array $required): \Generator
@@ -69,7 +70,7 @@ class AdminController extends Controller
             'repeatBlocks' => $qv->blocks->whereIn('repeat', ['art', 'list', 'list_art']),
             'rules' => $rules,
             'ruleErrs' => $rules->mapWithKeys(fn ($r) => [$r->id => $this->ev->checkSyntax($r->expr, RuleEngine::ROSTER_FUNCS)]),
-            'versions' => QuestionnaireVersion::orderByDesc('id')->get(),
+            'versions' => QuestionnaireVersion::withCount('documents')->orderByDesc('id')->get(),
         ]);
     }
 
@@ -943,7 +944,36 @@ class AdminController extends Controller
                 'severity' => $r->severity, 'message' => $r->message, 'active' => $r->active]);
         }
         AuditLog::record('qversion', $dst->id, 'duplikat', "{$src->code} -> {$d['new_code']}");
-        return redirect()->route('admin.metadata');
+        return redirect()->route('admin.metadata')->with('ok', "Versi \"{$dst->code}\" dibuat. Klik \"Jadikan aktif\" untuk menyuntingnya.");
+    }
+
+    /** Pilih versi kuesioner yang disunting di menu Admin. */
+    public function activateVersion(QuestionnaireVersion $qv)
+    {
+        QuestionnaireVersion::where('is_active', true)->update(['is_active' => false]);
+        $qv->update(['is_active' => true]);
+        AuditLog::record('qversion', $qv->id, 'aktifkan', $qv->code);
+
+        return redirect()->route('admin.metadata')->with('ok', "Versi aktif: {$qv->code}.");
+    }
+
+    public function deleteVersion(QuestionnaireVersion $qv)
+    {
+        if (Document::where('qversion_id', $qv->id)->exists()) {
+            return back()->withErrors(['versi' => "Versi \"{$qv->code}\" sudah punya dokumen — tidak bisa dihapus."]);
+        }
+        if (QuestionnaireVersion::count() <= 1) {
+            return back()->withErrors(['versi' => 'Tidak bisa menghapus versi terakhir.']);
+        }
+        $wasActive = $qv->is_active;
+        $code = $qv->code;
+        $qv->delete();   // cascade: blok, rincian, opsi, aturan, parameter, turunan, agregat, baris
+        if ($wasActive) {
+            QuestionnaireVersion::orderByDesc('id')->first()?->update(['is_active' => true]);
+        }
+        AuditLog::record('qversion', '-', 'hapus', $code);
+
+        return redirect()->route('admin.metadata')->with('ok', "Versi \"{$code}\" dihapus.");
     }
 
     // -------------------------------------------------------- Manajemen pengguna

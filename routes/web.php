@@ -123,6 +123,8 @@ Route::middleware('role')->group(function () {
         Route::post('/aturan/uji', [AdminController::class, 'testRule'])->name('aturan.test');
         Route::post('/aturan/dampak', [AdminController::class, 'ruleImpact'])->name('aturan.impact');
         Route::post('/versi/duplikat', [AdminController::class, 'duplicateVersion'])->name('versi.duplikat');
+        Route::post('/versi/{qv}/aktifkan', [AdminController::class, 'activateVersion'])->name('versi.aktifkan');
+        Route::post('/versi/{qv}/hapus', [AdminController::class, 'deleteVersion'])->name('versi.hapus');
         Route::get('/versi/{qv}/ekspor', [AdminController::class, 'qversionExport'])->name('versi.export');
         Route::get('/versi/{qv}/kodebook', [AdminController::class, 'codebook'])->name('versi.codebook');
         Route::get('/versi-impor', [AdminController::class, 'qversionImportForm'])->name('versi.import');

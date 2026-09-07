@@ -79,6 +79,7 @@ class DatabaseSeeder extends Seeder
         ]);
         $qv = QuestionnaireVersion::create([
             'cycle_id' => $cycle->id, 'code' => 'VSEN26.KP', 'effective_date' => '2025-11-02',
+            'is_active' => true,
         ]);
 
         // Blok IV.1 — konsumsi makanan seminggu (daftar komoditas)

@@ -4,17 +4,33 @@
 @section('content')
 <h1>Metadata Kuesioner</h1>
 <p class="muted">Versi aktif: <strong>{{ $qv->code }}</strong> (berlaku {{ $qv->effective_date }}).
-  Semua di halaman ini adalah <em>data</em> yang bisa disunting — periode baru cukup
+  "Aktif" = versi yang sedang disunting di menu Admin. Periode baru cukup
   <em>duplikasi versi</em> lalu sunting, bukan mengubah kode.</p>
+
+@if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
+@if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
 
 <section class="panel">
   <h2>Versi kuesioner</h2>
   <table class="tbl"><tbody>
   @foreach ($versions as $v)
-    <tr><td class="mono">{{ $v->code }}</td><td class="muted">berlaku {{ $v->effective_date }}</td>
+    <tr>
+      <td class="mono">{{ $v->code }}</td>
+      <td class="muted">berlaku {{ $v->effective_date }} · {{ $v->documents_count }} dokumen</td>
       <td>@if($v->id === $qv->id)<span class="chip d-bersih">aktif</span>@endif</td>
-      <td class="right"><a class="btn-ghost" href="{{ route('admin.versi.codebook', $v) }}">Buku kode</a>
-        <a class="btn-ghost" href="{{ route('admin.versi.export', $v) }}">Ekspor JSON</a></td></tr>
+      <td class="right nowrap">
+        @if($v->id !== $qv->id)
+          <form method="post" action="{{ route('admin.versi.aktifkan', $v) }}">@csrf<button class="btn-ghost">Jadikan aktif</button></form>
+        @endif
+        <a class="btn-ghost" href="{{ route('admin.versi.codebook', $v) }}">Buku kode</a>
+        <a class="btn-ghost" href="{{ route('admin.versi.export', $v) }}">Ekspor JSON</a>
+        @if($v->documents_count === 0 && $versions->count() > 1)
+          <form method="post" action="{{ route('admin.versi.hapus', $v) }}"
+            onsubmit="return confirm('Hapus versi {{ $v->code }} beserta semua blok, rincian, dan aturannya? Tidak bisa dibatalkan.')">
+            @csrf<button class="btn-ghost" style="color:var(--err)">Hapus</button></form>
+        @endif
+      </td>
+    </tr>
   @endforeach
   </tbody></table>
   <form method="post" action="{{ route('admin.versi.duplikat') }}" class="row-form mt">

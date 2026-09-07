@@ -1268,6 +1268,23 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 - `ReferencePriceTest` ditulis ulang (edit inline + impor by code + aturan pakai
   ref block_rows). **192 tes lulus.** Reseed + health bersih.
 
+### Increment 108 — versi kuesioner: pilih aktif + hapus versi
+
+- Keluhan user: versi "asd" (salah input via Duplikasi) tak bisa dihapus, dan
+  statusnya "aktif" (karena `activeQv()` = id terbesar).
+- Kolom baru `questionnaire_versions.is_active`. `activeQv()` =
+  `where('is_active', true)` dengan fallback id terbesar. Seeder tandai
+  VSEN26.KP aktif.
+- Menu Metadata → tabel versi:
+  - **"Jadikan aktif"** per versi non-aktif → `activateVersion()`, route
+    `admin.versi.aktifkan`.
+  - **"Hapus"** (merah) hanya untuk versi **0 dokumen** & bukan satu-satunya →
+    `deleteVersion()`, route `admin.versi.hapus`. Cascade hapus blok/rincian/
+    opsi/aturan/parameter/turunan/agregat/baris. Kalau yang dihapus sedang
+    aktif, aktif pindah otomatis ke id terbesar.
+  - Kolom jumlah dokumen ditampilkan.
+- Tes `test_version_activate_and_delete`. **193 tes lulus.**
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

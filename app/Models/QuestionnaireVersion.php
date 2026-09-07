@@ -8,7 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class QuestionnaireVersion extends Model
 {
-    protected $fillable = ['cycle_id', 'code', 'effective_date'];
+    protected $fillable = ['cycle_id', 'code', 'effective_date', 'is_active'];
+
+    protected function casts(): array
+    {
+        return ['is_active' => 'boolean'];
+    }
 
     public function cycle(): BelongsTo
     {
@@ -38,5 +43,10 @@ class QuestionnaireVersion extends Model
     public function aggregates(): HasMany
     {
         return $this->hasMany(Aggregate::class, 'qversion_id')->orderBy('order');
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class, 'qversion_id');
     }
 }
