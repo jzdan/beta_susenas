@@ -1195,6 +1195,28 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 - Placeholder pencarian: "cari kode / pesan" (bukan "…/ ekspresi").
 - **190 tes lulus.**
 
+### Increment 104 — form terpandu untuk membuat aturan validasi baru
+
+- Pertanyaan user: "gimana kalau admin mau bikin validasi baru" — sebelumnya
+  satu-satunya cara adalah menulis ekspresi mentah di Mode lanjutan.
+- Panel baru **"Buat aturan baru — form terpandu"** di `/admin/aturan`:
+  pilih kode, tingkat, blok, lalu **jenis pemeriksaan**:
+  1. Rincian wajib diisi → `blank(A)`
+  2. Rincian B wajib jika A memenuhi syarat → `(cond A) and (blank(B) or n(B)==0)`
+  3. Nilai harus di rentang min–maks → `filled(A) and (n(A)<min or n(A)>max)`
+  4. Nilai tidak boleh lebih/kurang dari angka → `filled(A) and n(A) OP val`
+  5. Dua rincian harus sama / berbeda → `filled(A) and filled(B) and A !=/== B`
+  Dropdown rincian diisi dari daftar blok/pertanyaan versi aktif
+  (`resources/views/admin/partials/_rulefield.blade.php`). JS
+  mengaktif/menonaktifkan bagian sesuai jenis (input nonaktif tidak ikut
+  terkirim). Blok tipe daftar → `scope=baris` + `row_block` otomatis.
+- `AdminController::assembleRuleExpr()` + `buildRule()`; route
+  `admin.aturan.terpandu` (`POST /admin/aturan-terpandu`). Sintaks dicek,
+  kode duplikat ditolak. Ekspresi hasil ditampilkan di pesan sukses.
+- Editor ekspresi mentah tetap ada di Mode lanjutan untuk kasus di luar pola.
+- Tes `AdminMetadataTest::test_guided_rule_builder_creates_working_rules`.
+  **191 tes lulus.**
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

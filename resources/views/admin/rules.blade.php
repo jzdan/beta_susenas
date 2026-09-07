@@ -94,6 +94,108 @@
   @endforelse
 </section>
 
+<details class="panel" @if($errors->has('wizard') || old('kind')) open @endif>
+  <summary style="cursor:pointer;font-weight:600">Buat aturan baru — form terpandu</summary>
+  <p class="muted small" style="margin-top:10px">Pilih dari daftar, isi angka/pesan. Sistem yang menyusun ekspresinya.
+    Untuk pemeriksaan rumit yang tak masuk pola di sini, pakai <em>Mode lanjutan</em>.</p>
+  @if($errors->has('wizard'))<div class="alert err">{{ $errors->first('wizard') }}</div>@endif
+
+  <form method="post" action="{{ route('admin.aturan.terpandu') }}" class="stack-form" id="wizform">
+    @csrf
+    <div class="row-form">
+      <label>Kode aturan <input name="code" value="{{ old('code') }}" placeholder="mis. IV1-BERAS-WAJIB" required></label>
+      <label>Tingkat
+        <select name="severity">
+          <option value="warning" @selected(old('severity')==='warning')>warning (perlu ditinjau)</option>
+          <option value="error" @selected(old('severity')==='error')>error (blokir bersih)</option>
+        </select>
+      </label>
+      <label>Berlaku pada
+        <select name="block">
+          <option value="">Seluruh dokumen</option>
+          @foreach ($wizardBlocks as $bl)
+            <option value="{{ $bl->code }}" @selected(old('block')===$bl->code)>Blok {{ $bl->code }} — {{ $bl->title }}</option>
+          @endforeach
+        </select>
+      </label>
+    </div>
+
+    <label>Jenis pemeriksaan
+      <select name="kind" id="wiz-kind">
+        <option value="wajib" @selected(old('kind')==='wajib')>Rincian wajib diisi</option>
+        <option value="wajib_jika" @selected(old('kind')==='wajib_jika')>Rincian wajib diisi JIKA rincian lain memenuhi syarat</option>
+        <option value="rentang" @selected(old('kind')==='rentang')>Nilai harus di dalam rentang min–maks</option>
+        <option value="batas" @selected(old('kind')==='batas')>Nilai tidak boleh lebih / kurang dari angka</option>
+        <option value="banding" @selected(old('kind')==='banding')>Dua rincian harus sama / harus berbeda</option>
+      </select>
+    </label>
+
+    <div class="wiz-part" data-kind="wajib">
+      @include('admin.partials._rulefield', ['name' => 'field_a', 'label' => 'Rincian yang wajib diisi'])
+    </div>
+
+    <div class="wiz-part" data-kind="wajib_jika">
+      <div class="row-form">
+        @include('admin.partials._rulefield', ['name' => 'field_a', 'label' => 'Rincian syarat (A)'])
+        <label>Syarat
+          <select name="cond_op">
+            <option value="terisi">A terisi</option>
+            <option value="kosong">A kosong</option>
+            <option value="==">A sama dengan…</option>
+            <option value="!=">A tidak sama dengan…</option>
+            <option value="&gt;">A lebih dari…</option>
+            <option value="&lt;">A kurang dari…</option>
+          </select>
+        </label>
+        <label>Nilai <input name="cond_val" value="{{ old('cond_val') }}" placeholder="mis. 1" class="mono" style="width:100px"></label>
+      </div>
+      @include('admin.partials._rulefield', ['name' => 'field_b', 'label' => 'Rincian yang jadi wajib diisi (B)'])
+    </div>
+
+    <div class="wiz-part" data-kind="rentang">
+      @include('admin.partials._rulefield', ['name' => 'field_a', 'label' => 'Rincian yang diperiksa'])
+      <div class="row-form">
+        <label>Minimal <input name="min" value="{{ old('min') }}" class="mono" inputmode="decimal" style="width:120px"></label>
+        <label>Maksimal <input name="max" value="{{ old('max') }}" class="mono" inputmode="decimal" style="width:120px"></label>
+      </div>
+    </div>
+
+    <div class="wiz-part" data-kind="batas">
+      @include('admin.partials._rulefield', ['name' => 'field_a', 'label' => 'Rincian yang diperiksa'])
+      <div class="row-form">
+        <label>Tidak boleh
+          <select name="limit_op">
+            <option value="&gt;">lebih dari</option>
+            <option value="&lt;">kurang dari</option>
+            <option value="&gt;=">lebih dari atau sama dengan</option>
+            <option value="&lt;=">kurang dari atau sama dengan</option>
+          </select>
+        </label>
+        <label>Angka <input name="limit_val" value="{{ old('limit_val') }}" class="mono" inputmode="decimal" style="width:120px"></label>
+      </div>
+    </div>
+
+    <div class="wiz-part" data-kind="banding">
+      @include('admin.partials._rulefield', ['name' => 'field_a', 'label' => 'Rincian pertama (A)'])
+      <label>Hubungan
+        <select name="banding_op">
+          <option value="sama">A harus SAMA dengan B</option>
+          <option value="beda">A harus BERBEDA dari B</option>
+        </select>
+      </label>
+      @include('admin.partials._rulefield', ['name' => 'field_b', 'label' => 'Rincian kedua (B)'])
+    </div>
+
+    <label>Pesan yang tampil ke pemeriksa
+      <input name="message" value="{{ old('message') }}" placeholder="mis. Nilai beras terisi tetapi kuantitas kosong." required>
+    </label>
+    <label>Keterangan (opsional)
+      <input name="note" value="{{ old('note') }}" placeholder="apa yang diperiksa aturan ini">
+    </label>
+    <div><button type="submit">Buat aturan</button></div>
+  </form>
+</details>
+
 <details class="panel" @if($edit) open @endif>
   <summary style="cursor:pointer;font-weight:600">Mode lanjutan — tulis &amp; uji ekspresi (untuk Admin/IPDS)</summary>
 
@@ -169,8 +271,25 @@
 </details>
 
 @push('scripts')
+<style>
+  .wiz-part { display: none; margin: 4px 0 6px; padding: 10px 12px; border-left: 3px solid var(--line-strong); }
+  .wiz-part.on { display: block; }
+</style>
 <script>
 (function () {
+  var kind = document.getElementById("wiz-kind");
+  if (kind) {
+    var sync = function () {
+      document.querySelectorAll(".wiz-part").forEach(function (el) {
+        var on = el.dataset.kind === kind.value;
+        el.classList.toggle("on", on);
+        el.querySelectorAll("input,select").forEach(function (f) { f.disabled = !on; });
+      });
+    };
+    kind.addEventListener("change", sync);
+    sync();
+  }
+
   var all = document.getElementById("rule-all");
   if (all) all.addEventListener("change", function () {
     document.querySelectorAll(".rule-pick").forEach(function (c) { c.checked = all.checked; });

@@ -118,6 +118,7 @@ Route::middleware('role')->group(function () {
         Route::post('/aturan/{rule}/hapus', [AdminController::class, 'delRule'])->name('aturan.del');
         Route::post('/aturan/{rule}/toggle', [AdminController::class, 'toggleRule'])->name('aturan.toggle');
         Route::post('/aturan/{rule}/cepat', [AdminController::class, 'quickRule'])->name('aturan.cepat');
+        Route::post('/aturan-terpandu', [AdminController::class, 'buildRule'])->name('aturan.terpandu');
         Route::post('/aturan-toggle-massal', [AdminController::class, 'bulkToggleRules'])->name('aturan.toggle-massal');
         Route::post('/aturan/uji', [AdminController::class, 'testRule'])->name('aturan.test');
         Route::post('/aturan/dampak', [AdminController::class, 'ruleImpact'])->name('aturan.impact');

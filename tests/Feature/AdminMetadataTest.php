@@ -209,6 +209,43 @@ class AdminMetadataTest extends TestCase
         $this->assertSame('', $this->app->make(\App\Services\ExpressionEvaluator::class)->checkSyntax($rule->expr, \App\Services\RuleEngine::ROSTER_FUNCS));
     }
 
+    public function test_guided_rule_builder_creates_working_rules(): void
+    {
+        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+        $admin = $this->admin();
+
+        // 1. "wajib diisi jika" pada blok baris IV.1
+        $this->actingAs($admin)->post('/admin/aturan-terpandu', [
+            'code' => 'UJI-WAJIB-JIKA', 'severity' => 'warning', 'block' => 'IV.1',
+            'kind' => 'wajib_jika', 'field_a' => 'iv1_nilai_beli', 'cond_op' => '>', 'cond_val' => '0',
+            'field_b' => 'iv1_kuantitas', 'message' => 'Nilai terisi tetapi kuantitas kosong.',
+        ])->assertRedirect()->assertSessionHas('ok');
+
+        $r = ValidationRule::where('qversion_id', $qv->id)->where('code', 'UJI-WAJIB-JIKA')->firstOrFail();
+        $this->assertSame('baris', $r->scope);
+        $this->assertSame('IV.1', $r->row_block);
+        $this->assertSame('', $this->app->make(\App\Services\ExpressionEvaluator::class)
+            ->checkSyntax($r->expr, \App\Services\RuleEngine::ROSTER_FUNCS));
+
+        // 2. "rentang" tingkat dokumen
+        $this->actingAs($admin)->post('/admin/aturan-terpandu', [
+            'code' => 'UJI-RENTANG', 'severity' => 'error', 'block' => '',
+            'kind' => 'rentang', 'field_a' => 'banyak_art', 'min' => '1', 'max' => '20',
+            'message' => 'Banyaknya ART di luar 1–20.',
+        ])->assertRedirect();
+
+        $r2 = ValidationRule::where('qversion_id', $qv->id)->where('code', 'UJI-RENTANG')->firstOrFail();
+        $this->assertSame('dokumen', $r2->scope);
+        $this->assertStringContainsString('n(banyak_art) < 1', $r2->expr);
+        $this->assertStringContainsString('n(banyak_art) > 20', $r2->expr);
+
+        // kode duplikat ditolak
+        $this->actingAs($admin)->post('/admin/aturan-terpandu', [
+            'code' => 'UJI-RENTANG', 'severity' => 'warning', 'kind' => 'wajib',
+            'field_a' => 'banyak_art', 'message' => 'x',
+        ])->assertSessionHasErrors('wizard');
+    }
+
     public function test_aggregate_can_be_edited_inline(): void
     {
         $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();

@@ -601,6 +601,7 @@ class AdminController extends Controller
         return view('admin.rules', [
             'rules' => $rules,
             'groups' => $groups,
+            'wizardBlocks' => $qv->blocks()->with('questions')->orderBy('order')->orderBy('id')->get(),
             'total' => $all->count(),
             'activeCount' => $all->where('active', true)->count(),
             'ruleErrs' => $rules->mapWithKeys(fn ($r) => [$r->id => $this->ev->checkSyntax($r->expr, RuleEngine::ROSTER_FUNCS)]),
@@ -624,6 +625,85 @@ class AdminController extends Controller
         AuditLog::record('rule', '-', 'toggle-massal', "{$n} aturan -> {$d['aksi']}");
 
         return back()->with('ok', "{$n} aturan di-{$d['aksi']}kan.");
+    }
+
+    /** Susun ekspresi dari pilihan terpandu (wizard). */
+    private function assembleRuleExpr(string $kind, array $p): string
+    {
+        $a = trim($p['field_a'] ?? '');
+        $b = trim($p['field_b'] ?? '');
+        $cmp = function (string $field, string $op, string $val): string {
+            $val = trim($val);
+            if (in_array($op, ['>', '<', '>=', '<='], true) || ($op === '==' && is_numeric($val)) || ($op === '!=' && is_numeric($val))) {
+                return "n({$field}) {$op} ".(is_numeric($val) ? $val : '0');
+            }
+
+            return "{$field} ".($op === '!=' ? '!=' : '==').' "'.str_replace('"', '', $val).'"';
+        };
+
+        return match ($kind) {
+            'wajib' => "blank({$a})",
+            'wajib_jika' => (function () use ($a, $b, $p, $cmp) {
+                $op = $p['cond_op'] ?? 'terisi';
+                $cond = match ($op) {
+                    'terisi' => "filled({$a})",
+                    'kosong' => "blank({$a})",
+                    default => 'filled('.$a.') and '.$cmp($a, $op, $p['cond_val'] ?? ''),
+                };
+
+                return "({$cond}) and (blank({$b}) or n({$b}) == 0)";
+            })(),
+            'rentang' => sprintf('filled(%s) and (n(%s) < %s or n(%s) > %s)',
+                $a, $a, (float) ($p['min'] ?? 0), $a, (float) ($p['max'] ?? 0)),
+            'batas' => sprintf('filled(%s) and n(%s) %s %s', $a, $a,
+                in_array($p['limit_op'] ?? '>', ['>', '<', '>=', '<='], true) ? $p['limit_op'] : '>',
+                (float) ($p['limit_val'] ?? 0)),
+            'banding' => ($p['banding_op'] ?? 'sama') === 'sama'
+                ? "filled({$a}) and filled({$b}) and {$a} != {$b}"
+                : "filled({$a}) and filled({$b}) and {$a} == {$b}",
+            default => '',
+        };
+    }
+
+    /** Buat aturan baru lewat form terpandu — tanpa menulis ekspresi. */
+    public function buildRule(Request $request)
+    {
+        $d = $request->validate([
+            'code' => 'required|string|max:40',
+            'severity' => 'required|in:warning,error',
+            'block' => 'nullable|string',
+            'kind' => 'required|in:wajib,wajib_jika,rentang,batas,banding',
+            'field_a' => 'required|string',
+            'field_b' => 'nullable|string',
+            'cond_op' => 'nullable|string', 'cond_val' => 'nullable|string',
+            'min' => 'nullable|numeric', 'max' => 'nullable|numeric',
+            'limit_op' => 'nullable|string', 'limit_val' => 'nullable|numeric',
+            'banding_op' => 'nullable|string',
+            'message' => 'required|string|max:250',
+            'note' => 'nullable|string|max:500',
+        ]);
+        if (in_array($d['kind'], ['wajib_jika', 'banding'], true) && ! ($d['field_b'] ?? '')) {
+            return back()->withErrors(['wizard' => 'Jenis pemeriksaan ini butuh rincian kedua.'])->withInput();
+        }
+        $qv = $this->activeQv();
+        $block = ($d['block'] ?? '') ? $qv->blocks->firstWhere('code', $d['block']) : null;
+        $isRow = $block && $block->isRowBlock();
+        $expr = $this->assembleRuleExpr($d['kind'], $d);
+        if (! $expr || ($err = $this->ev->checkSyntax($expr, RuleEngine::ROSTER_FUNCS))) {
+            return back()->withErrors(['wizard' => 'Tidak bisa menyusun ekspresi'.($err ? ": {$err}" : '').'.'])->withInput();
+        }
+        if (ValidationRule::where('qversion_id', $qv->id)->where('code', trim($d['code']))->exists()) {
+            return back()->withErrors(['wizard' => 'Kode aturan sudah dipakai.'])->withInput();
+        }
+        ValidationRule::create([
+            'qversion_id' => $qv->id, 'code' => trim($d['code']), 'severity' => $d['severity'],
+            'scope' => $isRow ? 'baris' : 'dokumen', 'row_block' => $isRow ? $block->code : '',
+            'target_var' => $d['field_a'], 'expr' => $expr,
+            'message' => trim($d['message']), 'note' => trim($d['note'] ?? '') ?: null, 'active' => true,
+        ]);
+        AuditLog::record('rule', 'baru', 'tambah-terpandu', $d['code']);
+
+        return redirect()->route('admin.aturan')->with('ok', "Aturan {$d['code']} dibuat. Ekspresi: {$expr}");
     }
 
     public function saveRule(Request $request)
