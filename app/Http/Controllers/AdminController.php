@@ -598,10 +598,20 @@ class AdminController extends Controller
             return $scopeLabels[$r->scope] ?? ('Lainnya ('.$r->scope.')');
         })->sortKeys();
 
+        $wizardBlocks = $qv->blocks()->with('questions')->orderBy('order')->orderBy('id')->get();
+        $refKeys = $wizardBlocks->filter(fn ($bl) => in_array($bl->repeat, ['list', 'list_art'], true))
+            ->flatMap(fn ($bl) => \App\Models\BlockRow::where('block_id', $bl->id)->get()
+                ->flatMap(fn ($r) => array_keys((array) $r->ref)))
+            ->unique()->reject(fn ($k) => $k === 'group')->sort()->values();
+
         return view('admin.rules', [
             'rules' => $rules,
             'groups' => $groups,
-            'wizardBlocks' => $qv->blocks()->with('questions')->orderBy('order')->orderBy('id')->get(),
+            'wizardBlocks' => $wizardBlocks,
+            'derivedFields' => \App\Models\DerivedField::where('qversion_id', $qv->id)->orderBy('var_name')->get(),
+            'ruleParams' => Parameter::where('qversion_id', $qv->id)->orderBy('name')->get(),
+            'refKeys' => $refKeys,
+            'hasRoster' => $wizardBlocks->contains(fn ($bl) => $bl->repeat === 'art'),
             'total' => $all->count(),
             'activeCount' => $all->where('active', true)->count(),
             'ruleErrs' => $rules->mapWithKeys(fn ($r) => [$r->id => $this->ev->checkSyntax($r->expr, RuleEngine::ROSTER_FUNCS)]),

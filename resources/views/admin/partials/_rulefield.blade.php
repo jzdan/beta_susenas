@@ -10,5 +10,18 @@
         </optgroup>
       @endif
     @endforeach
+    <optgroup label="Metadata sampel (dari daftar sampel/DSRT)">
+      <option value="sampel_wilayah">sampel_wilayah · kode wilayah (desa)</option>
+      <option value="sampel_bs">sampel_bs · nomor blok sensus</option>
+      <option value="sampel_ruta">sampel_ruta · nomor urut rumah tangga</option>
+      <option value="sampel_krt">sampel_krt · nama kepala rumah tangga</option>
+    </optgroup>
+    @if(($derivedFields ?? collect())->isNotEmpty())
+      <optgroup label="Nilai turunan (dihitung sistem)">
+        @foreach ($derivedFields as $df)
+          <option value="{{ $df->var_name }}">{{ $df->var_name }} · {{ $df->label }}</option>
+        @endforeach
+      </optgroup>
+    @endif
   </select>
 </label>

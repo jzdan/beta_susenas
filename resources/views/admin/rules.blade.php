@@ -94,10 +94,58 @@
   @endforelse
 </section>
 
+<details class="panel">
+  <summary style="cursor:pointer;font-weight:600">Kamus variabel — apa saja yang bisa dipakai di aturan</summary>
+  <p class="muted small" style="margin-top:10px">Membuat aturan baru dari nol <strong>jarang</strong> dilakukan di kabupaten —
+    biasanya aturan datang dari paket Sidona BPS atau disiapkan Seksi Sosial/IPDS. Kalau memang perlu,
+    ini daftar variabel yang tersedia. Contoh <span class="mono">IDENT-BS</span>
+    (<span class="mono">filled(b1_no_bs) and b1_no_bs != sampel_bs</span>) = pakai jenis
+    <em>"Dua rincian harus sama / berbeda"</em>, rincian A = nomor BS di Blok I, hubungan = harus SAMA,
+    rincian B = <span class="mono">sampel_bs</span>.</p>
+
+  <input type="search" id="kamus-cari" placeholder="cari nama variabel / keterangan" style="min-width:260px;margin:6px 0">
+
+  <div class="tablewrap tall">
+  <table class="tbl" id="kamus-tabel">
+    <thead><tr><th style="width:220px">Nama</th><th style="width:170px">Dari</th><th>Keterangan</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">sampel_wilayah</td><td>Metadata sampel</td><td>Kode wilayah (desa) di daftar sampel/DSRT</td></tr>
+      <tr><td class="mono">sampel_bs</td><td>Metadata sampel</td><td>Nomor blok sensus di daftar sampel</td></tr>
+      <tr><td class="mono">sampel_ruta</td><td>Metadata sampel</td><td>Nomor urut rumah tangga sampel</td></tr>
+      <tr><td class="mono">sampel_krt</td><td>Metadata sampel</td><td>Nama kepala rumah tangga di daftar sampel</td></tr>
+      @foreach ($wizardBlocks as $bl)
+        @foreach ($bl->questions as $q)
+          <tr><td class="mono">{{ $q->var_name }}</td><td>Blok {{ $bl->code }} · {{ $q->code_rincian }}</td><td>{{ $q->label }}</td></tr>
+        @endforeach
+      @endforeach
+      @foreach ($derivedFields as $df)
+        <tr><td class="mono">{{ $df->var_name }}</td><td>Nilai turunan</td><td>{{ $df->label }} — dihitung sistem, jangan diisi</td></tr>
+      @endforeach
+      @foreach ($ruleParams as $p)
+        <tr><td class="mono">{{ $p->name }}</td><td>Parameter</td><td>Nilai tetap ({{ $p->value }}){{ $p->label ? ' — '.$p->label : '' }}</td></tr>
+      @endforeach
+      @foreach ($refKeys as $k)
+        <tr><td class="mono">ref_{{ $k }}</td><td>Referensi baris</td><td>Data <span class="mono">{{ $k }}</span> baris komoditas — <strong>hanya di aturan per-baris</strong> (blok tipe daftar)</td></tr>
+      @endforeach
+      @if($hasRoster)
+        <tr><td class="mono">&lt;var&gt;__n</td><td>Roster (blok per-ART)</td><td>Jumlah ART yang mengisi &lt;var&gt;. Juga: <span class="mono">__sum __count1 __count2 __max __min</span></td></tr>
+        <tr><td class="mono">art_terisi</td><td>Roster</td><td>Jumlah baris ART yang terisi di roster</td></tr>
+        <tr><td class="mono">roster_count(var, kode)</td><td>Fungsi roster</td><td>Berapa ART yang nilai <span class="mono">var</span>-nya = kode. Juga <span class="mono">roster_any / roster_all / roster_max / roster_sum / roster_first</span></td></tr>
+      @endif
+    </tbody>
+  </table>
+  </div>
+
+  <p class="muted small">Fungsi ekspresi: <span class="mono">blank(x)</span> = x kosong · <span class="mono">filled(x)</span> = x terisi ·
+    <span class="mono">n(x)</span> = angka dari x · <span class="mono">abs round floor min max sum coalesce</span> ·
+    <span class="mono">ymd("2026-03-10")</span> → 20260310 (bandingkan tanggal).</p>
+</details>
+
 <details class="panel" @if($errors->has('wizard') || old('kind')) open @endif>
   <summary style="cursor:pointer;font-weight:600">Buat aturan baru — form terpandu</summary>
   <p class="muted small" style="margin-top:10px">Pilih dari daftar, isi angka/pesan. Sistem yang menyusun ekspresinya.
-    Untuk pemeriksaan rumit yang tak masuk pola di sini, pakai <em>Mode lanjutan</em>.</p>
+    Belum tahu nama rincian? Buka <em>Kamus variabel</em> di atas. Untuk pemeriksaan rumit
+    (neraca, rekap antar-blok) pakai <em>Mode lanjutan</em>.</p>
   @if($errors->has('wizard'))<div class="alert err">{{ $errors->first('wizard') }}</div>@endif
 
   <form method="post" action="{{ route('admin.aturan.terpandu') }}" class="stack-form" id="wizform">
@@ -277,6 +325,14 @@
 </style>
 <script>
 (function () {
+  var kc = document.getElementById("kamus-cari");
+  if (kc) kc.addEventListener("input", function () {
+    var q = kc.value.toLowerCase().trim();
+    document.querySelectorAll("#kamus-tabel tbody tr").forEach(function (tr) {
+      tr.hidden = q !== "" && tr.textContent.toLowerCase().indexOf(q) === -1;
+    });
+  });
+
   var kind = document.getElementById("wiz-kind");
   if (kind) {
     var sync = function () {

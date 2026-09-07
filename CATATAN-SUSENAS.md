@@ -1217,6 +1217,26 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 - Tes `AdminMetadataTest::test_guided_rule_builder_creates_working_rules`.
   **191 tes lulus.**
 
+### Increment 105 — Kamus variabel di halaman Aturan Validasi
+
+- Lanjutan keluhan: form terpandu belum menjawab "variabel validasinya apa ya?".
+- Panel baru **"Kamus variabel"** (`<details>`, di atas form terpandu):
+  tabel dengan kotak cari berisi SEMUA yang bisa dipakai di ekspresi —
+  metadata sampel (`sampel_wilayah/bs/ruta/krt`), tiap rincian kuesioner
+  (var_name · "Blok X · Rxxx" · label), nilai turunan (DerivedField),
+  parameter (Parameter), referensi baris (`ref_<key>` dari `block_rows.ref`
+  blok daftar), plus catatan roster (`<var>__n/__sum/__count1/...`,
+  `roster_count(...)`) dan daftar fungsi.
+- Intro memuat contoh terpandu untuk `IDENT-BS`: jenis "Dua rincian harus
+  sama/berbeda", A = nomor BS Blok I, B = `sampel_bs`.
+- Dropdown rincian di form terpandu (`_rulefield.blade.php`) kini juga
+  memuat optgroup **Metadata sampel** + **Nilai turunan** — jadi
+  perbandingan lawan `sampel_bs` bisa dipilih.
+- `rulesView()` mengirim `derivedFields`, `ruleParams`, `refKeys`, `hasRoster`.
+- Framing: "membuat aturan dari nol jarang di kabupaten — biasanya dari paket
+  Sidona BPS / disiapkan IPDS".
+- **191 tes lulus.**
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`
