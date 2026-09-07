@@ -12,27 +12,37 @@
 
 <section class="panel">
   <h2>Versi kuesioner</h2>
-  <table class="tbl"><tbody>
   @foreach ($versions as $v)
-    <tr>
-      <td class="mono">{{ $v->code }}</td>
-      <td class="muted">berlaku {{ $v->effective_date }} · {{ $v->documents_count }} dokumen</td>
-      <td>@if($v->id === $qv->id)<span class="chip d-bersih">aktif</span>@endif</td>
-      <td class="right nowrap">
-        @if($v->id !== $qv->id)
-          <form method="post" action="{{ route('admin.versi.aktifkan', $v) }}">@csrf<button class="btn-ghost">Jadikan aktif</button></form>
-        @endif
-        <a class="btn-ghost" href="{{ route('admin.versi.codebook', $v) }}">Buku kode</a>
-        <a class="btn-ghost" href="{{ route('admin.versi.export', $v) }}">Ekspor JSON</a>
-        @if($v->documents_count === 0 && $versions->count() > 1)
-          <form method="post" action="{{ route('admin.versi.hapus', $v) }}"
-            onsubmit="return confirm('Hapus versi {{ $v->code }} beserta semua blok, rincian, dan aturannya? Tidak bisa dibatalkan.')">
-            @csrf<button class="btn-ghost" style="color:var(--err)">Hapus</button></form>
-        @endif
-      </td>
-    </tr>
+    <form method="post" action="{{ route('admin.versi.simpan', $v) }}" id="vf{{ $v->id }}" hidden>@csrf</form>
   @endforeach
-  </tbody></table>
+  <div class="tablewrap">
+  <table class="tbl">
+    <thead><tr><th style="width:180px">Kode</th><th style="width:160px">Tanggal berlaku</th><th>Dokumen</th><th></th><th></th></tr></thead>
+    <tbody>
+    @foreach ($versions as $v)
+      <tr>
+        <td><input form="vf{{ $v->id }}" name="code" value="{{ $v->code }}" class="mono" style="width:160px"></td>
+        <td><input form="vf{{ $v->id }}" type="date" name="effective_date" value="{{ $v->effective_date }}"></td>
+        <td class="muted">{{ $v->documents_count }} dokumen</td>
+        <td>@if($v->id === $qv->id)<span class="chip d-bersih">aktif</span>@endif</td>
+        <td class="right nowrap">
+          <button form="vf{{ $v->id }}" type="submit" class="btn-ghost">Simpan</button>
+          @if($v->id !== $qv->id)
+            <form method="post" action="{{ route('admin.versi.aktifkan', $v) }}">@csrf<button class="btn-ghost">Jadikan aktif</button></form>
+          @endif
+          <a class="btn-ghost" href="{{ route('admin.versi.codebook', $v) }}">Buku kode</a>
+          <a class="btn-ghost" href="{{ route('admin.versi.export', $v) }}">Ekspor JSON</a>
+          @if($v->documents_count === 0 && $versions->count() > 1)
+            <form method="post" action="{{ route('admin.versi.hapus', $v) }}"
+              onsubmit="return confirm('Hapus versi {{ $v->code }} beserta semua blok, rincian, dan aturannya? Tidak bisa dibatalkan.')">
+              @csrf<button class="btn-ghost" style="color:var(--err)">Hapus</button></form>
+          @endif
+        </td>
+      </tr>
+    @endforeach
+    </tbody>
+  </table>
+  </div>
   <form method="post" action="{{ route('admin.versi.duplikat') }}" class="row-form mt">
     @csrf
     <input name="new_code" placeholder="Kode versi baru, mis. VSEN27.KP-rev2" required style="min-width:280px">

@@ -186,6 +186,25 @@ class AdminMetadataTest extends TestCase
         $this->assertSame(3, ValidationRule::whereIn('id', $ids)->where('active', true)->count());
     }
 
+    public function test_version_code_and_effective_date_editable(): void
+    {
+        $admin = $this->admin();
+        $k = QuestionnaireVersion::where('code', 'VSEN26.K')->firstOrFail();
+
+        $this->actingAs($admin)->post("/admin/versi/{$k->id}/simpan", [
+            'code' => 'VSEN26.KOR', 'effective_date' => '2026-03-01',
+        ])->assertRedirect()->assertSessionHas('ok');
+
+        $k->refresh();
+        $this->assertSame('VSEN26.KOR', $k->code);
+        $this->assertSame('2026-03-01', $k->effective_date);
+
+        // kode duplikat ditolak
+        $this->actingAs($admin)->post("/admin/versi/{$k->id}/simpan", [
+            'code' => 'VSEN26.KP',
+        ])->assertSessionHasErrors('versi');
+    }
+
     public function test_version_activate_and_delete(): void
     {
         $admin = $this->admin();

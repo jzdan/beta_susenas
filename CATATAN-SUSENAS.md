@@ -1285,6 +1285,15 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   - Kolom jumlah dokumen ditampilkan.
 - Tes `test_version_activate_and_delete`. **193 tes lulus.**
 
+### Increment 109 — versi kuesioner: kode & tanggal berlaku bisa disunting
+
+- `effective_date` dulu cuma label yang tidak bisa diedit (ikut nyalin saat
+  duplikasi). Kini tabel versi di Metadata punya input **kode** + pemilih
+  **tanggal berlaku** per baris + tombol Simpan.
+- `saveVersion()` — validasi kode unik antar versi, tanggal opsional. Route
+  `admin.versi.simpan` (`POST /admin/versi/{qv}/simpan`).
+- Tes `test_version_code_and_effective_date_editable`. **194 tes lulus.**
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

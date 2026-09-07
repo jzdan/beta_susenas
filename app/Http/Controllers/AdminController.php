@@ -947,6 +947,23 @@ class AdminController extends Controller
         return redirect()->route('admin.metadata')->with('ok', "Versi \"{$dst->code}\" dibuat. Klik \"Jadikan aktif\" untuk menyuntingnya.");
     }
 
+    /** Ubah kode & tanggal berlaku versi kuesioner. */
+    public function saveVersion(Request $request, QuestionnaireVersion $qv)
+    {
+        $d = $request->validate([
+            'code' => 'required|string|max:40',
+            'effective_date' => 'nullable|date',
+        ]);
+        $code = trim($d['code']);
+        if (QuestionnaireVersion::where('code', $code)->where('id', '!=', $qv->id)->exists()) {
+            return back()->withErrors(['versi' => "Kode \"{$code}\" sudah dipakai versi lain."]);
+        }
+        $qv->update(['code' => $code, 'effective_date' => ($d['effective_date'] ?? null) ?: null]);
+        AuditLog::record('qversion', $qv->id, 'ubah', $code);
+
+        return redirect()->route('admin.metadata')->with('ok', "Versi \"{$code}\" diperbarui.");
+    }
+
     /** Pilih versi kuesioner yang disunting di menu Admin. */
     public function activateVersion(QuestionnaireVersion $qv)
     {
