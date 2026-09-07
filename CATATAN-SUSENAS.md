@@ -1182,6 +1182,19 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 - Menu Admin: **Impor Wilkerstat** dipindah ke bagian "Setup awal (sekali)" di
   bawah; halaman impor wilayah diberi catatan setup.
 
+### Increment 103 — Aturan Validasi: sembunyikan ekspresi mentah dari tampilan utama
+
+- Keluhan user: tabel "Ekspresi mentah" (`filled(b1_no_bs) and b1_no_bs != ...`)
+  masih bikin bingung meski sudah di Mode lanjutan.
+- Intro halaman ditulis ulang: "untuk sehari-hari cukup nyalakan/matikan +
+  ubah ambang; ekspresi hanya untuk Admin/IPDS di Mode lanjutan".
+- Tiap baris di daftar berblok kini punya tautan **⋯** ke editor aturan —
+  navigasi ke Mode lanjutan tak lagi butuh tabel ekspresi.
+- Tabel "Daftar semua ekspresi" dibungkus `<details>` bertingkat di dalam Mode
+  lanjutan (label "referensi teknis"), tertutup default.
+- Placeholder pencarian: "cari kode / pesan" (bukan "…/ ekspresi").
+- **190 tes lulus.**
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

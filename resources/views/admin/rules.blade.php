@@ -4,9 +4,10 @@
 @section('content')
 <h1>Aturan Validasi</h1>
 <p class="muted">Pemeriksaan otomatis yang berjalan tiap dokumen disimpan.
-  <strong>{{ $activeCount }}</strong> dari {{ $total }} aturan aktif.
-  Matikan aturan yang tidak relevan; ubah angka ambang bila perlu.
-  Menyusun ekspresi baru ada di <em>Mode lanjutan</em> di bawah.</p>
+  <strong>{{ $activeCount }}</strong> dari {{ $total }} aturan aktif.</p>
+<p class="muted">Untuk pemakaian sehari-hari cukup di halaman ini: <strong>nyalakan/matikan</strong> aturan
+  dan <strong>ubah angka ambang</strong>. Tulisan kode/ekspresi hanya untuk yang menyusun aturan
+  (Admin/IPDS) — ada di <em>Mode lanjutan</em> paling bawah, tidak perlu dibuka untuk operasional biasa.</p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if ($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
@@ -23,7 +24,7 @@
       <option value="ya" @selected($filters['active'] === 'ya')>aktif saja</option>
       <option value="tidak" @selected($filters['active'] === 'tidak')>nonaktif saja</option>
     </select>
-    <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="cari kode / pesan / ekspresi" style="min-width:220px">
+    <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="cari kode / pesan" style="min-width:220px">
     <button type="submit">Filter</button>
     @if(array_filter($filters))<a class="btn-ghost" href="{{ route('admin.aturan') }}">Reset</a>@endif
     <span class="muted small">{{ $rules->count() }} aturan ditampilkan</span>
@@ -52,8 +53,8 @@
         <thead><tr>
           <th style="width:28px"></th><th style="width:70px">Tingkat</th>
           <th>Pesan yang tampil ke pemeriksa</th>
-          <th style="width:280px">Keterangan / ambang</th>
-          <th style="width:120px"></th>
+          <th style="width:260px">Keterangan / ambang</th>
+          <th style="width:150px"></th>
         </tr></thead>
         <tbody>
         @foreach ($groupRules as $r)
@@ -80,6 +81,7 @@
             <td class="right nowrap">
               <button form="qc{{ $r->id }}" type="submit" class="btn-ghost">Simpan</button>
               <button form="tg{{ $r->id }}" type="submit" class="btn-ghost">{{ $r->active ? 'matikan' : 'nyalakan' }}</button>
+              <a class="btn-ghost" href="{{ route('admin.aturan.edit', $r) }}" title="ubah aturan (mode lanjutan)">⋯</a>
             </td>
           </tr>
         @endforeach
@@ -93,9 +95,11 @@
 </section>
 
 <details class="panel" @if($edit) open @endif>
-  <summary style="cursor:pointer;font-weight:600">Mode lanjutan — tulis &amp; uji ekspresi</summary>
+  <summary style="cursor:pointer;font-weight:600">Mode lanjutan — tulis &amp; uji ekspresi (untuk Admin/IPDS)</summary>
 
-  <p class="muted small" style="margin-top:10px">Konvensi: ekspresi bernilai <strong>TRUE = ada masalah</strong>.
+  <p class="muted small" style="margin-top:10px">Bagian ini untuk orang yang <em>menyusun</em> aturan. Petugas &amp; pemeriksa
+    tidak perlu membukanya.</p>
+  <p class="muted small">Konvensi: ekspresi bernilai <strong>TRUE = ada masalah</strong>.
     Fungsi: <span class="mono">blank filled num n coalesce abs round floor min max sum any_filled all_filled count_filled ymd</span>.
     <span class="mono">ymd("2026-03-10")</span> → 20260310.
     Metadata sampel: <span class="mono">sampel_wilayah · sampel_bs · sampel_ruta · sampel_krt</span>.
@@ -143,22 +147,24 @@
   </div>
 
   @if($rules->isNotEmpty())
-  <h3>Ekspresi mentah</h3>
-  <div class="tablewrap tall">
-  <table class="tbl">
-    <thead><tr><th>Kode</th><th>Scope</th><th>Ekspresi</th><th></th></tr></thead>
-    <tbody>
-    @foreach ($rules as $r)
-      <tr class="{{ $r->active ? '' : 'row-off' }}">
-        <td class="mono small">{{ $r->code }}</td>
-        <td class="small">{{ $r->scope }}@if($r->row_block)<span class="mono muted">/{{ $r->row_block }}</span>@endif</td>
-        <td class="mono small">{{ $r->expr }}</td>
-        <td class="right"><a class="btn-ghost" href="{{ route('admin.aturan.edit', $r) }}">Sunting</a></td>
-      </tr>
-    @endforeach
-    </tbody>
-  </table>
-  </div>
+  <details class="mt">
+    <summary style="cursor:pointer;font-weight:600">Daftar semua ekspresi ({{ $rules->count() }}) — referensi teknis</summary>
+    <div class="tablewrap tall mt">
+    <table class="tbl">
+      <thead><tr><th>Kode</th><th>Scope</th><th>Ekspresi</th><th></th></tr></thead>
+      <tbody>
+      @foreach ($rules as $r)
+        <tr class="{{ $r->active ? '' : 'row-off' }}">
+          <td class="mono small">{{ $r->code }}</td>
+          <td class="small">{{ $r->scope }}@if($r->row_block)<span class="mono muted">/{{ $r->row_block }}</span>@endif</td>
+          <td class="mono small">{{ $r->expr }}</td>
+          <td class="right"><a class="btn-ghost" href="{{ route('admin.aturan.edit', $r) }}">Sunting</a></td>
+        </tr>
+      @endforeach
+      </tbody>
+    </table>
+    </div>
+  </details>
   @endif
 </details>
 
