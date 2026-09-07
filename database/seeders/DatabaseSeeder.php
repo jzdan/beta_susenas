@@ -112,17 +112,17 @@ class DatabaseSeeder extends Seeder
         }
         fclose($fh);
 
-        // rentang harga wajar khusus Kab. Bangkalan (3526) — lebih ketat dari default nasional
+        // rentang harga wajar disetel lebih ketat untuk kondisi Kab. Bangkalan
         foreach ([
             ['002', 11000, 15000],   // beras
             ['075', 1800, 2600],     // telur ayam ras
             ['156', 15000, 22000],   // minyak goreng
             ['160', 1300, 2000],     // gula pasir
         ] as [$code, $min, $max]) {
-            \App\Models\ReferencePrice::create([
-                'qversion_id' => $qv->id, 'code' => $code, 'wilayah_prefix' => '3526',
-                'harga_min' => $min, 'harga_max' => $max,
-            ]);
+            $row = \App\Models\BlockRow::where('block_id', $b->id)->where('code', $code)->first();
+            if ($row) {
+                $row->update(['ref' => array_merge((array) $row->ref, ['harga_min' => $min, 'harga_max' => $max])]);
+            }
         }
 
         // Kolom sesuai VSEN26.KP / WTF: (5)(6) dari pembelian, (7)(8) dari produksi

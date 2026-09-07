@@ -84,28 +84,25 @@ class XlsxImportTest extends TestCase
         @unlink($path);
     }
 
-    public function test_admin_imports_reference_prices_from_xlsx(): void
+    public function test_admin_imports_commodity_prices_from_xlsx(): void
     {
-        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
         $admin = User::where('username', 'admin')->firstOrFail();
+        $b = Block::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.KP'))
+            ->where('code', 'IV.1')->firstOrFail();
         $path = $this->makeXlsx([
-            ['code', 'wilayah_prefix', 'harga_min', 'harga_max'],
-            ['002', '35', '12000', '18000'],
-            ['075', '', '1800', '2600'],
+            ['code', 'harga_min', 'harga_max'],
+            ['002', '12000', '18000'],
+            ['075', '1800', '2600'],
         ], 'HARGA');
 
         $this->actingAs($admin)->post('/admin/harga', [
-            'cycle_id' => $qv->cycle_id,
             'sheet' => 'HARGA',
             'file' => $this->upload($path, 'harga.xlsx'),
         ])->assertRedirect()->assertSessionHas('ok');
 
-        $this->assertDatabaseHas('reference_prices', [
-            'qversion_id' => $qv->id, 'code' => '002', 'wilayah_prefix' => '35', 'harga_min' => 12000,
-        ]);
-        $this->assertDatabaseHas('reference_prices', [
-            'qversion_id' => $qv->id, 'code' => '075', 'wilayah_prefix' => '', 'harga_max' => 2600,
-        ]);
+        $r002 = BlockRow::where('block_id', $b->id)->where('code', '002')->firstOrFail();
+        $this->assertSame('12000', $r002->ref['harga_min']);
+        $this->assertSame('18000', $r002->ref['harga_max']);
         @unlink($path);
     }
 

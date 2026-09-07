@@ -398,10 +398,6 @@ class RuleEngine
         $qIds = $block->questions->pluck('var_name', 'id');
         $refByRow = $block->rows->keyBy('row_index');
 
-        // rentang harga per wilayah (menimpa ref_harga_min/max default)
-        $priceIndex = \App\Models\ReferencePrice::indexFor($doc->qversion_id);
-        $wilCode = (string) ($baseCtx['sampel_wilayah'] ?? $doc->sample?->wilayah_code ?? '');
-
         $byRow = [];   // rowIdx => [var => value]
         foreach (Answer::where('document_id', $doc->id)
             ->whereIn('question_id', $qIds->keys())->get() as $a) {
@@ -423,18 +419,6 @@ class RuleEngine
             }
             foreach (($refRow->ref ?? []) as $k => $v) {
                 $rc["ref_{$k}"] = $v;
-            }
-            // override rentang harga wajar berdasarkan wilayah sampel
-            if ($priceIndex && ($rowCode = $refRow->code ?? '') !== '') {
-                $range = \App\Models\ReferencePrice::pick($priceIndex, $rowCode, $wilCode);
-                if ($range) {
-                    if ($range['min'] !== null) {
-                        $rc['ref_harga_min'] = $range['min'];
-                    }
-                    if ($range['max'] !== null) {
-                        $rc['ref_harga_max'] = $range['max'];
-                    }
-                }
             }
             $rc['baris_label'] = $refRow->label ?? (string) $comRow;
             $rc['_row_index'] = (float) $comRow;

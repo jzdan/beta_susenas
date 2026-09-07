@@ -1250,6 +1250,24 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   saat menyusun berkas impor.
 - **191 tes lulus.**
 
+### Increment 107 — hapus override harga per wilayah; satu rentang per komoditas
+
+- Permintaan user: "mending rentang override dihapus dan buat rentang nasional
+  bisa diedit — kode, nama komoditas, dan range harga".
+- **Tabel `reference_prices` dihapus** (migrasi `drop_reference_prices`), model
+  `ReferencePrice` dihapus, `RuleEngine::rowContexts()` tak lagi mencari override
+  — `ref_harga_min`/`ref_harga_max`/`ref_kalori` murni dari `block_rows.ref`.
+- Menu **"Harga Referensi" → "Harga & Kalori Komoditas"**. Halaman kini =
+  tabel komoditas Blok IV.1 yang **bisa disunting langsung**: kode, nama,
+  harga_min, harga_max, kalori — per baris + kotak cari. Impor massal Excel/CSV
+  (`code, harga_min, harga_max, kalori`) mencocokkan ke `block_rows` lewat `code`
+  dan **merge** ke `ref` (kunci lain seperti `satuan`/`max_kons`/`group` aman).
+- Route `admin.harga.del` → `admin.harga.save` (`POST /admin/harga/simpan`).
+- Seeder: 4 rentang Bangkalan (beras/telur/minyak/gula) kini di-merge langsung
+  ke `block_rows.ref`, bukan bikin baris override.
+- `ReferencePriceTest` ditulis ulang (edit inline + impor by code + aturan pakai
+  ref block_rows). **192 tes lulus.** Reseed + health bersih.
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

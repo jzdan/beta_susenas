@@ -4,10 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Answer;
 use App\Models\Block;
+use App\Models\BlockRow;
 use App\Models\Document;
 use App\Models\Question;
 use App\Models\QuestionnaireVersion;
-use App\Models\ReferencePrice;
 use App\Models\RuleResult;
 use App\Models\User;
 use App\Services\RuleEngine;
@@ -47,21 +47,24 @@ class ReferencePriceTest extends TestCase
             ->whereHas('rule', fn ($q) => $q->where('code', 'IV1-HARGA'))->exists();
     }
 
-    public function test_wilayah_specific_range_is_stricter_than_national(): void
+    public function test_price_rule_uses_commodity_range_from_block_rows(): void
     {
         [$qv, $doc, $b] = $this->kpDoc();
         $engine = app(RuleEngine::class);
 
-        // beras 10 kg / Rp 200.000 -> harga satuan 20.000
-        // nasional (10rb-25rb): lolos ; Bangkalan seed (11rb-15rb): menyala
+        // baris 1 = Beras, ref harga 11.000–15.000 (disetel di seeder)
+        $br = BlockRow::where('block_id', $b->id)->where('row_index', 1)->firstOrFail();
+        $this->assertSame('11000', (string) ($br->ref['harga_min'] ?? null));
+
+        // 10 kg / Rp 200.000 -> 20.000/kg -> di luar rentang -> menyala
         $this->setBeras($doc, $b, '10', '200000');
         $engine->run($doc);
-        $this->assertTrue($this->hargaFired($doc), 'seharusnya melanggar rentang Bangkalan');
+        $this->assertTrue($this->hargaFired($doc));
 
-        // hapus override wilayah 3526 -> kembali pakai nasional -> tidak menyala lagi
-        ReferencePrice::where('qversion_id', $qv->id)->where('code', '002')->where('wilayah_prefix', '3526')->delete();
+        // longgarkan rentang -> tidak menyala lagi
+        $br->update(['ref' => array_merge((array) $br->ref, ['harga_min' => '5000', 'harga_max' => '30000'])]);
         $engine->run($doc);
-        $this->assertFalse($this->hargaFired($doc), 'tanpa override wilayah, 20rb masih di dalam rentang nasional');
+        $this->assertFalse($this->hargaFired($doc));
     }
 
     public function test_max_kons_rule_flags_excessive_quantity(): void
@@ -69,37 +72,56 @@ class ReferencePriceTest extends TestCase
         [$qv, $doc, $b] = $this->kpDoc();
         $engine = app(RuleEngine::class);
 
-        // baris 1 = Beras, ref max_kons = 7 (per ruta/minggu)
-        $br = \App\Models\BlockRow::where('block_id', $b->id)->where('row_index', 1)->firstOrFail();
+        $br = BlockRow::where('block_id', $b->id)->where('row_index', 1)->firstOrFail();
         $this->assertArrayHasKey('max_kons', $br->ref, 'seed harus memuat max_kons');
 
         $fired = fn () => RuleResult::where('document_id', $doc->id)->where('row_index', 1)
             ->whereIn('status', ['error', 'warning'])
             ->whereHas('rule', fn ($q) => $q->where('code', 'IV1-KUANTITAS-MAX'))->exists();
 
-        $this->setBeras($doc, $b, '5', '60000');   // 5 kg <= 7 -> aman
+        $this->setBeras($doc, $b, '5', '60000');
         $engine->run($doc);
         $this->assertFalse($fired());
 
-        $this->setBeras($doc, $b, '40', '480000'); // 40 kg > 7 -> menyala
+        $this->setBeras($doc, $b, '40', '480000');
         $engine->run($doc);
         $this->assertTrue($fired());
     }
 
-    public function test_admin_imports_reference_prices(): void
+    public function test_admin_edits_commodity_price_inline(): void
     {
-        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+        [$qv, , $b] = $this->kpDoc();
+        $admin = User::where('username', 'admin')->firstOrFail();
+        $br = BlockRow::where('block_id', $b->id)->where('code', '002')->firstOrFail();
+
+        $this->actingAs($admin)->post('/admin/harga/simpan', [
+            'row_id' => $br->id, 'code' => '002', 'label' => 'Beras (uji)',
+            'harga_min' => '12000', 'harga_max' => '17000', 'kalori' => '3600',
+        ])->assertRedirect()->assertSessionHas('ok');
+
+        $br->refresh();
+        $this->assertSame('Beras (uji)', $br->label);
+        $this->assertSame('12000', $br->ref['harga_min']);
+        $this->assertSame('17000', $br->ref['harga_max']);
+        $this->assertArrayHasKey('max_kons', $br->ref, 'kunci ref lain tidak boleh hilang');
+
+        // min > max ditolak
+        $this->actingAs($admin)->post('/admin/harga/simpan', [
+            'row_id' => $br->id, 'label' => 'Beras', 'harga_min' => '99999', 'harga_max' => '1',
+        ])->assertSessionHasErrors('harga');
+    }
+
+    public function test_admin_bulk_price_import_matches_by_code(): void
+    {
+        [$qv, , $b] = $this->kpDoc();
         $admin = User::where('username', 'admin')->firstOrFail();
 
         $this->actingAs($admin)->post('/admin/harga', [
-            'cycle_id' => $qv->cycle_id,
-            'data' => "code,wilayah_prefix,harga_min,harga_max\n002,35,12000,18000\n999,,5,3\n",
+            'data' => "code,harga_min,harga_max,kalori\n002,13000,16000,3611\n999,1,2,\n",
         ])->assertRedirect()->assertSessionHas('ok');
 
-        $this->assertDatabaseHas('reference_prices', [
-            'qversion_id' => $qv->id, 'code' => '002', 'wilayah_prefix' => '35', 'harga_min' => 12000,
-        ]);
-        // baris harga_min > harga_max dilewati
-        $this->assertDatabaseMissing('reference_prices', ['code' => '999']);
+        $br = BlockRow::where('block_id', $b->id)->where('code', '002')->firstOrFail();
+        $this->assertSame('13000', $br->ref['harga_min']);
+        $this->assertSame('3611', $br->ref['kalori']);
     }
 }

@@ -151,6 +151,6 @@ Route::middleware('role')->group(function () {
         Route::post('/siklus/{cycle}/buka', [AdminController::class, 'cycleUnlock'])->name('siklus.unlock');
         Route::get('/harga', [AdminController::class, 'hargaForm'])->name('harga');
         Route::post('/harga', [AdminController::class, 'hargaImport'])->name('harga.import');
-        Route::post('/harga/{price}/hapus', [AdminController::class, 'hargaDelete'])->name('harga.del');
+        Route::post('/harga/simpan', [AdminController::class, 'hargaSave'])->name('harga.save');
     });
 });

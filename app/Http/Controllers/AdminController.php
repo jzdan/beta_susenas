@@ -1102,44 +1102,60 @@ class AdminController extends Controller
         }, $name, ['Content-Type' => 'text/csv']);
     }
 
-    // -------------------------------------------------------- Harga referensi wilayah
+    // -------------------------------------------------------- Harga & kalori komoditas
+
+    private function hargaBlocks(): \Illuminate\Support\Collection
+    {
+        return $this->activeQv()->blocks()->where('code', 'IV.1')->orderBy('order')->get();
+    }
 
     public function hargaForm()
     {
-        $labels = \App\Models\BlockRow::query()
-            ->join('blocks', 'blocks.id', '=', 'block_rows.block_id')
-            ->whereIn('blocks.code', ['IV.1', 'IV.1M'])
-            ->get(['blocks.qversion_id', 'block_rows.code', 'block_rows.label'])
-            ->keyBy(fn ($r) => $r->qversion_id.':'.$r->code)
-            ->map(fn ($r) => $r->label);
-
-        $qv = $this->activeQv();
-        $komoditas = \App\Models\BlockRow::query()
-            ->join('blocks', 'blocks.id', '=', 'block_rows.block_id')
-            ->where('blocks.qversion_id', $qv->id)->where('blocks.code', 'IV.1')
-            ->orderBy('block_rows.row_index')
-            ->get(['block_rows.code', 'block_rows.label', 'block_rows.ref']);
-
         return view('admin.harga', [
-            'cycles' => SurveyCycle::orderByDesc('id')->get(),
-            'labels' => $labels,
-            'komoditas' => $komoditas,
-            'activeQvCode' => $qv->code,
-            'prices' => \App\Models\ReferencePrice::with('qversion:id,code')
-                ->orderBy('qversion_id')->orderBy('code')->orderBy('wilayah_prefix')->get(),
+            'activeQvCode' => $this->activeQv()->code,
+            'komoditas' => \App\Models\BlockRow::whereIn('block_id', $this->hargaBlocks()->pluck('id'))
+                ->orderBy('row_index')->get(),
         ]);
     }
 
+    /** Simpan satu komoditas (kode, nama, rentang harga, kalori) — merge ke ref. */
+    public function hargaSave(Request $request)
+    {
+        $d = $request->validate([
+            'row_id' => 'required|integer',
+            'code' => 'nullable|string|max:24',
+            'label' => 'required|string|max:300',
+            'harga_min' => 'nullable|numeric|min:0',
+            'harga_max' => 'nullable|numeric|min:0',
+            'kalori' => 'nullable|numeric|min:0',
+        ]);
+        if (($d['harga_min'] ?? null) !== null && ($d['harga_max'] ?? null) !== null
+            && (float) $d['harga_min'] > (float) $d['harga_max']) {
+            return back()->withErrors(['harga' => 'Harga minimal lebih besar dari maksimal.']);
+        }
+        $row = \App\Models\BlockRow::findOrFail($d['row_id']);
+        $ref = (array) $row->ref;
+        foreach (['harga_min', 'harga_max', 'kalori'] as $k) {
+            if (($d[$k] ?? null) === null || $d[$k] === '') {
+                unset($ref[$k]);
+            } else {
+                $ref[$k] = (string) (0 + $d[$k]);
+            }
+        }
+        $row->update(['code' => trim($d['code'] ?? ''), 'label' => trim($d['label']), 'ref' => $ref ?: null]);
+        AuditLog::record('block_row', $row->code, 'harga', "{$row->label}: {$row->ref['harga_min']}–{$row->ref['harga_max']}");
+
+        return back()->with('ok', "Komoditas \"{$row->label}\" diperbarui.");
+    }
+
+    /** Impor massal harga (+kalori) dari Excel/CSV — cocokkan lewat kolom code. */
     public function hargaImport(Request $request)
     {
         $d = $request->validate([
-            'cycle_id' => 'required|integer',
             'data' => 'nullable|string',
             'file' => 'nullable|file|mimes:xlsx,csv,txt|max:5120',
             'sheet' => 'nullable|string|max:64',
         ]);
-        $qv = QuestionnaireVersion::where('cycle_id', $d['cycle_id'])->orderByDesc('id')->firstOrFail();
-
         try {
             $rows = $request->hasFile('file')
                 ? \App\Services\XlsxReader::fromUpload($request->file('file'), ($d['sheet'] ?? null) ?: null)
@@ -1148,8 +1164,9 @@ class AdminController extends Controller
             return back()->withErrors(['file' => $e->getMessage()]);
         }
         if (! $rows || ! array_key_exists('code', $rows[0] ?? []) || ! array_key_exists('harga_min', $rows[0] ?? [])) {
-            return back()->withErrors(['file' => 'Kolom wajib: code, harga_min, harga_max (opsional wilayah_prefix).']);
+            return back()->withErrors(['file' => 'Kolom wajib: code, harga_min, harga_max (opsional kalori).']);
         }
+        $byCode = \App\Models\BlockRow::whereIn('block_id', $this->hargaBlocks()->pluck('id'))->get()->keyBy('code');
 
         $n = 0;
         $skip = [];
@@ -1160,30 +1177,30 @@ class AdminController extends Controller
             $max = $row['harga_max'] ?? '';
             if ($code === '' || ! is_numeric($min) || ! is_numeric($max)) {
                 $skip[] = "baris {$ln}: code/harga tidak valid";
+
                 continue;
             }
             if ((float) $min > (float) $max) {
                 $skip[] = "baris {$ln}: harga_min > harga_max";
+
                 continue;
             }
-            \App\Models\ReferencePrice::updateOrCreate(
-                ['qversion_id' => $qv->id, 'code' => $code, 'wilayah_prefix' => trim($row['wilayah_prefix'] ?? '')],
-                ['harga_min' => (float) $min, 'harga_max' => (float) $max],
-            );
+            if (! ($target = $byCode[$code] ?? null)) {
+                $skip[] = "baris {$ln}: kode {$code} tidak ada di daftar komoditas";
+
+                continue;
+            }
+            $ref = array_merge((array) $target->ref, ['harga_min' => (string) (0 + $min), 'harga_max' => (string) (0 + $max)]);
+            if (isset($row['kalori']) && is_numeric($row['kalori'])) {
+                $ref['kalori'] = (string) (0 + $row['kalori']);
+            }
+            $target->update(['ref' => $ref]);
             $n++;
         }
-        AuditLog::record('reference_price', $qv->code, 'impor', "{$n} baris");
+        AuditLog::record('block_row', 'IV.1', 'impor-harga', "{$n} komoditas");
 
-        return redirect()->route('admin.harga')->with('ok', "{$n} rentang harga disimpan untuk {$qv->code}."
+        return redirect()->route('admin.harga')->with('ok', "{$n} komoditas diperbarui."
             .($skip ? ' Dilewati: '.implode('; ', $skip) : ''));
-    }
-
-    public function hargaDelete(\App\Models\ReferencePrice $price)
-    {
-        $price->delete();
-        AuditLog::record('reference_price', $price->id, 'hapus', $price->code);
-
-        return back();
     }
 
     public function aliasSave(Request $request)
