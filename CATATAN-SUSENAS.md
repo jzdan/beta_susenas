@@ -1294,6 +1294,23 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   `admin.versi.simpan` (`POST /admin/versi/{qv}/simpan`).
 - Tes `test_version_code_and_effective_date_editable`. **194 tes lulus.**
 
+### Increment 110 — poles tampilan (CSS-only, tanpa ubah logika)
+
+- Permintaan: "buat tampilan agar terlihat modern tanpa mengubah logika/back-end".
+- `public/css/app.css` saja. Tidak ada perubahan blade/controller/route.
+- Token: tambah `--surface-2`, `--row-hover`, `--accent-strong`, `--on-accent`,
+  `--radius-lg` (12px), `--shadow-sm`/`--shadow-md`; `--radius` 6→8px; palet
+  netral & aksen sedikit disegarkan; bayangan gelap untuk tema gelap.
+- Panel: sudut lebih bulat + bayangan lembut (jadi kartu yang "mengambang").
+- Tipografi: h1 1.5→1.7rem, hierarki & letter-spacing dirapikan, antialias.
+- Sidebar: item aktif dapat bilah aksen kiri; pemisah bagian dapat garis.
+- Tabel: padding baris lebih lega, hover baris, header pakai `--surface-2`.
+- Tombol: primary pakai `--accent-strong` + bayangan; ghost hover jelas;
+  transisi 0.14s (dihormati `prefers-reduced-motion`).
+- Input/textarea: focus ring lembut (box-shadow) bukan outline keras.
+- KPI, chip, alert, filter-bar, login-card, rule-group ikut dipoles.
+- **194 tes lulus** (CSS tidak menyentuh logika/tes).
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`
