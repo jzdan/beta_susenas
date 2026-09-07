@@ -1237,6 +1237,19 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   Sidona BPS / disiapkan IPDS".
 - **191 tes lulus.**
 
+### Increment 106 — Harga Referensi: tampilkan nama komoditas, bukan cuma kode
+
+- Keluhan: tabel "Terdaftar" hanya menampilkan kode (`002`, `075`) tanpa
+  keterangan komoditasnya.
+- `hargaForm()` kini mengirim `$labels` (map `qversion_id:code → label` dari
+  `block_rows` blok IV.1 + IV.1M semua versi) dan `$komoditas` (daftar IV.1
+  versi aktif dengan harga bawaan).
+- Tabel "Terdaftar" dapat kolom **Komoditas**.
+- Panel lipat baru **"Daftar kode komoditas Blok IV.1"** di bawah form impor:
+  tabel kode + nama + Min/Max bawaan, dengan kotak cari — untuk melihat kode
+  saat menyusun berkas impor.
+- **191 tes lulus.**
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

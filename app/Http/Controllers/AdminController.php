@@ -1106,8 +1106,25 @@ class AdminController extends Controller
 
     public function hargaForm()
     {
+        $labels = \App\Models\BlockRow::query()
+            ->join('blocks', 'blocks.id', '=', 'block_rows.block_id')
+            ->whereIn('blocks.code', ['IV.1', 'IV.1M'])
+            ->get(['blocks.qversion_id', 'block_rows.code', 'block_rows.label'])
+            ->keyBy(fn ($r) => $r->qversion_id.':'.$r->code)
+            ->map(fn ($r) => $r->label);
+
+        $qv = $this->activeQv();
+        $komoditas = \App\Models\BlockRow::query()
+            ->join('blocks', 'blocks.id', '=', 'block_rows.block_id')
+            ->where('blocks.qversion_id', $qv->id)->where('blocks.code', 'IV.1')
+            ->orderBy('block_rows.row_index')
+            ->get(['block_rows.code', 'block_rows.label', 'block_rows.ref']);
+
         return view('admin.harga', [
             'cycles' => SurveyCycle::orderByDesc('id')->get(),
+            'labels' => $labels,
+            'komoditas' => $komoditas,
+            'activeQvCode' => $qv->code,
             'prices' => \App\Models\ReferencePrice::with('qversion:id,code')
                 ->orderBy('qversion_id')->orderBy('code')->orderBy('wilayah_prefix')->get(),
         ]);
