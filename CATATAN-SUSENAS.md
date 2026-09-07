@@ -1311,6 +1311,24 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 - KPI, chip, alert, filter-bar, login-card, rule-group ikut dipoles.
 - **194 tes lulus** (CSS tidak menyentuh logika/tes).
 
+### Increment 111 — app-shell + chrome gelap (tampilan lebih modern)
+
+- Lanjutan poles: user minta lebih modern. Tetap tanpa ubah logika —
+  `public/css/app.css` + 1 baris `<meta name="color-scheme">` di layout.
+- **App shell**: topbar & sidebar sekarang **tetap (fixed)**, hanya area
+  konten yang scroll (`height: calc(100vh - --topbar-h); overflow-y:auto`).
+  `body:has(.topbar)` dikunci — layout terasa seperti aplikasi, bukan halaman.
+- **Chrome gelap**: topbar + sidebar pakai `--nav-bg` (slate-navy pekat) dengan
+  teks terang — di tema terang maupun gelap. Token baru `--nav-*`. Item menu
+  aktif dapat bilah aksen; pemisah bagian dapat garis; kontrol topbar
+  (notifikasi/tema/keluar) disesuaikan untuk latar gelap.
+- `color-scheme` diset per tema (light/dark) — kontrol native & scrollbar ikut
+  tema, dan browser tidak meng-auto-dark halaman.
+- h1 1.7→1.85rem; intro halaman (`.content > h1 + p`) diberi gaya; scrollbar
+  tipis; warna seleksi teks; `.sticky` entri disesuaikan ke shell baru.
+- Mobile (<821px): shell kembali menumpuk, sidebar horizontal.
+- **194 tes lulus** (CSS/markup only).
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`
