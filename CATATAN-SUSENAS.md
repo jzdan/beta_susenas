@@ -1329,6 +1329,17 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 - Mobile (<821px): shell kembali menumpuk, sidebar horizontal.
 - **194 tes lulus** (CSS/markup only).
 
+### Increment 112 — perbaiki seed: sampel proses/selesai tanpa dokumen
+
+- User temukan: di "Tugas Saya" ada sampel STATUS `proses` tapi kolom Dokumen
+  "belum ada". Penyebab: `documents()` (siklus VSEN27.KP contoh) hanya bikin
+  dokumen fixture untuk sebagian sampel `proses`/`selesai`, sisanya
+  (12 sampel) status-nya tak konsisten.
+- Fix di `DatabaseSeeder::documents()`: sampel `proses`/`selesai` yang tak
+  punya dokumen dikembalikan ke `belum`.
+- `susenas:health` cek #9: peringatkan sampel proses/selesai tanpa dokumen.
+- **194 tes lulus.** Reseed + health bersih.
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

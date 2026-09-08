@@ -2065,5 +2065,13 @@ class DatabaseSeeder extends Seeder
             AuditLog::record('document', $doc->id, 'entri-awal',
                 "{$sum['errors']} error, {$sum['warnings']} warning", $operator->id);
         }
+
+        // konsistensi: sampel 'proses'/'selesai' tanpa dokumen tidak masuk akal —
+        // kembalikan ke 'belum' (dokumen fixture hanya dibuat untuk sebagian).
+        $withDoc = Document::whereIn('sample_id', collect($samples)->pluck('id'))->pluck('sample_id');
+        SampleHousehold::whereIn('id', collect($samples)->pluck('id'))
+            ->whereNotIn('id', $withDoc)
+            ->whereIn('status', ['proses', 'selesai'])
+            ->update(['status' => 'belum']);
     }
 }

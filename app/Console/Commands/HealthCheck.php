@@ -125,6 +125,14 @@ class HealthCheck extends Command
             $problems++;
         }
 
+        // 9. sampel 'proses'/'selesai' tanpa dokumen — status tak konsisten
+        $noDoc = SampleHousehold::whereIn('status', ['proses', 'selesai'])
+            ->whereNotIn('id', DB::table('documents')->select('sample_id'))->count();
+        if ($noDoc > 0) {
+            $this->warn("• {$noDoc} sampel berstatus proses/selesai tapi belum punya dokumen.");
+            $problems++;
+        }
+
         if ($problems === 0) {
             $this->info('OK — tidak ada masalah terdeteksi.');
             return self::SUCCESS;
