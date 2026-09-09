@@ -1340,6 +1340,22 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 - `susenas:health` cek #9: peringatkan sampel proses/selesai tanpa dokumen.
 - **194 tes lulus.** Reseed + health bersih.
 
+### Increment 113 — tampilan: kurangi kesan datar/monoton
+
+- User: terlalu flat — warna & terlalu banyak teks dengan font serupa.
+- **Tiga suara tipografi**: **IBM Plex Serif** untuk judul (h1, judul panel,
+  angka KPI, summary `<details>`), Plex Sans untuk teks, Plex Mono untuk
+  data/kode/label. Font-link layout +Serif +weight 450/700.
+- **Kartu statistik**: angka KPI jadi serif besar warna aksen; label mono
+  uppercase; kartu error/warning dapat gradien tipis.
+- **Header panel**: judul serif + garis bawah membentang lebar panel
+  (`.panel > h2:first-child` di-bleed ke tepi).
+- **Warna**: aksen biru diperdalam; tambah `--accent-2` teal untuk kode inline
+  di paragraf (jadi "chip" kecil) + tick judul halaman (gradien biru→teal).
+- **Kedalaman**: glow radial halus di kanan-atas konten; sidebar dapat
+  gradien + item aktif terisi penuh; chip status jadi mono-uppercase + titik.
+- CSS + 1 baris `<link>` font. Tanpa ubah logika. **194 tes lulus.**
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`
