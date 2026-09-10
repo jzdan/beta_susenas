@@ -38,4 +38,24 @@ class User extends Authenticatable
     {
         return self::ROLE_LABELS[$this->role] ?? $this->role;
     }
+
+    /** Inisial 1–2 huruf dari nama untuk avatar. */
+    public function initials(): string
+    {
+        $parts = preg_split('/\s+/', trim(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', (string) $this->name)));
+        $parts = array_values(array_filter($parts));
+        if (! $parts) {
+            return strtoupper(substr((string) $this->username, 0, 2)) ?: '??';
+        }
+        $first = mb_substr($parts[0], 0, 1);
+        $last = count($parts) > 1 ? mb_substr($parts[count($parts) - 1], 0, 1) : '';
+
+        return mb_strtoupper($first.$last);
+    }
+
+    /** Warna avatar deterministik (hue 0–360) dari id/nama. */
+    public function avatarHue(): int
+    {
+        return (int) (crc32($this->name.'|'.$this->id) % 360);
+    }
 }

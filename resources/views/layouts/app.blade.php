@@ -29,7 +29,10 @@
         Notifikasi @if($unread)<span class="notif-count">{{ $unread > 9 ? '9+' : $unread }}</span>@endif
       </a>
       <button type="button" class="theme-toggle" data-theme-toggle aria-label="Ganti tema"><span data-theme-label>Tema</span></button>
-      <a href="{{ route('akun') }}" style="text-decoration:none;color:inherit">{{ $u->name }}</a>
+      <a href="{{ route('akun') }}" class="avatar-row" style="text-decoration:none;color:inherit">
+        <x-avatar :user="$u" :size="28" />
+        <span class="nm">{{ $u->name }}</span>
+      </a>
       <span class="role">{{ $u->roleLabel() }}@if($u->wilayah_scope) · {{ $u->wilayah_scope }}@endif</span>
       <a class="btn-ghost" href="{{ route('logout') }}">Keluar</a>
     </div>

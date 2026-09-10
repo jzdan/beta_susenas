@@ -18,7 +18,7 @@
     <tbody>
     @forelse ($entriRows as $r)
       <tr>
-        <td>{{ $r['name'] }}</td>
+        <td><span class="avatar-row"><x-avatar :name="$r['name']" :size="26" /><span class="nm">{{ $r['name'] }}</span></span></td>
         <td class="num">{{ $r['total'] }}</td>
         <td class="num">{{ $r['submit'] }}</td>
         <td class="num">{{ $r['bersih'] }}</td>
@@ -46,7 +46,7 @@
     <tbody>
     @forelse ($olahRows as $r)
       <tr>
-        <td>{{ $r['name'] }}</td>
+        <td><span class="avatar-row"><x-avatar :name="$r['name']" :size="26" /><span class="nm">{{ $r['name'] }}</span></span></td>
         <td class="num">{{ $r['bersih'] }}</td>
         <td class="num">{{ $r['koreksi'] }}</td>
         <td class="num">{{ $r['ditinjau'] }}</td>

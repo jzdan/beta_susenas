@@ -184,6 +184,16 @@ p .mono, li .mono, .prose .mono { color: var(--accent-2); background: var(--acce
 .brand .ver { font-family: "IBM Plex Mono", monospace; font-size: .7rem; color: var(--nav-fg-dim); font-weight: 400; }
 .whoami { font-size: .84rem; display: flex; align-items: center; gap: 8px; color: var(--nav-fg); }
 .whoami .role { color: var(--nav-fg-dim); font-family: "IBM Plex Mono", monospace; font-size: .7rem; }
+
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  border-radius: 50%; color: #fff; font-family: var(--font-body); font-weight: 600;
+  letter-spacing: -.02em; line-height: 1; user-select: none; overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+}
+.avatar-img { object-fit: cover; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.avatar-row { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.avatar-row .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar .theme-toggle, .topbar .notif-bell, .topbar .btn-ghost {
   background: transparent; border-color: var(--nav-line); color: var(--nav-fg-dim); box-shadow: none;
 }

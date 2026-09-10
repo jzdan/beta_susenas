@@ -12,10 +12,11 @@
   <h2>Daftar pengguna ({{ $users->count() }})</h2>
   <div class="tablewrap">
   <table class="tbl">
-    <thead><tr><th>Username</th><th>Nama</th><th>Peran</th><th>Wilayah</th><th>Aktif</th><th></th></tr></thead>
+    <thead><tr><th></th><th>Username</th><th>Nama</th><th>Peran</th><th>Wilayah</th><th>Aktif</th><th></th></tr></thead>
     <tbody>
     @foreach ($users as $u)
       <tr class="{{ $u->active ? '' : 'row-off' }}">
+        <td><x-avatar :user="$u" :size="30" /></td>
         <td class="mono">{{ $u->username }}</td>
         <td>{{ $u->name }}</td>
         <td>{{ $roles[$u->role] ?? $u->role }}</td>

@@ -1356,6 +1356,16 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   gradien + item aktif terisi penuh; chip status jadi mono-uppercase + titik.
 - CSS + 1 baris `<link>` font. Tanpa ubah logika. **194 tes lulus.**
 
+### Increment 114 — avatar inisial pengguna
+
+- Komponen `<x-avatar :user / :name :size>` — lingkaran berisi inisial 1–2
+  huruf, warna HSL deterministik dari nama/id. Fallback ke `<img>` bila kolom
+  `users.avatar` diisi nanti (belum ada — untuk Inc mendatang).
+- `User::initials()` + `User::avatarHue()`.
+- Dipasang: topbar (samping nama), Daftar Pengguna, Kinerja Tim (entri &
+  pengolahan per orang).
+- Tanpa upload / migrasi / penyimpanan. **194 tes lulus.**
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`
