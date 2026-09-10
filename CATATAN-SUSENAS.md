@@ -1392,6 +1392,15 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
    atas, `rm -rf storage/app/kunjungan`, cabut baris di route/EntryController/
    MonitoringController/Backup/blade. Sisa aplikasi tak tersentuh.
 
+### Increment 116 — naikkan ukuran font/angka yang terlalu kecil
+
+- User: beberapa font/angka masih kelihatan kecil.
+- `body` 15 → 15.5px; hampir semua `font-size` di bawah ~13.8px dinaikkan
+  ~1 pt: tabel `.89→.92rem`, header tabel `.66→.72rem`, `.small .82→.86`,
+  chip `.67→.72`, label KPI `.68→.73`, `q-code .72→.77`, roster `.85→.89`,
+  `nav-sep .6→.67`, dll. Judul/heading tidak diubah.
+- CSS-only. **199 tes lulus.**
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`
