@@ -335,6 +335,9 @@ class MonitoringController extends Controller
             'assignable' => $canAssign ? $this->assignableUsers($request->user()) : ['operator' => [], 'pml' => []],
             'audit' => AuditLog::where('entity', 'sample')->where('entity_id', (string) $sample->id)
                 ->orderByDesc('at')->limit(20)->get(),
+            'visitPhotos' => config('susenas.bukti_kunjungan')
+                ? \App\Models\VisitPhoto::with('uploader:id,name')->where('sample_id', $sample->id)->orderBy('id')->get()
+                : collect(),
         ]);
     }
 

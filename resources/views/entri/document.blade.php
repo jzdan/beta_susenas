@@ -205,6 +205,8 @@
     <div class="panel">
       @include('_catatan', ['from' => 'entri'])
     </div>
+
+    @include('entri._bukti_kunjungan')
   </aside>
 </div>
 @endsection

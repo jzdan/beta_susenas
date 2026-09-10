@@ -45,6 +45,10 @@ class EntryController extends Controller
             'canEdit' => in_array($request->user()->role, ['operator', 'admin'], true),
             'notes' => \App\Models\DocumentNote::with('user:id,name')
                 ->where('document_id', $document->id)->orderBy('id')->get(),
+            'visitPhotos' => config('susenas.bukti_kunjungan')
+                ? \App\Models\VisitPhoto::with('uploader:id,name')
+                    ->where('sample_id', $document->sample_id)->orderBy('id')->get()
+                : collect(),
         ]);
     }
 
@@ -243,6 +247,10 @@ class EntryController extends Controller
         $sum = $this->engine->run($document);
         if ($sum['errors'] > 0) {
             return back()->withErrors(['finalisasi' => "Masih ada {$sum['errors']} error — perbaiki dulu."]);
+        }
+        if (config('susenas.bukti_kunjungan') && config('susenas.bukti_kunjungan_wajib')
+            && ! \App\Models\VisitPhoto::where('sample_id', $document->sample_id)->exists()) {
+            return back()->withErrors(['finalisasi' => 'Unggah minimal 1 foto bukti kunjungan dulu.']);
         }
         $wasReturned = $document->status === 'dikembalikan';
         $document->update([

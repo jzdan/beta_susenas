@@ -83,7 +83,12 @@ Route::middleware('role')->group(function () {
             ->middleware('role:operator,admin')->name('set-art');
         Route::post('/{document}/finalisasi', [EntryController::class, 'finalize'])
             ->middleware('role:operator,pml,admin')->name('finalize');
+        Route::post('/{document}/foto-kunjungan', [\App\Http\Controllers\VisitPhotoController::class, 'store'])->name('foto.store');
     });
+
+    // modul bukti kunjungan (opsional — lihat config/susenas.php)
+    Route::get('/kunjungan/foto/{photo}', [\App\Http\Controllers\VisitPhotoController::class, 'show'])->name('kunjungan.foto');
+    Route::delete('/kunjungan/foto/{photo}', [\App\Http\Controllers\VisitPhotoController::class, 'destroy'])->name('kunjungan.foto.hapus');
 
     Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
         Route::get('/metadata', [AdminController::class, 'metadata'])->name('metadata');

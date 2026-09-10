@@ -54,11 +54,30 @@ class Backup extends Command
         }
         $this->info('Cadangan: '.$dest.' ('.number_format(filesize($dest) / 1024, 0).' KB)');
 
+        // modul bukti kunjungan (opsional): arsipkan folder foto sebagai zip
+        $fotoDir = storage_path('app/kunjungan');
+        if (config('susenas.bukti_kunjungan') && is_dir($fotoDir) && class_exists(\ZipArchive::class)) {
+            $zipDest = preg_replace('/\.sqlite$/', '-foto.zip', $dest);
+            $zip = new \ZipArchive;
+            if ($zip->open($zipDest, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true) {
+                $n = 0;
+                foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($fotoDir, \FilesystemIterator::SKIP_DOTS)) as $f) {
+                    if ($f->isFile()) {
+                        $zip->addFile($f->getPathname(), 'kunjungan/'.substr($f->getPathname(), strlen($fotoDir) + 1));
+                        $n++;
+                    }
+                }
+                $zip->close();
+                $this->info("Foto bukti kunjungan: {$zipDest} ({$n} berkas)");
+            }
+        }
+
         $keep = max(1, (int) $this->option('keep'));
         $files = glob($dir.'/susenas-*.sqlite') ?: [];
         rsort($files);
         foreach (array_slice($files, $keep) as $old) {
             @unlink($old);
+            @unlink(preg_replace('/\.sqlite$/', '-foto.zip', $old));
             $this->line('  dihapus (lama): '.basename($old));
         }
 

@@ -1366,6 +1366,32 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   pengolahan per orang).
 - Tanpa upload / migrasi / penyimpanan. **194 tes lulus.**
 
+### Increment 115 — modul "bukti kunjungan" (opsional, bisa dimatikan)
+
+- Foto per rumah tangga sampel: diunggah operator, dilihat pengawas.
+- **Sakelar**: `config/susenas.php` → `bukti_kunjungan` (default true),
+  `bukti_kunjungan_wajib` (default false; kalau true → tak bisa finalisasi
+  tanpa ≥1 foto). Override lewat `.env` (`SUSENAS_BUKTI_KUNJUNGAN=false`).
+- Semua UI (panel di form entri sisi kanan + panel di detail sampel utk PML)
+  dan rute dibungkus `@if(config('susenas.bukti_kunjungan'))` /
+  `abort_unless(config(...), 404)`. Matikan sakelar → semua hilang, data aman.
+- Berkas: `config/susenas.php`, migrasi `create_visit_photos`, model
+  `VisitPhoto`, `VisitPhotoController`, partial
+  `entri/_bukti_kunjungan.blade.php`, blok di `monitoring/sample.blade.php`,
+  CSS `.foto-grid`. Foto di `storage/app/kunjungan/{sample_id}/` (di-.gitignore).
+  Disajikan lewat rute ber-otorisasi (`kunjungan.foto`), bukan symlink publik.
+- `susenas:backup` diperluas: folder foto diarsipkan jadi `*-foto.zip`
+  (di-skip bila sakelar off / tak ada foto).
+- Tes `VisitPhotoTest` (5). **199 tes lulus.** Tak menyentuh alur inti
+  (finalisasi & kelengkapan tetap jalan tanpa foto kecuali `_wajib` on).
+
+**Cara menghapus modul sepenuhnya** (bila BPS minta, karena FASIH sudah punya):
+1. `SUSENAS_BUKTI_KUNJUNGAN=false` di `.env` — cukup untuk mematikan.
+2. Hapus total: `php artisan migrate:rollback --step=1` (drop `visit_photos`),
+   hapus `config/susenas.php` bagian bukti_kunjungan, hapus berkas modul di
+   atas, `rm -rf storage/app/kunjungan`, cabut baris di route/EntryController/
+   MonitoringController/Backup/blade. Sisa aplikasi tak tersentuh.
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

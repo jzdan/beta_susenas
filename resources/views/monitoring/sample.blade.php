@@ -112,6 +112,28 @@
   </section>
 </div>
 
+@if(config('susenas.bukti_kunjungan'))
+<section class="panel">
+  <h2>Bukti kunjungan ({{ $visitPhotos->count() }})</h2>
+  @if($visitPhotos->isEmpty())
+    <p class="muted small">Belum ada foto diunggah untuk rumah tangga ini.</p>
+  @else
+    <div class="foto-grid">
+      @foreach ($visitPhotos as $ph)
+        <figure class="foto-item">
+          <a href="{{ route('kunjungan.foto', $ph) }}" target="_blank" rel="noopener">
+            <img src="{{ route('kunjungan.foto', $ph) }}" alt="{{ $ph->caption ?: 'bukti kunjungan' }}" loading="lazy">
+          </a>
+          <figcaption>{{ $ph->caption ?: '—' }}
+            <span class="muted">{{ $ph->uploader?->name }} · {{ $ph->created_at->format('d/m/Y H:i') }}</span>
+          </figcaption>
+        </figure>
+      @endforeach
+    </div>
+  @endif
+</section>
+@endif
+
 @if($audit->isNotEmpty())
 <section class="panel">
   <h2>Riwayat</h2>
