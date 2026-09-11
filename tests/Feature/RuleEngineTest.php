@@ -44,7 +44,7 @@ class RuleEngineTest extends TestCase
         $this->assertContains('NERACA-PRODUKSI', $codes(3));
         $this->assertContains('IV1-KUANTITAS', $codes(3));
         $this->assertContains('NERACA-TRANSFER', $codes(4));
-        $this->assertContains('IV1-HARGA', $codes(4));
+        $this->assertNotEmpty(array_intersect(['IV1-HARGA-MAHAL', 'IV1-HARGA-MURAH'], $codes(4)));
         $this->assertNotContains('NERACA-BALANCE', $codes(1)); // dok bersih tidak fire
     }
 

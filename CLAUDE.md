@@ -51,10 +51,13 @@ Jawaban di `answers` (raw_value + clean_value; `art_index` = 0 utk ruta, nomor A
   per-baris, menulis `rule_results` + `document_snapshots` (dipakai tabulasi/ekspor).
 - Aturan: `scope` = `dokumen`/`konsistensi`/`neraca`/`kalori`/`anomali`;
   `row_block` = kode blok utk aturan per-baris (konteks lokal + `_row_index` + `ref_<key>`).
-- `IV1-HARGA` & `KALORI-*` memakai `block_rows.ref` (`harga_min`/`harga_max`/`kalori`
-  per komoditas Blok IV.1), disunting di menu **Harga & Kalori Komoditas**
-  (`/admin/harga`). Satu rentang per komoditas — tidak ada lagi override per wilayah
-  (dihapus Inc 107, aplikasi 1 kabupaten).
+- `IV1-HARGA-MAHAL`/`IV1-HARGA-MURAH` & `KALORI-*` memakai `block_rows.ref`
+  (`harga_min`/`harga_max`/`kalori`/`max_kons` per komoditas Blok IV.1), disunting di
+  menu **Harga & Kalori Komoditas** (`/admin/harga`). Satu rentang per komoditas —
+  tidak ada lagi override per wilayah (dihapus Inc 107, aplikasi 1 kabupaten).
+- Pesan aturan mendukung placeholder (`RuleEngine::interpolate()`): `{nama_var}` →
+  nilai konteks, `{=ekspresi}` → hasil hitung; angka diformat gaya Indonesia. Dipakai
+  aturan harga IV.1 untuk menampilkan harga satuan terhitung + rentang wajar.
 
 ## Alur kerja
 

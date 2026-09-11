@@ -28,7 +28,7 @@ Data awal: `php artisan migrate:fresh --seed`. Akun demo lihat halaman login.
 | C2 | Kosongkan "Banyaknya ART" | Error "Jumlah ART belum diisi" muncul langsung di sisi field |
 | C3 | Isi roster ART dengan 2 baris `hubungan = 1` | Error "Harus tepat satu kepala rumah tangga" |
 | C4 | IV.1 baris Beras: isi nilai beli, kosongkan kuantitas | Error per-baris "Nilai terisi tapi kuantitas kosong" |
-| C5 | IV.1 baris Rokok: nilai/kuantitas → harga satuan > batas | Warning per-baris "Harga satuan di luar rentang wajar" |
+| C5 | IV.1 baris Rokok: nilai/kuantitas → harga satuan > batas | Warning per-baris "Harga satuan Rp… kemahalan — batas wajar Rp…–Rp…" |
 | C6 | Isi kuantitas seluruh komoditas | Nilai turunan "Kalori per kapita per hari" ter-update |
 | C7 | Coba Finalisasi saat masih ada error | Ditolak dengan pesan jumlah error |
 | C8 | Perbaiki semua error, Finalisasi | Dokumen → `selesai`; sampel → `selesai` |

@@ -44,7 +44,14 @@ class ReferencePriceTest extends TestCase
     {
         return RuleResult::where('document_id', $doc->id)->where('row_index', 1)
             ->whereIn('status', ['error', 'warning'])
-            ->whereHas('rule', fn ($q) => $q->where('code', 'IV1-HARGA'))->exists();
+            ->whereHas('rule', fn ($q) => $q->whereIn('code', ['IV1-HARGA-MAHAL', 'IV1-HARGA-MURAH']))->exists();
+    }
+
+    private function hargaResult(Document $doc, string $code): ?RuleResult
+    {
+        return RuleResult::where('document_id', $doc->id)->where('row_index', 1)
+            ->whereHas('rule', fn ($q) => $q->where('code', $code))
+            ->whereIn('status', ['error', 'warning'])->first();
     }
 
     public function test_price_rule_uses_commodity_range_from_block_rows(): void
@@ -65,6 +72,33 @@ class ReferencePriceTest extends TestCase
         $br->update(['ref' => array_merge((array) $br->ref, ['harga_min' => '5000', 'harga_max' => '30000'])]);
         $engine->run($doc);
         $this->assertFalse($this->hargaFired($doc));
+    }
+
+    public function test_price_rule_distinguishes_kemahalan_kemurahan_and_shows_range(): void
+    {
+        [$qv, $doc, $b] = $this->kpDoc();
+        $engine = app(RuleEngine::class);
+        // Beras: rentang wajar 11.000–15.000
+
+        // 10 kg / Rp 200.000 -> 20.000/kg -> KEMAHALAN
+        $this->setBeras($doc, $b, '10', '200000');
+        $engine->run($doc);
+        $mahal = $this->hargaResult($doc, 'IV1-HARGA-MAHAL');
+        $this->assertNotNull($mahal);
+        $this->assertNull($this->hargaResult($doc, 'IV1-HARGA-MURAH'));
+        $this->assertStringContainsString('kemahalan', $mahal->message);
+        $this->assertStringContainsString('20.000', $mahal->message);          // harga satuan dihitung
+        $this->assertStringContainsString('11.000', $mahal->message);          // batas bawah
+        $this->assertStringContainsString('15.000', $mahal->message);          // batas atas
+
+        // 10 kg / Rp 50.000 -> 5.000/kg -> KEMURAHAN
+        $this->setBeras($doc, $b, '10', '50000');
+        $engine->run($doc);
+        $murah = $this->hargaResult($doc, 'IV1-HARGA-MURAH');
+        $this->assertNotNull($murah);
+        $this->assertNull($this->hargaResult($doc, 'IV1-HARGA-MAHAL'));
+        $this->assertStringContainsString('kemurahan', $murah->message);
+        $this->assertStringContainsString('5.000', $murah->message);
     }
 
     public function test_max_kons_rule_flags_excessive_quantity(): void

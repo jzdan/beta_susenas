@@ -41,6 +41,11 @@
     <button form="bulk" type="submit" name="aksi" value="aktif" class="btn-ghost">aktifkan terpilih</button>
     <button form="bulk" type="submit" name="aksi" value="nonaktif" class="btn-ghost">nonaktifkan terpilih</button>
   </div>
+  <p class="muted small" style="margin:-4px 0 12px">
+    Pada pesan aturan, tulisan dalam kurung kurawal diisi otomatis saat pemeriksaan:
+    <span class="mono">{nama_kolom}</span> → nilai kolom itu, <span class="mono">{=rumus}</span> → hasil hitung
+    (mis. <span class="mono">{=n(iv1_nilai_beli)/n(iv1_kuantitas)}</span> = harga satuan).
+  </p>
 
   @forelse ($groups as $groupName => $groupRules)
     <details class="rule-group" open>

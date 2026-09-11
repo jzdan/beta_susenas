@@ -3,8 +3,9 @@
 @section('title', 'Harga & Kalori Komoditas · Sistem SUSENAS')
 @section('content')
 <h1>Harga &amp; Kalori Wajar Komoditas</h1>
-<p class="muted">Satu rentang harga per komoditas untuk aturan <span class="mono">IV1-HARGA</span>
-  (harga satuan = nilai &divide; kuantitas harus di dalam rentang), dan <span class="mono">kalori</span> per satuan
+<p class="muted">Satu rentang harga per komoditas untuk aturan <span class="mono">IV1-HARGA-MAHAL</span> /
+  <span class="mono">IV1-HARGA-MURAH</span> (harga satuan = nilai &divide; kuantitas harus di dalam rentang),
+  dan <span class="mono">kalori</span> per satuan
   untuk aturan <span class="mono">KALORI-*</span>. Berlaku untuk <strong>seluruh sampel</strong> —
   versi kuesioner aktif <strong>{{ $activeQvCode }}</strong>.</p>
 

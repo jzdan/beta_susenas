@@ -1401,6 +1401,31 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   `nav-sep .6→.67`, dll. Judul/heading tidak diubah.
 - CSS-only. **199 tes lulus.**
 
+### Increment 117 — peringatan harga IV.1: "kemahalan"/"kemurahan" + rentang wajar
+
+- User (lihat form entri IV.1): "alertnya bisa diubah jadi kemahalan dan
+  kemurahan dan berikan indikator range harganya".
+- `RuleEngine::interpolate()` baru — pesan aturan bisa memuat placeholder:
+  `{nama_var}` → nilai konteks, `{=ekspresi}` → hasil hitung. Angka diformat
+  gaya Indonesia (`number_format(.., ',', '.')`). Berlaku untuk semua aturan.
+- Aturan `IV1-HARGA` (satu, dua arah) dipecah jadi:
+  - `IV1-HARGA-MAHAL` — harga satuan `>` `ref_harga_max`
+  - `IV1-HARGA-MURAH` — harga satuan `<` `ref_harga_min`
+  - Pesan: *"Harga satuan Rp35.000 kemahalan — batas wajar Rp11.000–Rp15.000
+    per satuan komoditas."*
+- `IV1-KUANTITAS-MAX` — pesan kini menampilkan kuantitas terhitung + batas
+  (`max_kons`): *"Kuantitas 10 melebihi batas maksimum wajar (7 per rumah
+  tangga per minggu)."*
+- Ketiganya diberi `note` (keterangan bahasa manusia) di halaman Aturan
+  Validasi; halaman itu diberi 1 baris penjelasan placeholder `{..}`/`{=..}`.
+- Migrasi `2026_09_10_140000_split_iv1_harga_kemahalan_kemurahan` — memecah
+  aturan lama di DB yang sudah jalan (idempoten, ada `down()`).
+- Seed diperbarui (blok `kpFullQuestionnaire` & `crosscheck`); helper
+  `DatabaseSeeder::ruleNotes()`.
+- `ReferencePriceTest` + `RuleEngineTest` disesuaikan; tes baru untuk
+  bedakan mahal/murah + cek angka muncul di pesan. **200 tes lulus**,
+  `migrate:fresh --seed` + `susenas:health` bersih.
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

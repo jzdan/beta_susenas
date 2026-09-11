@@ -319,10 +319,54 @@ class RuleEngine
     {
         try {
             $fired = ExpressionEvaluator::truthy($this->ev->evaluate($rule->expr, $ctx, $funcs));
-            return $fired ? [$rule->severity, $rule->message] : ['ok', ''];
+            return $fired ? [$rule->severity, $this->interpolate($rule->message, $ctx, $funcs)] : ['ok', ''];
         } catch (RuleException $e) {
             return ['error', "[rule rusak] {$e->getMessage()}"];
         }
+    }
+
+    /**
+     * Sisipkan nilai ke dalam pesan aturan:
+     *   {nama_var}   → nilai variabel konteks (angka diformat gaya Indonesia)
+     *   {=ekspresi}  → hasil ekspresi (mis. {=n(iv1_nilai_beli)/n(iv1_kuantitas)})
+     * Token tak dikenal dibiarkan apa adanya.
+     */
+    private function interpolate(string $msg, array $ctx, array $funcs): string
+    {
+        if (strpos($msg, '{') === false) {
+            return $msg;
+        }
+
+        return preg_replace_callback('/\{([^{}]+)\}/', function ($m) use ($ctx, $funcs) {
+            $token = trim($m[1]);
+            if (str_starts_with($token, '=')) {
+                try {
+                    return self::fmtNum($this->ev->evaluate(substr($token, 1), $ctx, $funcs));
+                } catch (RuleException) {
+                    return '?';
+                }
+            }
+            if (array_key_exists($token, $ctx)) {
+                return self::fmtNum($ctx[$token]);
+            }
+            return $m[0];
+        }, $msg);
+    }
+
+    private static function fmtNum(mixed $v): string
+    {
+        if ($v === null || $v === '') {
+            return '?';
+        }
+        if (is_bool($v)) {
+            return $v ? 'ya' : 'tidak';
+        }
+        if (is_numeric($v)) {
+            $n = (float) $v;
+            $dec = abs($n - round($n)) < 0.005 ? 0 : 2;
+            return number_format($n, $dec, ',', '.');
+        }
+        return (string) $v;
     }
 
     /**

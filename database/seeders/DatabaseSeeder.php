@@ -440,13 +440,17 @@ class DatabaseSeeder extends Seeder
             ['IV1-KUANTITAS', 'baris', 'IV.1', 'iv1_kuantitas',
                 'filled(iv1_nilai_beli) and n(iv1_nilai_beli) > 0 and (blank(iv1_kuantitas) or n(iv1_kuantitas) == 0)',
                 'Nilai pembelian terisi tetapi kuantitas kosong.'],
-            ['IV1-HARGA', 'baris', 'IV.1', 'iv1_nilai_beli',
-                'filled(iv1_nilai_beli) and n(iv1_kuantitas) > 0 and filled(ref_harga_min) and filled(ref_harga_max) '
-                . 'and (n(iv1_nilai_beli) / n(iv1_kuantitas) < n(ref_harga_min) or n(iv1_nilai_beli) / n(iv1_kuantitas) > n(ref_harga_max))',
-                'Harga satuan (nilai ÷ kuantitas) di luar rentang wajar komoditas ini.'],
+            ['IV1-HARGA-MAHAL', 'baris', 'IV.1', 'iv1_nilai_beli',
+                'filled(iv1_nilai_beli) and n(iv1_kuantitas) > 0 and filled(ref_harga_max) '
+                . 'and n(iv1_nilai_beli) / n(iv1_kuantitas) > n(ref_harga_max)',
+                'Harga satuan Rp{=n(iv1_nilai_beli)/n(iv1_kuantitas)} kemahalan — batas wajar Rp{ref_harga_min}–Rp{ref_harga_max} per satuan komoditas.'],
+            ['IV1-HARGA-MURAH', 'baris', 'IV.1', 'iv1_nilai_beli',
+                'filled(iv1_nilai_beli) and n(iv1_kuantitas) > 0 and filled(ref_harga_min) '
+                . 'and n(iv1_nilai_beli) / n(iv1_kuantitas) < n(ref_harga_min)',
+                'Harga satuan Rp{=n(iv1_nilai_beli)/n(iv1_kuantitas)} kemurahan — batas wajar Rp{ref_harga_min}–Rp{ref_harga_max} per satuan komoditas.'],
             ['IV1-KUANTITAS-MAX', 'baris', 'IV.1', 'iv1_kuantitas',
                 'filled(iv1_kuantitas) and n(iv1_kuantitas) > 0 and filled(ref_max_kons) and n(iv1_kuantitas) > n(ref_max_kons)',
-                'Kuantitas komoditas melebihi batas maksimum wajar per rumah tangga per minggu.'],
+                'Kuantitas {=n(iv1_kuantitas)} melebihi batas maksimum wajar ({ref_max_kons} per rumah tangga per minggu).'],
             ['IV1-JUMLAH-BANYAK', 'baris', 'IV.1', 'iv1_kuantitas',
                 '(filled(iv1_kuantitas_beli) or filled(iv1_kuantitas_lain)) and filled(iv1_kuantitas) '
                 . 'and abs(n(iv1_kuantitas) - (n(iv1_kuantitas_beli) + n(iv1_kuantitas_lain))) > 0.01',
@@ -460,6 +464,7 @@ class DatabaseSeeder extends Seeder
                 'row_block' => $rowBlock, 'target_var' => $target, 'expr' => $expr,
                 'severity' => 'warning', 'message' => $msg, 'active' => true]);
         }
+        $this->ruleNotes($qv->id);
 
         // ============ Blok IV.2 — Pengeluaran untuk Barang Bukan Makanan + rekap IV.3.3 ============
         $iv2Path = database_path('data/iv2_komoditas.csv');
@@ -1154,17 +1159,34 @@ class DatabaseSeeder extends Seeder
             ['IV1-KUANTITAS', 'baris', 'IV.1', 'iv1_kuantitas',
                 'filled(iv1_nilai_beli) and n(iv1_nilai_beli) > 0 and (blank(iv1_kuantitas) or n(iv1_kuantitas) == 0)',
                 'error', 'Nilai pembelian terisi tetapi kuantitas kosong.'],
-            ['IV1-HARGA', 'baris', 'IV.1', 'iv1_nilai_beli',
-                'filled(iv1_nilai_beli) and n(iv1_kuantitas) > 0 and filled(ref_harga_min) and filled(ref_harga_max) '
-                . 'and (n(iv1_nilai_beli) / n(iv1_kuantitas) < n(ref_harga_min) or n(iv1_nilai_beli) / n(iv1_kuantitas) > n(ref_harga_max))',
-                'warning', 'Harga satuan (nilai ÷ kuantitas) di luar rentang wajar komoditas ini.'],
+            ['IV1-HARGA-MAHAL', 'baris', 'IV.1', 'iv1_nilai_beli',
+                'filled(iv1_nilai_beli) and n(iv1_kuantitas) > 0 and filled(ref_harga_max) '
+                . 'and n(iv1_nilai_beli) / n(iv1_kuantitas) > n(ref_harga_max)',
+                'warning', 'Harga satuan Rp{=n(iv1_nilai_beli)/n(iv1_kuantitas)} kemahalan — batas wajar Rp{ref_harga_min}–Rp{ref_harga_max} per satuan komoditas.'],
+            ['IV1-HARGA-MURAH', 'baris', 'IV.1', 'iv1_nilai_beli',
+                'filled(iv1_nilai_beli) and n(iv1_kuantitas) > 0 and filled(ref_harga_min) '
+                . 'and n(iv1_nilai_beli) / n(iv1_kuantitas) < n(ref_harga_min)',
+                'warning', 'Harga satuan Rp{=n(iv1_nilai_beli)/n(iv1_kuantitas)} kemurahan — batas wajar Rp{ref_harga_min}–Rp{ref_harga_max} per satuan komoditas.'],
             ['IV1-KUANTITAS-MAX', 'baris', 'IV.1', 'iv1_kuantitas',
                 'filled(iv1_kuantitas) and n(iv1_kuantitas) > 0 and filled(ref_max_kons) and n(iv1_kuantitas) > n(ref_max_kons)',
-                'warning', 'Kuantitas komoditas melebihi batas maksimum wajar per rumah tangga per minggu.'],
+                'warning', 'Kuantitas {=n(iv1_kuantitas)} melebihi batas maksimum wajar ({ref_max_kons} per rumah tangga per minggu).'],
         ] as [$code, $scope, $rowBlock, $target, $expr, $sev, $msg]) {
             ValidationRule::create(['qversion_id' => $qv->id, 'code' => $code, 'scope' => $scope,
                 'row_block' => $rowBlock, 'target_var' => $target, 'expr' => $expr,
                 'severity' => $sev, 'message' => $msg, 'active' => true]);
+        }
+        $this->ruleNotes($qv->id);
+    }
+
+    /** Keterangan bahasa manusia untuk aturan per-baris Blok IV.1. */
+    private function ruleNotes(int $qvId): void
+    {
+        foreach ([
+            'IV1-HARGA-MAHAL' => 'Harga satuan hasil bagi nilai ÷ kuantitas lebih tinggi dari batas atas harga wajar komoditas (kolom harga_max). Cek salah ketik nol atau salah satuan.',
+            'IV1-HARGA-MURAH' => 'Harga satuan hasil bagi nilai ÷ kuantitas lebih rendah dari batas bawah harga wajar komoditas (kolom harga_min). Cek nilai/kuantitas tertukar atau kurang nol.',
+            'IV1-KUANTITAS-MAX' => 'Kuantitas konsumsi seminggu melebihi batas maksimum wajar per rumah tangga (kolom max_kons).',
+        ] as $code => $note) {
+            ValidationRule::where('qversion_id', $qvId)->where('code', $code)->update(['note' => $note]);
         }
     }
 
