@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Panduan Admin — Persiapan Sistem SUSENAS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ink:#1a2230; --soft:#4b5563; --muted:#7b8494; --line:#d8dce4;
+    --accent:#1f5aa8; --accent2:#0f7a80; --paper:#fff; --tint:#f4f6fa;
+  }
+  *{box-sizing:border-box}
+  html{font-size:15px}
+  body{
+    margin:0; color:var(--ink); background:var(--paper);
+    font-family:"IBM Plex Sans",Arial,sans-serif; line-height:1.6;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:32px 28px 60px}
+  h1{font-family:"IBM Plex Serif",Georgia,serif;font-size:1.9rem;margin:0 0 4px;line-height:1.15}
+  h2{font-family:"IBM Plex Serif",Georgia,serif;font-size:1.3rem;margin:34px 0 10px;padding-top:10px;border-top:2px solid var(--ink)}
+  h3{font-family:"IBM Plex Sans";font-size:1.02rem;margin:20px 0 6px}
+  .lede{color:var(--soft);font-size:1.03rem;margin:2px 0 6px}
+  .meta{font-family:"IBM Plex Mono",monospace;font-size:.75rem;color:var(--muted);letter-spacing:.03em}
+  p{margin:0 0 10px}
+  code,.m{font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--tint);border:1px solid var(--line);border-radius:4px;padding:.06em .34em}
+  strong{font-weight:600}
+  ul,ol{margin:6px 0 12px;padding-left:22px}
+  li{margin:4px 0}
+  table{border-collapse:collapse;width:100%;margin:10px 0 14px;font-size:.92rem}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:var(--tint);font-family:"IBM Plex Mono",monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--soft);font-weight:500}
+  .callout{border-left:3px solid var(--accent);background:var(--tint);padding:10px 14px;border-radius:0 6px 6px 0;margin:12px 0}
+  .callout.warn{border-left-color:#b06f16}
+  .callout .k{font-family:"IBM Plex Mono",monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);display:block;margin-bottom:3px}
+  .callout.warn .k{color:#b06f16}
+
+  /* activity flow */
+  .flow{margin:14px 0 8px}
+  .node{
+    border:1px solid var(--line);border-radius:8px;padding:9px 13px;background:var(--paper);
+    box-shadow:0 1px 2px rgba(20,28,45,.05);max-width:520px;
+  }
+  .node .who{font-family:"IBM Plex Mono",monospace;font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);display:block;margin-bottom:2px}
+  .node.term{border-radius:999px;background:var(--ink);color:#fff;text-align:center;font-weight:600;max-width:150px;padding:7px 16px}
+  .node.dec{border-style:dashed;border-color:var(--accent2);background:#f0f7f7;font-style:italic}
+  .conn{width:2px;height:16px;background:var(--line);margin:0 0 0 26px}
+  .conn::after{content:"▼";position:relative;left:-5px;top:6px;color:var(--muted);font-size:.7rem}
+  .branch{margin:4px 0 4px 26px;padding-left:16px;border-left:2px solid var(--line)}
+  .blabel{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--accent2);margin:6px 0 2px}
+
+  .check{list-style:none;padding-left:0}
+  .check li{padding-left:26px;position:relative;margin:6px 0}
+  .check li::before{content:"☐";position:absolute;left:0;font-size:1.1rem;color:var(--muted)}
+
+  @media print{
+    @page{size:A4;margin:16mm 15mm}
+    body{font-size:10.6pt}
+    .wrap{max-width:none;margin:0;padding:0}
+    h2{break-after:avoid}
+    h3{break-after:avoid}
+    table,.callout,.flow{break-inside:avoid}
+    .node{box-shadow:none}
+    a{color:var(--ink);text-decoration:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="meta">Sistem SUSENAS · BPS Kabupaten Bangkalan (3526)</p>
+  <h1>Panduan Admin: Persiapan Sistem</h1>
+  <p class="lede">Langkah yang dikerjakan <strong>Administrator</strong> dari sistem kosong sampai siap dipakai petugas lapangan. Sebagian besar sekali di awal; sebagian diulang tiap periode SUSENAS.</p>
+
+  <h2>A. Alur persiapan (activity diagram)</h2>
+
+  <div class="flow">
+    <div class="node term">Mulai</div>
+    <div class="conn"></div>
+    <div class="node"><span class="who">Admin</span>1. Buat akun pengguna: PML (Pengawas) &amp; PCL (Operator Entri)</div>
+    <div class="conn"></div>
+    <div class="node"><span class="who">Admin · sekali</span>2. Impor master Wilkerstat (provinsi → kabupaten → kecamatan → desa)</div>
+    <div class="conn"></div>
+    <div class="node"><span class="who">Admin · tiap periode</span>3. Buat Siklus Survei (periode + jadwal lapangan)</div>
+    <div class="conn"></div>
+    <div class="node"><span class="who">Admin</span>4. Siapkan versi kuesioner — duplikasi versi lama → <em>Jadikan aktif</em> → sunting bila ada perubahan (mis. MBG)</div>
+    <div class="conn"></div>
+    <div class="node"><span class="who">Admin · tiap periode</span>5. Impor daftar sampel / DSRT untuk siklus itu</div>
+    <div class="conn"></div>
+    <div class="node dec">6. Apakah file DSRT sudah memuat kolom <span class="m">petugas</span> / <span class="m">pml</span>?</div>
+
+    <div class="branch">
+      <div class="blabel">ya →</div>
+      <div class="node">Penugasan langsung terisi saat impor. Lanjut ke langkah 7.</div>
+    </div>
+    <div class="branch">
+      <div class="blabel">tidak →</div>
+      <div class="node"><span class="who">Admin / PML</span>6a. Daftar Sampel → filter <strong>Kecamatan</strong> → centang semua → <em>Tugaskan ke petugas</em> = PCL → <em>Tugaskan terpilih</em>. Ulangi tiap kecamatan.</div>
+      <div class="conn"></div>
+      <div class="node"><span class="who">Admin</span>6b. Isi <strong>Wilayah scope</strong> tiap PML (Pengguna → Sunting → kode kecamatan)</div>
+    </div>
+
+    <div class="conn"></div>
+    <div class="node"><span class="who">Admin</span>7. Cek Harga &amp; Kalori Komoditas — perbarui bila ada referensi harga baru</div>
+    <div class="conn"></div>
+    <div class="node"><span class="who">Admin</span>8. Tinjau Aturan Validasi — nyalakan/matikan aturan, sesuaikan ambang</div>
+    <div class="conn"></div>
+    <div class="node"><span class="who">Admin</span>9. Jalankan <span class="m">susenas:health</span>, pastikan cadangan terjadwal</div>
+    <div class="conn"></div>
+    <div class="node"><span class="who">Admin</span>10. Ubah status Siklus → <strong>Lapangan</strong></div>
+    <div class="conn"></div>
+    <div class="node term">Selesai — PCL mulai entri</div>
+  </div>
+
+  <h2>B. Langkah rinci</h2>
+
+  <h3>B1 · Menambah pengguna (PML &amp; PCL)</h3>
+  <p>Menu <strong>Admin · Data → Pengguna</strong>, bagian <strong>“Tambah pengguna”</strong>.</p>
+  <table>
+    <tr><th>Kolom</th><th>Isi</th></tr>
+    <tr><td>Username</td><td>huruf kecil tanpa spasi, mis. <span class="m">ppl_ani</span>, <span class="m">pml_kamal</span></td></tr>
+    <tr><td>Nama</td><td>nama lengkap (dipakai di laporan &amp; avatar)</td></tr>
+    <tr><td>Peran</td><td><strong>Operator Entri</strong> = PCL/pencacah · <strong>Pengawas (PML)</strong> = PML/pengolah · <strong>Administrator</strong> · <strong>Peninjau</strong> (lihat saja)</td></tr>
+    <tr><td>Kata sandi</td><td>minimal 8 karakter (kosongkan saat menyunting = tidak diubah)</td></tr>
+    <tr><td>Wilayah scope</td><td><strong>PML</strong>: kode kecamatan (mis. <span class="m">352601</span>) — otomatis membatasi dashboard/antrean ke wilayahnya. <strong>PCL</strong>: kosongkan.</td></tr>
+  </table>
+  <p>Klik <strong>Simpan</strong>. Berikan username + kata sandi ke petugas masing-masing. Ganti sandi lewat menu <strong>Akun</strong>.</p>
+  <div class="callout warn"><span class="k">Perhatikan</span>Ganti kata sandi akun <span class="m">admin</span> bawaan sebelum dipakai produksi.</div>
+
+  <h3>B2 · Impor master Wilkerstat (sekali)</h3>
+  <p>Menu <strong>Setup awal → Impor Wilkerstat</strong>. Tempel CSV berkolom <span class="m">code,name,level,parent_code</span>, lalu <strong>Pratinjau</strong> → <strong>Simpan</strong>.</p>
+  <table>
+    <tr><th>Jenjang</th><th>Panjang kode</th><th>Contoh</th></tr>
+    <tr><td>provinsi</td><td>2</td><td><span class="m">35</span> — Jawa Timur</td></tr>
+    <tr><td>kabupaten</td><td>4</td><td><span class="m">3526</span> — Bangkalan</td></tr>
+    <tr><td>kecamatan</td><td>6</td><td><span class="m">352601</span> — Kamal … <span class="m">352618</span> — Klampis</td></tr>
+    <tr><td>desa</td><td>10</td><td><span class="m">3526012001</span></td></tr>
+  </table>
+  <ul>
+    <li>Urutkan dari atas: provinsi → kabupaten → kecamatan → desa (induk harus muncul lebih dulu).</li>
+    <li><span class="m">parent_code</span> harus jadi <strong>awalan</strong> dari <span class="m">code</span>.</li>
+    <li>Tingkat kecamatan sudah cukup untuk penugasan &amp; filter. Desa opsional (untuk Peta Progres per desa).</li>
+  </ul>
+
+  <h3>B3 · Buat Siklus Survei (tiap periode)</h3>
+  <p>Menu <strong>Admin · Data → Jadwal Lapangan</strong>. Isi nama (mis. “SUSENAS Maret 2026”), periode (<span class="m">2026-03</span>), tanggal mulai/akhir lapangan, status <span class="m">persiapan</span>.</p>
+
+  <h3>B4 · Versi kuesioner</h3>
+  <p>Menu <strong>Metadata</strong>. Kalau kuesioner tidak berubah, pakai versi yang sudah <strong>aktif</strong>. Kalau berubah (mis. KOR menambah MBG):</p>
+  <ol>
+    <li><strong>Duplikasi versi aktif</strong> → beri kode baru (mis. <span class="m">VSEN26.KP</span>).</li>
+    <li><strong>Jadikan aktif</strong> pada versi baru itu.</li>
+    <li>Sunting blok/rincian/pilihan/aturan seperlunya. Ubah tanggal berlaku bila perlu.</li>
+  </ol>
+
+  <h3>B5 · Impor daftar sampel / DSRT (tiap periode)</h3>
+  <p>Menu <strong>Impor Sampel</strong> → pilih siklus → tempel CSV. Kolom:</p>
+  <table>
+    <tr><th>Wajib</th><th>Opsional</th></tr>
+    <tr><td><span class="m">wilayah_code</span> (kode desa), <span class="m">no_bs</span>, <span class="m">no_ruta</span></td>
+        <td><span class="m">krt_name</span>, <span class="m">petugas</span> (username PCL), <span class="m">pml</span> (username PML), <span class="m">weight</span></td></tr>
+  </table>
+  <p class="m" style="white-space:pre-line">wilayah_code,no_bs,no_ruta,krt_name,petugas,pml
+3526012001,001B,001,Budi Santoso,ppl_ani,pml_kamal
+3526012001,001B,002,Sri Wahyuni,ppl_ani,pml_kamal</p>
+
+  <h3>B6 · Pembagian daerah untuk PML &amp; PCL</h3>
+  <p><strong>Cara 1 — lewat file DSRT (paling efisien):</strong> isi kolom <span class="m">petugas</span> &amp; <span class="m">pml</span> untuk tiap baris. Sekali impor, penugasan langsung beres.</p>
+  <p><strong>Cara 2 — di aplikasi (setelah impor):</strong></p>
+  <ol>
+    <li>Menu <strong>Daftar Sampel</strong>.</li>
+    <li>Filter <strong>Kecamatan = Kamal</strong> (dan/atau Status, Petugas “belum ditugaskan”).</li>
+    <li>Centang baris yang mau ditugaskan (atau centang semua).</li>
+    <li>Pada <strong>“Tugaskan ke petugas…”</strong> pilih PCL, klik <strong>Tugaskan terpilih</strong>.</li>
+    <li>Ulangi untuk kecamatan lain (mis. Blega).</li>
+  </ol>
+  <p>Untuk <strong>PML</strong>: penugasan per-sampel juga mengisi kolom PML, atau pakai kolom <span class="m">pml</span> di DSRT. Selain itu isi <strong>Wilayah scope</strong> PML (Pengguna → Sunting) dengan kode kecamatannya supaya seluruh tampilannya otomatis terbatas.</p>
+  <div class="callout warn"><span class="k">Batasan saat ini</span>Wilayah scope hanya menerima <strong>satu</strong> awalan kode. Jika seorang PML memegang lebih dari satu kecamatan yang tidak berurutan, kosongkan scope-nya (lihat semua) atau isi <span class="m">3526</span> (seluruh kabupaten). Penugasan sampel per orang tetap akurat.</div>
+
+  <h3>B7 · Harga &amp; Kalori Komoditas</h3>
+  <p>Menu <strong>Harga &amp; Kalori Komoditas</strong>. Perbarui <span class="m">harga_min</span>/<span class="m">harga_max</span>/<span class="m">kalori</span> per komoditas Blok IV.1 bila BPS mengeluarkan referensi harga baru untuk periode itu. Bisa edit per baris atau impor Excel/CSV.</p>
+
+  <h3>B8 · Aturan Validasi</h3>
+  <p>Menu <strong>Aturan Validasi</strong>. Aturan pemeriksaan anomali sudah termuat. Admin cukup: <strong>nyalakan/matikan</strong> aturan yang (tidak) relevan, dan <strong>ubah angka ambang</strong> bila perlu. Menyusun aturan baru ada di “Mode lanjutan” + “Kamus variabel”.</p>
+
+  <h3>B9 · Kesehatan sistem &amp; cadangan</h3>
+  <ul>
+    <li><span class="m">php artisan susenas:health</span> — pastikan “tidak ada masalah terdeteksi”.</li>
+    <li>Cadangan basis data berjalan otomatis (terjadwal harian). Pastikan folder cadangan aman &amp; dicek berkala.</li>
+  </ul>
+
+  <h3>B10 · Aktifkan lapangan</h3>
+  <p>Menu <strong>Jadwal Lapangan</strong> → ubah status siklus dari <span class="m">persiapan</span> ke <span class="m">lapangan</span>. PCL sekarang bisa membuka sampel &amp; mulai entri.</p>
+  <p>Setelah lapangan selesai: ubah status ke <span class="m">pengolahan</span>, lalu <span class="m">selesai</span> (mengunci siklus — tidak ada perubahan data lagi).</p>
+
+  <h2>C. Daftar periksa go-live</h2>
+  <ul class="check">
+    <li>Kata sandi akun <span class="m">admin</span> sudah diganti</li>
+    <li>Master Wilkerstat terimpor (18 kecamatan Bangkalan, pratinjau 0 error)</li>
+    <li>Akun semua PML &amp; PCL dibuat; wilayah scope PML terisi</li>
+    <li>Siklus survei periode ini dibuat, jadwal lapangan diisi</li>
+    <li>Versi kuesioner yang benar berstatus “aktif”</li>
+    <li>Daftar sampel (DSRT) terimpor untuk siklus itu</li>
+    <li>Semua sampel sudah punya petugas (filter “belum ditugaskan” = kosong)</li>
+    <li>Harga &amp; kalori komoditas ditinjau</li>
+    <li>Aturan validasi ditinjau (yang tidak relevan dimatikan)</li>
+    <li><span class="m">susenas:health</span> bersih</li>
+    <li>Status siklus diubah ke “Lapangan”</li>
+  </ul>
+
+  <h2>D. Yang BUKAN tugas admin</h2>
+  <table>
+    <tr><th>Tugas</th><th>Pelaku</th></tr>
+    <tr><td>Isi jawaban kuesioner, finalisasi dokumen</td><td>PCL (Operator Entri)</td></tr>
+    <tr><td>Periksa &amp; bersihkan dokumen, tandai bersih, kembalikan ke PCL</td><td>PML / Pengolah</td></tr>
+    <tr><td>Tabulasi, indikator kesejahteraan, ekspor mikrodata</td><td>PML</td></tr>
+    <tr><td>Ganti / catat non-respons sampel</td><td>PML</td></tr>
+  </table>
+  <p>Admin menyiapkan sistem; alur harian berjalan di tangan PCL dan PML.</p>
+
+</div>
+</body>
+</html>
