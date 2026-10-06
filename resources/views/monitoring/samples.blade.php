@@ -20,6 +20,12 @@
     <option value="{{ $k->code }}" @selected($fWil === $k->code)>{{ $k->name }}</option>
     @endforeach
   </select>
+  <select name="cycle">
+    <option value="">Semua siklus</option>
+    @foreach ($cycles as $c)
+    <option value="{{ $c->id }}" @selected((string) $fCycle === (string) $c->id)>{{ $c->name }}</option>
+    @endforeach
+  </select>
   @if($canAssign)
   <select name="petugas">
     <option value="">Semua petugas</option>
@@ -41,7 +47,7 @@
   <thead>
     <tr>
       @if($canAssign)<th style="width:24px"><input type="checkbox" data-check-all></th>@endif
-      <th>Desa / BS / Ruta</th><th>Nama KRT</th><th>Petugas</th><th>Status</th><th>Dokumen</th><th></th>
+      <th>Desa / BS / Ruta</th><th>Siklus</th><th>Nama KRT</th><th>Petugas</th><th>Status</th><th>Dokumen</th><th></th>
     </tr>
   </thead>
   <tbody>
@@ -52,6 +58,7 @@
         <div>{{ $wilNames[$s->wilayah_code] ?? $s->wilayah_code }}</div>
         <span class="mono muted">{{ $s->wilayah_code }} · BS {{ $s->no_bs }} · {{ $s->no_ruta }}</span>
       </td>
+      <td class="small">{{ $cycleNames[$s->cycle_id] ?? '—' }}</td>
       <td>{{ $s->krt_name ?: '—' }}</td>
       <td>{{ $userNames[$s->petugas_id] ?? '—' }}</td>
       <td><span class="chip s-{{ $s->status }}">{{ $statusLabels[$s->status] ?? $s->status }}</span></td>
@@ -62,7 +69,7 @@
       <td class="right"><a class="btn-ghost" href="{{ route('monitoring.sample', $s) }}">Buka</a></td>
     </tr>
   @empty
-    <tr><td colspan="{{ $canAssign ? 7 : 6 }}" class="muted">Tidak ada sampel yang cocok.</td></tr>
+    <tr><td colspan="{{ $canAssign ? 8 : 7 }}" class="muted">Tidak ada sampel yang cocok.</td></tr>
   @endforelse
   </tbody>
 </table>

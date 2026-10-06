@@ -57,7 +57,7 @@ class SerutiModuleTest extends TestCase
             ->where('var_name', 'siv2a_sebulan')->firstOrFail();
 
         $sample = \App\Models\SampleHousehold::create([
-            'cycle_id' => $qv->cycle_id, 'wilayah_code' => '3526101001', 'no_bs' => 'S999',
+            'cycle_id' => $qv->cycle_id, 'wilayah_code' => '3526010001', 'no_bs' => 'S999',
             'no_ruta' => '009', 'krt_name' => 'Uji', 'status' => 'selesai',
         ]);
         $doc = Document::create(['sample_id' => $sample->id, 'qversion_id' => $qv->id, 'status' => 'selesai']);

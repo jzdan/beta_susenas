@@ -18,7 +18,9 @@ class ImportTemplateTest extends TestCase
 
     public function test_template_lists_every_import_column_with_roster_suffixes(): void
     {
-        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+        // VSEN26.K punya roster ART sungguhan (var r407); VSEN26.KP tidak (Blok III-nya
+        // cuma 5 rincian ringkas, bukan roster — Inc 132).
+        $qv = QuestionnaireVersion::where('code', 'VSEN26.K')->firstOrFail();
         $admin = User::where('username', 'admin')->firstOrFail();
 
         $res = $this->actingAs($admin)->get("/admin/impor-dokumen/template/{$qv->cycle_id}?art=4");
@@ -31,18 +33,18 @@ class ImportTemplateTest extends TestCase
             $this->assertContains($k, $header);
         }
         // var ruta polos
-        $this->assertContains('banyak_art', $header);
+        $this->assertContains('r301', $header);
         // var roster dengan akhiran __1.._4
-        $this->assertContains('art_umur__1', $header);
-        $this->assertContains('art_umur__4', $header);
-        $this->assertNotContains('art_umur__5', $header);
+        $this->assertContains('r407__1', $header);
+        $this->assertContains('r407__4', $header);
+        $this->assertNotContains('r407__5', $header);
         // dan kolom yang tidak dikenal importer tidak muncul
-        $this->assertNotContains('art_umur', $header);
+        $this->assertNotContains('r407', $header);
     }
 
     public function test_dictionary_has_one_row_per_question_with_options(): void
     {
-        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+        $qv = QuestionnaireVersion::where('code', 'VSEN26.K')->firstOrFail();
         $admin = User::where('username', 'admin')->firstOrFail();
 
         $res = $this->actingAs($admin)->get("/admin/impor-dokumen/kamus/{$qv->cycle_id}");
@@ -52,9 +54,8 @@ class ImportTemplateTest extends TestCase
             ltrim($lines[0], "\xEF\xBB\xBF"));
 
         $body = implode("\n", $lines);
-        $this->assertStringContainsString('b1_klasifikasi', $body);
-        $this->assertStringContainsString('1=Perkotaan | 2=Perdesaan', $body);
-        $this->assertStringContainsString('art_umur__<n>', $body);
+        $this->assertStringContainsString('1=Laki-laki | 2=Perempuan', $body);
+        $this->assertStringContainsString('r407__<n>', $body);
     }
 
     public function test_template_download_is_admin_only(): void

@@ -43,30 +43,30 @@
       <a href="{{ route('monitoring.tasks') }}" class="{{ ($nav ?? '')=='tugas' ? 'on' : '' }}">Tugas Saya</a>
       <a href="{{ route('monitoring.peta') }}" class="{{ ($nav ?? '')=='peta' ? 'on' : '' }}">Peta Progres</a>
       <a href="{{ route('monitoring.samples') }}" class="{{ ($nav ?? '')=='sampel' ? 'on' : '' }}">Daftar Sampel</a>
-      @if(in_array($u->role, ['pml','admin']))
+      @if(in_array($u->role, ['pml','pj','admin']))
         <a href="{{ route('pengolahan.index') }}" class="{{ ($nav ?? '')=='pengolahan' ? 'on' : '' }}">Pengolahan</a>
       @endif
-      @if(in_array($u->role, ['pml','admin','viewer']))
+      @if(in_array($u->role, ['pml','pj','admin','viewer']))
         <a href="{{ route('tabulasi.index') }}" class="{{ ($nav ?? '')=='tabulasi' ? 'on' : '' }}">Tabulasi &amp; Ekspor</a>
         <a href="{{ route('tabulasi.indikator') }}" class="{{ ($nav ?? '')=='indikator' ? 'on' : '' }}">Indikator Kesejahteraan</a>
       @endif
-      @if(in_array($u->role, ['pml','admin']))
+      @if(in_array($u->role, ['pml','pj','admin']))
         <a href="{{ route('monitoring.kinerja') }}" class="{{ ($nav ?? '')=='kinerja' ? 'on' : '' }}">Kinerja Tim</a>
         <a href="{{ route('monitoring.audit') }}" class="{{ ($nav ?? '')=='audit' ? 'on' : '' }}">Log Audit</a>
       @endif
       @if($u->role === 'admin')
-        <div class="nav-sep">Admin · Kuesioner</div>
+        <div class="nav-sep">1. Buat siklus</div>
+        <a href="{{ route('admin.jadwal') }}" class="{{ ($nav ?? '')=='jadwal' ? 'on' : '' }}">Jadwal Lapangan</a>
+        <div class="nav-sep">2. Wilayah, PCL &amp; sampel</div>
+        <a href="{{ route('admin.impor.wilayah') }}" class="{{ ($nav ?? '')=='wil' ? 'on' : '' }}">Impor Wilkerstat</a>
+        <a href="{{ route('admin.pengguna') }}" class="{{ ($nav ?? '')=='pengguna' ? 'on' : '' }}">Pengguna</a>
+        <a href="{{ route('admin.impor.sampel') }}" class="{{ ($nav ?? '')=='imsampel' ? 'on' : '' }}">Impor Sampel</a>
+        <a href="{{ route('admin.impor.dokumen') }}" class="{{ ($nav ?? '')=='imdok' ? 'on' : '' }}">Impor Dokumen</a>
+        <div class="nav-sep">3. Kuesioner &amp; validasi</div>
         <a href="{{ route('admin.metadata') }}" class="{{ ($nav ?? '')=='meta' ? 'on' : '' }}">Metadata</a>
         <a href="{{ route('admin.aturan') }}" class="{{ ($nav ?? '')=='aturan' ? 'on' : '' }}">Aturan Validasi</a>
         <a href="{{ route('admin.impor') }}" class="{{ ($nav ?? '')=='impor' ? 'on' : '' }}">Impor Rincian</a>
-        <div class="nav-sep">Admin · Data</div>
-        <a href="{{ route('admin.jadwal') }}" class="{{ ($nav ?? '')=='jadwal' ? 'on' : '' }}">Jadwal Lapangan</a>
         <a href="{{ route('admin.harga') }}" class="{{ ($nav ?? '')=='harga' ? 'on' : '' }}">Harga &amp; Kalori Komoditas</a>
-        <a href="{{ route('admin.impor.sampel') }}" class="{{ ($nav ?? '')=='imsampel' ? 'on' : '' }}">Impor Sampel</a>
-        <a href="{{ route('admin.impor.dokumen') }}" class="{{ ($nav ?? '')=='imdok' ? 'on' : '' }}">Impor Dokumen</a>
-        <a href="{{ route('admin.pengguna') }}" class="{{ ($nav ?? '')=='pengguna' ? 'on' : '' }}">Pengguna</a>
-        <div class="nav-sep">Setup awal (sekali)</div>
-        <a href="{{ route('admin.impor.wilayah') }}" class="{{ ($nav ?? '')=='wil' ? 'on' : '' }}">Impor Wilkerstat</a>
       @endif
     </nav>
     <main class="content">

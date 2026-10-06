@@ -52,22 +52,24 @@ class EntryFlowTest extends TestCase
             ->where('question_id', $q->id)->count());
     }
 
-    public function test_roster_form_expands_rows_to_banyak_art(): void
+    /**
+     * Inc 132 — Blok III VSEN26.KP dulu (salah) dibangun sebagai roster ART yang
+     * ikut berkembang mengikuti banyak_art, meniru VSEN26.K. Blok III KP asli cuma
+     * 5 rincian ringkas (301–305), tidak berulang.
+     */
+    public function test_blok_iii_is_a_flat_summary_not_a_roster(): void
     {
         $doc = $this->kpDoc();
         $operator = User::where('username', 'ppl_ani')->firstOrFail();
-        $this->actingAs($operator)->postJson("/entri/{$doc->id}/jawaban", [
-            'question_id' => $this->q($doc, 'banyak_art')->id, 'value' => '6', 'art_index' => 0,
-        ]);
-
         $state = $this->actingAs($operator)->postJson("/entri/{$doc->id}/jawaban", [
-            'question_id' => $this->q($doc, 'art_nama')->id, 'value' => 'Uji', 'art_index' => 3,
+            'question_id' => $this->q($doc, 'banyak_art')->id, 'value' => '6', 'art_index' => 0,
         ])->json('state');
 
         $blockIII = collect($state['blocks'])->firstWhere('code', 'III');
         $this->assertNotNull($blockIII);
-        $dataRows = collect($blockIII['rows'])->reject(fn ($r) => isset($r['group_header']));
-        $this->assertSame(6, $dataRows->count());
+        $this->assertSame('ruta', $blockIII['repeat']);
+        $this->assertArrayNotHasKey('rows', $blockIII);
+        $this->assertSame(5, count($blockIII['questions']));
     }
 
     public function test_list_block_has_group_headers(): void
@@ -118,9 +120,9 @@ class EntryFlowTest extends TestCase
     {
         $doc = $this->kpDoc();
         $operator = User::where('username', 'ppl_ani')->firstOrFail();
-        // buat error: banyak_art tidak sama dengan jumlah baris roster (III-JML-ART)
+        // buat error: kode wilayah Blok I tidak sama dengan sampel (IDENT-WILAYAH)
         $this->actingAs($operator)->postJson("/entri/{$doc->id}/jawaban", [
-            'question_id' => $this->q($doc, 'banyak_art')->id, 'value' => '99', 'art_index' => 0,
+            'question_id' => $this->q($doc, 'b1_kode_wilayah')->id, 'value' => '3526999999', 'art_index' => 0,
         ]);
         $this->actingAs($operator)->post("/entri/{$doc->id}/finalisasi")
             ->assertSessionHasErrors('finalisasi');

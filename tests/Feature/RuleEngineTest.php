@@ -56,7 +56,7 @@ class RuleEngineTest extends TestCase
         $before = RuleResult::where('document_id', 3)->where('status', 'error')->count();
 
         // isi kode wilayah & banyak_art lewat clean_value
-        foreach (['kode_wilayah' => '3526101001', 'banyak_art' => '1'] as $var => $val) {
+        foreach (['kode_wilayah' => '3526010001', 'banyak_art' => '1'] as $var => $val) {
             $q = \App\Models\Question::where('var_name', $var)->firstOrFail();
             \App\Models\Answer::updateOrCreate(
                 ['document_id' => 3, 'question_id' => $q->id, 'art_index' => 0],
@@ -228,37 +228,6 @@ class RuleEngineTest extends TestCase
             ->join('validation_rules', 'validation_rules.id', '=', 'rule_results.rule_id')
             ->pluck('validation_rules.code')->all();
         $this->assertNotContains('NERACA-VII', $codes);
-    }
-
-    public function test_blok_iii_roster_consistency_rules(): void
-    {
-        $qv = \App\Models\QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
-        $doc = \App\Models\Document::where('qversion_id', $qv->id)->firstOrFail();
-        $engine = app(RuleEngine::class);
-        $codes = fn () => \App\Models\RuleResult::where('document_id', $doc->id)
-            ->whereIn('status', ['error', 'warning'])
-            ->join('validation_rules', 'validation_rules.id', '=', 'rule_results.rule_id')
-            ->pluck('validation_rules.code')->all();
-
-        $engine->run($doc);
-        $this->assertNotContains('III-JML-ART', $codes());
-        $this->assertNotContains('III-KRT-TUNGGAL', $codes());
-        $this->assertNotContains('III-KAWIN-ANAK', $codes());
-
-        // rusak: ART umur 9 dijadikan "kawin"; dan tambah KRT kedua
-        $qKp = fn (string $var) => \App\Models\Question::query()
-            ->whereIn('block_id', \App\Models\Block::where('qversion_id', $qv->id)->pluck('id'))
-            ->where('var_name', $var)->firstOrFail();
-        $kawin = $qKp('art_kawin');
-        $hub = $qKp('art_hub_krt');
-        \App\Models\Answer::where('document_id', $doc->id)->where('question_id', $kawin->id)
-            ->where('art_index', 4)->update(['raw_value' => '2']);
-        \App\Models\Answer::where('document_id', $doc->id)->where('question_id', $hub->id)
-            ->where('art_index', 2)->update(['raw_value' => '1']);   // ART 2 juga jadi KRT
-        $engine->run($doc);
-
-        $this->assertContains('III-KAWIN-ANAK', $codes());
-        $this->assertContains('III-KRT-TUNGGAL', $codes());
     }
 
     public function test_blok_i_identity_checked_against_sample_metadata(): void

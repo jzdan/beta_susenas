@@ -49,8 +49,19 @@
           @foreach ($roles as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
         </select>
       </label>
-      <label>Wilayah scope <input name="wilayah_scope" id="wilayah_scope" class="mono" placeholder="mis. 3526"></label>
+      <label>Wilayah scope
+        <select name="wilayah_scope" id="wilayah_scope">
+          <option value="">— (semua kecamatan)</option>
+          @foreach ($kecamatans as $k)
+            <option value="{{ $k->code }}">{{ $k->code }} — {{ $k->name }}</option>
+          @endforeach
+        </select>
+      </label>
     </div>
+    <p class="muted small">Wilayah scope membatasi apa yang dilihat pengguna — selalu berupa satu <strong>kecamatan</strong>
+      (bukan desa/kabupaten). <strong>PJ</strong>: wajib diisi — satu PJ per kecamatan.
+      <strong>PML</strong>: pilih kecamatan, atau kosongkan untuk lihat semua.
+      <strong>Operator/Peninjau</strong>: biasanya dikosongkan (operator dibatasi lewat penugasan sampel, bukan wilayah scope).</p>
     <label>Kata sandi <input type="password" name="password" id="password" placeholder="min. 8 karakter (kosongkan = tidak diubah)"></label>
     <div class="row-form">
       <button type="submit">Simpan</button>
@@ -66,7 +77,10 @@ function editUser(u) {
   document.getElementById('username').value = u.username;
   document.getElementById('name').value = u.name;
   document.getElementById('role').value = u.role;
-  document.getElementById('wilayah_scope').value = u.wilayah_scope || '';
+  var scopeSel = document.getElementById('wilayah_scope');
+  scopeSel.value = u.wilayah_scope || '';
+  // data lama non-kecamatan (mis. scope kabupaten) tidak ada di daftar opsi — jatuh ke "semua"
+  if (scopeSel.selectedIndex === -1) scopeSel.value = '';
   document.getElementById('password').value = '';
   document.getElementById('form-title').textContent = 'Sunting: ' + u.username;
   document.getElementById('user-form').scrollIntoView({ behavior: 'smooth' });

@@ -3,7 +3,7 @@
 @section('title', "Sampel {$s->no_ruta} · Sistem SUSENAS")
 @section('content')
 <p><a class="btn-ghost" href="{{ route('monitoring.samples') }}">← Daftar sampel</a></p>
-<h1>{{ $s->krt_name ?: 'Ruta '.$s->no_ruta }}</h1>
+<h1>{{ $s->krt_name ?: 'Ruta '.$s->no_ruta }} <span class="chip">{{ $s->cycle->name ?? '—' }}</span></h1>
 <p class="muted mono">{{ $wilNames[$s->wilayah_code] ?? $s->wilayah_code }} ·
   {{ $s->wilayah_code }} · BS {{ $s->no_bs }} · Ruta {{ $s->no_ruta }}</p>
 

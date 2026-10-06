@@ -3,12 +3,13 @@
 @section('title', 'Metadata Kuesioner · Sistem SUSENAS')
 @section('content')
 <h1>Metadata Kuesioner</h1>
-<p class="muted">Versi aktif: <strong>{{ $qv->code }}</strong> (berlaku {{ $qv->effective_date }}).
-  "Aktif" = versi yang sedang disunting di menu Admin. Periode baru cukup
-  <em>duplikasi versi</em> lalu sunting, bukan mengubah kode.</p>
+<p class="muted">Menyunting versi: <strong>{{ $qv->code }}</strong> (berlaku {{ $qv->effective_date }}).
+  Periode baru cukup <em>duplikasi versi</em> lalu sunting, bukan mengubah kode.</p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
+
+@include('admin.partials._qv_switch')
 
 <section class="panel">
   <h2>Versi kuesioner</h2>
@@ -24,10 +25,16 @@
         <td><input form="vf{{ $v->id }}" name="code" value="{{ $v->code }}" class="mono" style="width:160px"></td>
         <td><input form="vf{{ $v->id }}" type="date" name="effective_date" value="{{ $v->effective_date }}"></td>
         <td class="muted">{{ $v->documents_count }} dokumen</td>
-        <td>@if($v->id === $qv->id)<span class="chip d-bersih">aktif</span>@endif</td>
+        <td>
+          @if($v->id === $activeId)<span class="chip d-bersih">aktif</span>@endif
+          @if($v->id === $qv->id)<span class="chip d-draft">dilihat</span>@endif
+        </td>
         <td class="right nowrap">
           <button form="vf{{ $v->id }}" type="submit" class="btn-ghost">Simpan</button>
           @if($v->id !== $qv->id)
+            <a class="btn-ghost" href="{{ route('admin.metadata', ['qv' => $v->id]) }}">Lihat/sunting</a>
+          @endif
+          @if($v->id !== $activeId)
             <form method="post" action="{{ route('admin.versi.aktifkan', $v) }}">@csrf<button class="btn-ghost">Jadikan aktif</button></form>
           @endif
           <a class="btn-ghost" href="{{ route('admin.versi.codebook', $v) }}">Buku kode</a>
@@ -93,6 +100,7 @@
   <h2>Tambah blok</h2>
   <form method="post" action="{{ route('admin.blok.add') }}" class="row-form">
     @csrf
+    <input type="hidden" name="qv" value="{{ $qv->id }}">
     <input name="code" placeholder="Kode (mis. IV.1)" required>
     <input name="title" placeholder="Judul blok" required style="min-width:240px">
     <select name="repeat">
@@ -112,6 +120,7 @@
     <form method="post" action="{{ route('admin.parameter.save') }}" class="row-form">
       @csrf
       <input type="hidden" name="param_id" value="{{ $p->id }}">
+      <input type="hidden" name="qv" value="{{ $qv->id }}">
       <input name="name" value="{{ $p->name }}" class="mono" required>
       <input name="value" value="{{ $p->value }}" style="width:110px" required>
       <input name="note" value="{{ $p->note }}" style="flex:1;min-width:180px">
@@ -122,6 +131,7 @@
   @endforeach
   <form method="post" action="{{ route('admin.parameter.save') }}" class="row-form mt">
     @csrf
+    <input type="hidden" name="qv" value="{{ $qv->id }}">
     <input name="name" placeholder="nama_parameter_baru" class="mono" required>
     <input name="value" placeholder="nilai" style="width:110px" required>
     <input name="note" placeholder="catatan" style="flex:1;min-width:180px">
@@ -143,6 +153,7 @@
     <form method="post" action="{{ route('admin.agregat.save') }}" class="row-form mt">
       @csrf
       <input type="hidden" name="aggregate_id" value="{{ $a->id }}">
+      <input type="hidden" name="qv" value="{{ $qv->id }}">
       <input name="order" value="{{ $a->order }}" style="width:52px" title="urutan">
       <input name="name" value="{{ $a->name }}" class="mono" required style="width:130px">
       <input name="label" value="{{ $a->label }}" placeholder="label" style="width:150px">
@@ -169,6 +180,7 @@
 
   <form method="post" action="{{ route('admin.agregat.save') }}" class="row-form mt">
     @csrf
+    <input type="hidden" name="qv" value="{{ $qv->id }}">
     <input name="order" placeholder="urut" value="{{ ($aggregates->max('order') ?? 0) + 10 }}" style="width:52px">
     <input name="name" placeholder="nama_var" class="mono" required style="width:130px">
     <input name="label" placeholder="label" style="width:150px">
@@ -197,6 +209,7 @@
     <form method="post" action="{{ route('admin.turunan.save') }}" class="row-form">
       @csrf
       <input type="hidden" name="derived_id" value="{{ $d->id }}">
+      <input type="hidden" name="qv" value="{{ $qv->id }}">
       <input name="order" value="{{ $d->order }}" style="width:52px" title="urutan">
       <input name="var_name" value="{{ $d->var_name }}" class="mono" required style="width:150px">
       <input name="label" value="{{ $d->label }}" style="width:180px">
@@ -210,6 +223,7 @@
   @endforeach
   <form method="post" action="{{ route('admin.turunan.save') }}" class="row-form mt">
     @csrf
+    <input type="hidden" name="qv" value="{{ $qv->id }}">
     <input name="order" placeholder="urut" value="{{ ($derived->max('order') ?? 0) + 10 }}" style="width:52px">
     <input name="var_name" placeholder="nama_var_turunan" class="mono" required style="width:150px">
     <input name="label" placeholder="label" style="width:180px">
@@ -220,7 +234,7 @@
 </section>
 
 <section class="panel">
-  <h2>Aturan validasi <a class="btn-ghost" href="{{ route('admin.aturan') }}">Kelola →</a></h2>
+  <h2>Aturan validasi <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id]) }}">Kelola →</a></h2>
   <table class="tbl">
     <thead><tr><th>Kode</th><th>Sev</th><th>Ekspresi</th><th>Aktif</th></tr></thead>
     <tbody>

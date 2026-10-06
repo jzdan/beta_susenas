@@ -61,4 +61,16 @@ class HealthCheckTest extends TestCase
             ->expectsOutputToContain('block_code yang tidak ada')
             ->assertExitCode(1);
     }
+
+    public function test_health_flags_two_active_pj_in_the_same_kecamatan(): void
+    {
+        \App\Models\User::create([
+            'username' => 'pj_kamal_dobel', 'name' => 'Dobel', 'email' => 'dobel@example.test',
+            'password' => bcrypt('x'), 'role' => 'pj', 'wilayah_scope' => '3526010', 'active' => true,
+        ]);
+
+        $this->artisan('susenas:health')
+            ->expectsOutputToContain('Lebih dari satu PJ aktif')
+            ->assertExitCode(1);
+    }
 }

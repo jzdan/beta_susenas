@@ -12,8 +12,11 @@
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if ($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
 
+@include('admin.partials._qv_switch')
+
 <section class="panel">
   <form method="get" class="filters">
+    <input type="hidden" name="qv" value="{{ $qv->id }}">
     <select name="sev">
       <option value="">semua tingkat</option>
       <option value="error" @selected($filters['sev'] === 'error')>error (blokir bersih)</option>
@@ -26,7 +29,7 @@
     </select>
     <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="cari kode / pesan" style="min-width:220px">
     <button type="submit">Filter</button>
-    @if(array_filter($filters))<a class="btn-ghost" href="{{ route('admin.aturan') }}">Reset</a>@endif
+    @if(array_filter($filters))<a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id]) }}">Reset</a>@endif
     <span class="muted small">{{ $rules->count() }} aturan ditampilkan</span>
   </form>
 
@@ -35,7 +38,8 @@
     <form method="post" action="{{ route('admin.aturan.toggle', $r) }}" id="tg{{ $r->id }}" hidden>@csrf</form>
   @endforeach
 
-  <form method="post" action="{{ route('admin.aturan.toggle-massal') }}" id="bulk">@csrf</form>
+  <form method="post" action="{{ route('admin.aturan.toggle-massal') }}" id="bulk">@csrf
+    <input type="hidden" name="qv" value="{{ $qv->id }}"></form>
   <div class="row-form" style="margin:10px 0">
     <label class="small"><input type="checkbox" id="rule-all"> pilih semua terlihat</label>
     <button form="bulk" type="submit" name="aksi" value="aktif" class="btn-ghost">aktifkan terpilih</button>
@@ -104,8 +108,8 @@
   <p class="muted small" style="margin-top:10px">Membuat aturan baru dari nol <strong>jarang</strong> dilakukan di kabupaten —
     biasanya aturan datang dari paket Sidona BPS atau disiapkan Seksi Sosial/IPDS. Kalau memang perlu,
     ini daftar variabel yang tersedia. Contoh <span class="mono">IDENT-BS</span>
-    (<span class="mono">filled(b1_no_bs) and b1_no_bs != sampel_bs</span>) = pakai jenis
-    <em>"Dua rincian harus sama / berbeda"</em>, rincian A = nomor BS di Blok I, hubungan = harus SAMA,
+    (<span class="mono">filled(b1_kode_sls) and b1_kode_sls != sampel_bs</span>) = pakai jenis
+    <em>"Dua rincian harus sama / berbeda"</em>, rincian A = Nomor Kode Sampel SLS di Blok I, hubungan = harus SAMA,
     rincian B = <span class="mono">sampel_bs</span>.</p>
 
   <input type="search" id="kamus-cari" placeholder="cari nama variabel / keterangan" style="min-width:260px;margin:6px 0">
@@ -149,12 +153,16 @@
 <details class="panel" @if($errors->has('wizard') || old('kind')) open @endif>
   <summary style="cursor:pointer;font-weight:600">Buat aturan baru — form terpandu</summary>
   <p class="muted small" style="margin-top:10px">Pilih dari daftar, isi angka/pesan. Sistem yang menyusun ekspresinya.
+    Butuh gabungan beberapa syarat sekaligus (mis. dua sinyal bersamaan)? Pilih jenis
+    <em>"Gabungan beberapa syarat (query bebas)"</em>. Sebelum disimpan, klik <em>Uji dulu</em>
+    untuk lihat berapa dokumen yang akan menyala sebelum aturan benar-benar aktif.
     Belum tahu nama rincian? Buka <em>Kamus variabel</em> di atas. Untuk pemeriksaan rumit
     (neraca, rekap antar-blok) pakai <em>Mode lanjutan</em>.</p>
   @if($errors->has('wizard'))<div class="alert err">{{ $errors->first('wizard') }}</div>@endif
 
   <form method="post" action="{{ route('admin.aturan.terpandu') }}" class="stack-form" id="wizform">
     @csrf
+    <input type="hidden" name="qv" value="{{ $qv->id }}">
     <div class="row-form">
       <label>Kode aturan <input name="code" value="{{ old('code') }}" placeholder="mis. IV1-BERAS-WAJIB" required></label>
       <label>Tingkat
@@ -180,6 +188,7 @@
         <option value="rentang" @selected(old('kind')==='rentang')>Nilai harus di dalam rentang min–maks</option>
         <option value="batas" @selected(old('kind')==='batas')>Nilai tidak boleh lebih / kurang dari angka</option>
         <option value="banding" @selected(old('kind')==='banding')>Dua rincian harus sama / harus berbeda</option>
+        <option value="kombinasi" @selected(old('kind')==='kombinasi')>Gabungan beberapa syarat (query bebas)</option>
       </select>
     </label>
 
@@ -239,6 +248,44 @@
       @include('admin.partials._rulefield', ['name' => 'field_b', 'label' => 'Rincian kedua (B)'])
     </div>
 
+    <div class="wiz-part" data-kind="kombinasi">
+      <p class="muted small" style="margin:0 0 8px">Susun query bebas: gabungkan beberapa syarat sekaligus.
+        Cocok untuk sinyal ganda, mis. <em>aset banyak TAPI belanja makanan dilaporkan sangat rendah</em>.
+        Minimal isi 2 syarat.</p>
+      <label>Syarat digabung dengan
+        <select name="join">
+          <option value="and">DAN — semua syarat harus benar</option>
+          <option value="or">ATAU — cukup salah satu benar</option>
+        </select>
+      </label>
+      <div id="kombi-rows">
+        @for ($i = 0; $i < 5; $i++)
+        <div class="row-form kombi-row" @if($i >= 2) hidden @endif style="margin-top:6px">
+          @include('admin.partials._rulefield', ['name' => 'cond_field[]', 'label' => 'Syarat '.($i + 1)])
+          <label>Syarat
+            <select name="cond_op2[]">
+              <option value="terisi">terisi</option>
+              <option value="kosong">kosong</option>
+              <option value="==">sama dengan…</option>
+              <option value="!=">tidak sama dengan…</option>
+              <option value="&gt;">lebih dari…</option>
+              <option value="&lt;">kurang dari…</option>
+              <option value="&gt;=">≥…</option>
+              <option value="&lt;=">≤…</option>
+            </select>
+          </label>
+          <label>Nilai <input name="cond_val2[]" class="mono" inputmode="decimal" style="width:100px"></label>
+        </div>
+        @endfor
+      </div>
+      <button type="button" class="btn-ghost" id="kombi-add" style="margin-top:6px">+ Tambah syarat</button>
+    </div>
+
+    <div class="row-form">
+      <button type="button" class="btn-ghost" id="btn-wiz-test">Uji dulu — berapa dokumen yang akan menyala? (belum disimpan)</button>
+    </div>
+    <div id="wiz-test-out" class="test-out muted" hidden></div>
+
     <label>Pesan yang tampil ke pemeriksa
       <input name="message" value="{{ old('message') }}" placeholder="mis. Nilai beras terisi tetapi kuantitas kosong." required>
     </label>
@@ -263,6 +310,7 @@
 
   <form method="post" action="{{ route('admin.aturan.save') }}" class="stack-form">
     @csrf
+    <input type="hidden" name="qv" value="{{ $qv->id }}">
     @if($edit)<input type="hidden" name="rule_id" value="{{ $edit->id }}">@endif
     <div class="row-form">
       <label>Kode <input name="code" value="{{ $edit->code ?? '' }}" required></label>
@@ -327,6 +375,8 @@
 <style>
   .wiz-part { display: none; margin: 4px 0 6px; padding: 10px 12px; border-left: 3px solid var(--line-strong); }
   .wiz-part.on { display: block; }
+  .kombi-row[hidden] { display: none; }
+  #kombi-add[hidden] { display: none; }
 </style>
 <script>
 (function () {
@@ -350,6 +400,42 @@
     kind.addEventListener("change", sync);
     sync();
   }
+
+  var kombiAdd = document.getElementById("kombi-add");
+  if (kombiAdd) kombiAdd.addEventListener("click", function () {
+    var hiddenRow = document.querySelector("#kombi-rows .kombi-row[hidden]");
+    if (hiddenRow) hiddenRow.hidden = false;
+    if (!document.querySelector("#kombi-rows .kombi-row[hidden]")) kombiAdd.hidden = true;
+  });
+
+  var wt = document.getElementById("btn-wiz-test");
+  if (wt) wt.addEventListener("click", function () {
+    var out = document.getElementById("wiz-test-out");
+    out.hidden = false;
+    out.className = "test-out muted";
+    out.textContent = "menghitung dampak…";
+    var body = new URLSearchParams(new FormData(document.getElementById("wizform")));
+    fetch("{{ route('admin.aturan.terpandu.uji') }}", {
+      method: "POST",
+      headers: { "X-CSRF-TOKEN": document.querySelector('meta[name=csrf-token]').content },
+      body: body
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) { out.className = "test-out flag error"; out.textContent = "Error: " + d.error; return; }
+      out.className = "test-out " + (d.fire_docs ? "flag warning" : "flag");
+      var pct = d.docs ? Math.round(100 * d.fire_docs / d.docs) : 0;
+      var lines = "Ekspresi: " + d.expr + "\n\n"
+        + "Diuji " + d.docs + " dokumen" + (d.truncated ? " (dibatasi 500)" : "") + "\n"
+        + "MENYALA di " + d.fire_docs + " dokumen (" + pct + "%)"
+        + (d.fire_rows !== d.fire_docs ? ", " + d.fire_rows + " baris" : "") + "\n"
+        + (d.eval_errors ? d.eval_errors + " dokumen gagal dievaluasi\n" : "")
+        + "\ncontoh dokumen:\n";
+      (d.samples || []).forEach(function (s) {
+        lines += "  #" + s.doc_id + "  " + (s.wilayah || "") + "  " + s.ruta
+          + (s.rows && s.rows.length ? "  baris: " + s.rows.join(", ") : "") + "\n";
+      });
+      out.textContent = lines;
+    }).catch(function (e) { out.className = "test-out flag error"; out.textContent = e.message; });
+  });
 
   var all = document.getElementById("rule-all");
   if (all) all.addEventListener("change", function () {
@@ -381,7 +467,8 @@
     out.textContent = "menghitung dampak…";
     var body = new URLSearchParams({
       expr: document.getElementById("expr").value,
-      row_block: (document.querySelector('[name=row_block]') || {}).value || ""
+      row_block: (document.querySelector('[name=row_block]') || {}).value || "",
+      qv: "{{ $qv->id }}"
     });
     fetch("{{ route('admin.aturan.impact') }}", {
       method: "POST",

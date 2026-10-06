@@ -49,4 +49,27 @@ class QuestionnaireVersion extends Model
     {
         return $this->hasMany(Document::class, 'qversion_id');
     }
+
+    /** Versi yang ditandai aktif (global, 1 di seluruh sistem) — jatuh ke versi terbaru bila belum ada yang ditandai. */
+    public static function active(): self
+    {
+        return static::where('is_active', true)->first()
+            ?? static::orderByDesc('id')->firstOrFail();
+    }
+
+    /**
+     * ID siklus yang boleh dibuka operator: siklus manapun yang PERIODENYA sama dengan
+     * siklus milik versi yang sedang aktif — bukan cuma 1 siklus tunggal. Ini supaya
+     * kuesioner yang dicacah bersamaan dalam satu periode (mis. KOR & KP triwulan yang
+     * sama, tiap-tiap disimpan sebagai survey_cycle terpisah) tetap sama-sama terbuka
+     * begitu salah satu ditandai aktif, bukan saling mengunci.
+     *
+     * @return array<int,int>
+     */
+    public static function activeCycleIds(): array
+    {
+        $period = static::active()->cycle?->period;
+
+        return SurveyCycle::where('period', $period)->pluck('id')->all();
+    }
 }

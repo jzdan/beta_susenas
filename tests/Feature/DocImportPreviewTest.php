@@ -31,7 +31,7 @@ class DocImportPreviewTest extends TestCase
         $before = Document::count();
 
         $csv = "wilayah_code,no_bs,no_ruta,krt_name,r301,r403__1,kolom_ngawur\n"
-            . "3526101001,900A,001,Uji Pratinjau,2,1,999\n";
+            . "3526010001,900A,001,Uji Pratinjau,2,1,999\n";
 
         $res = $this->actingAs($admin)->post('/admin/impor-dokumen', [
             'cycle_id' => $cycleId, 'data' => $csv, 'mode' => 'preview',
@@ -54,7 +54,7 @@ class DocImportPreviewTest extends TestCase
         $admin = User::where('username', 'admin')->firstOrFail();
         $cycleId = $this->korCycleId();
 
-        $csv = "wilayah_code,no_bs,no_ruta,krt_name,r301\n3526101001,901A,001,Uji Commit,3\n";
+        $csv = "wilayah_code,no_bs,no_ruta,krt_name,r301\n3526010001,901A,001,Uji Commit,3\n";
         $res = $this->actingAs($admin)->post('/admin/impor-dokumen', [
             'cycle_id' => $cycleId, 'data' => $csv, 'mode' => 'commit',
         ]);

@@ -83,4 +83,23 @@ class CycleLockTest extends TestCase
         $this->assertCount(4, $res->viewData('funnel'));
         $res->assertSee('Respons &amp; disposisi', false)->assertSee('Temuan tersering');
     }
+
+    /** Inc 133 — panel "Aksi cepat" di halaman Siklus, pintasan ke instrumen/sampel milik siklus ini. */
+    public function test_cycle_page_has_quick_action_links_scoped_to_its_own_version(): void
+    {
+        $doc = $this->kpDoc();
+        $cycle = $doc->sample->cycle;
+        $qv = $doc->qversion;
+        $admin = User::where('username', 'admin')->firstOrFail();
+
+        $res = $this->actingAs($admin)->get("/admin/siklus/{$cycle->id}")->assertOk();
+        $versionObjs = $res->viewData('versionObjs');
+        $this->assertTrue($versionObjs->contains('id', $qv->id));
+
+        $res->assertSee(route('admin.metadata', ['qv' => $qv->id]), false)
+            ->assertSee(route('admin.aturan', ['qv' => $qv->id]), false)
+            ->assertSee(route('admin.harga', ['qv' => $qv->id]), false)
+            ->assertSee(route('monitoring.samples', ['cycle' => $cycle->id]), false)
+            ->assertSee('Aksi cepat');
+    }
 }

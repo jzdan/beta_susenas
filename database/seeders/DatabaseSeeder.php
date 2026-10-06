@@ -226,105 +226,82 @@ class DatabaseSeeder extends Seeder
                 'severity' => $sev, 'message' => $msg, 'active' => true]);
         }
 
-        // Blok I — Keterangan Tempat (identitas; dicek terhadap metadata sampel)
+        // Blok I — Keterangan Tempat. Rincian & penomoran disamakan ke PDF ASLI
+        // `2. 2025.11.02 VSEN26.KP Maret 2026.pdf` (R.101-111) — versi sebelumnya
+        // (Inc <130) salah nomor & kehilangan beberapa rincian (SLS/Sub SLS,
+        // nomor bangunan, alamat), lihat CATATAN Inc 130.
+        // R.101-104 (provinsi/kab-kota/kecamatan/desa) digabung jadi satu kode 10
+        // digit — sistem ini 1 kabupaten saja & sudah punya master wilayah kode
+        // gabungan, jadi tidak dipisah 4 kotak seperti kertas aslinya.
         $bI = Block::create(['qversion_id' => $qv->id, 'code' => 'I',
             'title' => 'Keterangan Tempat', 'order' => -3, 'repeat' => 'ruta']);
         $this->addQuestions($bI, [
-            ['R105', 'b1_kode_wilayah', 'Kode wilayah desa/kelurahan (10 digit)', 'text', '', []],
-            ['R106', 'b1_klasifikasi', 'Klasifikasi desa/kelurahan', 'code', '', [['1', 'Perkotaan'], ['2', 'Perdesaan']]],
-            ['R107', 'b1_no_bs', 'Nomor kode sampel / blok sensus', 'text', '', []],
-            ['R109', 'b1_no_ruta', 'Nomor urut sampel rumah tangga', 'text', '', []],
-            ['R110', 'b1_nama_krt', 'Nama kepala rumah tangga', 'text', '', []],
+            ['R101-104', 'b1_kode_wilayah', 'Kode wilayah (Provinsi+Kab/Kota+Kecamatan+Desa/Kel, 10 digit)', 'text', '', []],
+            ['R105', 'b1_klasifikasi', 'Klasifikasi Desa/Kelurahan', 'code', '', [['1', 'Perkotaan'], ['2', 'Perdesaan']]],
+            ['R106', 'b1_kode_sls', 'Nomor Kode Sampel SLS', 'text', '', []],
+            ['R107', 'b1_sls', 'Satuan Lingkungan Setempat (SLS) / Sub SLS', 'text', '', []],
+            ['R108', 'b1_no_bangunan', 'Nomor Urut Bangunan Tempat Tinggal', 'text', '', []],
+            ['R109', 'b1_no_ruta', 'Nomor Urut Sampel Rumah Tangga', 'text', '', []],
+            ['R110', 'b1_nama_krt', 'Nama Kepala Rumah Tangga', 'text', '', []],
+            ['R111', 'b1_alamat', 'Alamat (Nama Jalan/Gang, RT/RW/Dusun)', 'text', '', []],
         ]);
 
-        // Blok II — Keterangan Pencacahan (petugas, tanggal, hasil)
+        // Blok II — Keterangan Pendataan. PDF asli cuma 3 rincian (201 Pendata,
+        // 202 Pemeriksa, 203 Hasil) — "jumlah kunjungan" & "moda pencacahan" yang
+        // dulu ada di sini (R207/R209) TIDAK ADA di kuesioner asli, dihapus.
         $bII = Block::create(['qversion_id' => $qv->id, 'code' => 'II',
-            'title' => 'Keterangan Pencacahan', 'order' => -2, 'repeat' => 'ruta']);
+            'title' => 'Keterangan Pendataan', 'order' => -2, 'repeat' => 'ruta']);
+        $jabatan = [['1', 'Staf BPS Provinsi'], ['2', 'Staf BPS Kab/Kota'], ['3', 'Mitra']];
         $this->addQuestions($bII, [
-            ['R201', 'b2_pcl_kode', 'Kode pencacah (PCL)', 'text', '', []],
-            ['R203', 'b2_pml_kode', 'Kode pengawas (PML)', 'text', '', []],
-            ['R205', 'b2_tgl_cacah', 'Tanggal pencacahan', 'text', 'YYYY-MM-DD', []],
-            ['R206', 'b2_tgl_periksa', 'Tanggal pemeriksaan', 'text', 'YYYY-MM-DD', []],
-            ['R207', 'b2_kunjungan', 'Jumlah kunjungan', 'int', 'kali', []],
-            ['R208', 'b2_hasil', 'Hasil pencacahan rumah tangga', 'code', '', [
-                ['1', 'Terisi lengkap'], ['2', 'Terisi tidak lengkap'], ['3', 'Tidak ada ART'],
-                ['4', 'Menolak'], ['5', 'Rumah tangga pindah'], ['6', 'Bangunan sensus tidak ditemukan'],
-                ['7', 'Rumah tangga ganda'],
+            ['R201', 'b2_pendata', 'Nama & Kode/NIP Pendata', 'text', '', []],
+            ['R201', 'b2_pendata_jabatan', 'Jabatan Pendata', 'code', '', $jabatan],
+            ['R201', 'b2_tgl_cacah', 'Tanggal Pendataan', 'text', 'YYYY-MM-DD', []],
+            ['R202', 'b2_pemeriksa', 'Nama & Kode/NIP Pemeriksa', 'text', '', []],
+            ['R202', 'b2_pemeriksa_jabatan', 'Jabatan Pemeriksa', 'code', '', $jabatan],
+            ['R202', 'b2_tgl_periksa', 'Tanggal Pemeriksaan', 'text', 'YYYY-MM-DD', []],
+            ['R203', 'b2_hasil', 'Hasil Pendataan Rumah Tangga', 'code', '', [
+                ['1', 'Terisi lengkap'],
+                ['2', 'Terisi tidak lengkap'],
+                ['3', 'Tidak ada ART/responden yang dapat memberi jawaban sampai akhir masa pendataan'],
+                ['4', 'Responden menolak'],
+                ['5', 'Rumah tangga pindah/bangunan sensus sudah tidak ada'],
             ]],
-            ['R209', 'b2_moda', 'Moda pencacahan', 'code', '', [['1', 'CAPI'], ['2', 'PAPI']]],
         ]);
 
-        // Blok Pokok ringkas (agar ada banyak_art untuk kalori/kapita)
-        $bp = Block::create(['qversion_id' => $qv->id, 'code' => 'POKOK',
-            'title' => 'Keterangan Pokok (ringkas)', 'order' => -1, 'repeat' => 'ruta']);
-        $this->addQuestions($bp, [
-            ['R301', 'banyak_art', 'Banyaknya ART', 'int', 'orang', []],
-        ]);
-
-        // Blok III — roster keterangan anggota rumah tangga (demografi inti)
+        // Blok III — "Banyaknya ART, Pemberi Informasi, dan Jumlah Komoditas yang Terisi"
+        // (rincian 301–305 asli VSEN26.KP — ringkasan, BUKAN roster demografi; itu urusan
+        // VSEN26.K/KOR, lewat blok terpisah kode 'ART'. Inc 132 — Blok III sebelumnya salah
+        // dibangun meniru roster K, padahal field itu tidak ada di form KP sama sekali.)
         $bIII = Block::create(['qversion_id' => $qv->id, 'code' => 'III',
-            'title' => 'Keterangan Anggota Rumah Tangga', 'order' => 0, 'repeat' => 'art']);
+            'title' => 'Banyaknya ART, Pemberi Informasi, dan Jumlah Komoditas yang Terisi',
+            'order' => -1, 'repeat' => 'ruta']);
         $this->addQuestions($bIII, [
-            ['R302', 'art_nama', 'Nama anggota rumah tangga', 'text', '', []],
-            ['R303', 'art_hub_krt', 'Hubungan dengan kepala rumah tangga', 'code', '', [
-                ['1', 'Kepala rumah tangga'], ['2', 'Istri/suami'], ['3', 'Anak'], ['4', 'Menantu'],
-                ['5', 'Cucu'], ['6', 'Orang tua/mertua'], ['7', 'Famili lain'],
-                ['8', 'Asisten rumah tangga'], ['9', 'Lainnya'],
-            ]],
-            ['R304', 'art_jk', 'Jenis kelamin', 'code', '', [['1', 'Laki-laki'], ['2', 'Perempuan']]],
-            ['R305', 'art_umur', 'Umur (tahun)', 'int', 'tahun', []],
-            ['R306', 'art_kawin', 'Status perkawinan', 'code', '', [
-                ['1', 'Belum kawin'], ['2', 'Kawin'], ['3', 'Cerai hidup'], ['4', 'Cerai mati'],
-            ]],
+            ['301', 'banyak_art', 'Banyaknya anggota rumah tangga', 'int', 'orang', []],
+            ['302', 'b3_no_urut_informasi', 'Nomor urut pemberi informasi', 'int', '', []],
+            ['303', 'b3_nama_informasi', 'Nama pemberi informasi', 'text', '', []],
+            ['304', 'b3_jml_komoditas_makanan', 'Jumlah komoditas bahan makanan, bahan minuman, dan rokok yang terisi', 'int', '', []],
+            ['305', 'b3_jml_komoditas_nonmakanan', 'Jumlah komoditas barang bukan makanan yang terisi', 'int', '', []],
         ]);
-
-        foreach ([
-            ['III-JML-ART', 'dokumen', 'error', '',
-                'filled(banyak_art) and n(banyak_art) != n(art_terisi)',
-                'Banyaknya ART (R301) tidak sama dengan jumlah baris roster Blok III yang terisi.'],
-            ['III-KRT-TUNGGAL', 'dokumen', 'error', '',
-                'n(art_terisi) > 0 and roster_count(art_hub_krt, 1) != 1',
-                'Blok III harus memuat tepat satu kepala rumah tangga (hubungan = 1).'],
-            ['III-UMUR', 'baris', 'warning', 'III',
-                'filled(art_umur) and (n(art_umur) < 0 or n(art_umur) > 110)',
-                'Umur ART di luar rentang wajar (0–110).'],
-            ['III-KAWIN-ANAK', 'baris', 'error', 'III',
-                'filled(art_umur) and n(art_umur) < 10 and filled(art_kawin) and n(art_kawin) != 1',
-                'ART berumur < 10 tahun tidak boleh berstatus pernah kawin.'],
-            ['III-KRT-MUDA', 'baris', 'warning', 'III',
-                'n(art_hub_krt) == 1 and filled(art_umur) and n(art_umur) < 15',
-                'Kepala rumah tangga berumur sangat muda (< 15 tahun) — konfirmasi.'],
-            ['III-PASANGAN-JK', 'baris', 'warning', 'III',
-                'n(art_hub_krt) == 2 and filled(art_jk) and art_jk == roster_first(art_jk, art_hub_krt, 1)',
-                'Jenis kelamin istri/suami sama dengan kepala rumah tangga — periksa.'],
-        ] as [$code, $scope, $sev, $rowBlock, $expr, $msg]) {
-            ValidationRule::create(['qversion_id' => $qv->id, 'code' => $code, 'scope' => $scope,
-                'row_block' => $rowBlock, 'target_var' => $rowBlock === 'III' ? 'art_umur' : '', 'expr' => $expr,
-                'severity' => $sev, 'message' => $msg, 'active' => true]);
-        }
 
         foreach ([
             ['IDENT-WILAYAH', 'dokumen', 'error',
                 'filled(b1_kode_wilayah) and b1_kode_wilayah != sampel_wilayah',
                 'Kode wilayah Blok I tidak sama dengan wilayah sampel yang ditugaskan.'],
             ['IDENT-BS', 'dokumen', 'warning',
-                'filled(b1_no_bs) and b1_no_bs != sampel_bs',
-                'Nomor blok sensus Blok I berbeda dengan sampel.'],
+                'filled(b1_kode_sls) and b1_kode_sls != sampel_bs',
+                'Nomor kode sampel SLS Blok I berbeda dengan sampel.'],
             ['IDENT-RUTA', 'dokumen', 'warning',
                 'filled(b1_no_ruta) and b1_no_ruta != sampel_ruta',
                 'Nomor urut rumah tangga Blok I berbeda dengan sampel.'],
             ['II-TANGGAL', 'dokumen', 'error',
                 'filled(b2_tgl_cacah) and filled(b2_tgl_periksa) and ymd(b2_tgl_periksa) < ymd(b2_tgl_cacah)',
-                'Tanggal pemeriksaan lebih awal daripada tanggal pencacahan.'],
-            ['II-KUNJUNGAN', 'dokumen', 'error',
-                'n(b2_hasil) == 1 and filled(b2_kunjungan) and n(b2_kunjungan) < 1',
-                'Hasil "terisi lengkap" tetapi jumlah kunjungan kurang dari 1.'],
+                'Tanggal pemeriksaan lebih awal daripada tanggal pendataan.'],
             ['II-HASIL-ART', 'dokumen', 'warning',
                 'n(b2_hasil) == 1 and blank(banyak_art)',
                 'Hasil "terisi lengkap" tetapi banyaknya ART belum diisi.'],
             ['II-PCL', 'dokumen', 'warning',
-                'n(b2_hasil) == 1 and blank(b2_pcl_kode)',
-                'Hasil "terisi lengkap" tetapi kode pencacah kosong.'],
+                'n(b2_hasil) == 1 and blank(b2_pendata)',
+                'Hasil "terisi lengkap" tetapi nama/kode pendata kosong.'],
             ['II-NONRESPON', 'dokumen', 'warning',
                 'filled(b2_hasil) and n(b2_hasil) != 1 and n(kalori_total) > 0',
                 'Hasil pencacahan bukan "terisi lengkap" tetapi Blok IV sudah terisi.'],
@@ -351,6 +328,19 @@ class DatabaseSeeder extends Seeder
             'qversion_id' => $qv->id, 'name' => 'iv1_belanja_minggu', 'label' => 'Total belanja makanan (Rp/minggu)',
             'block_code' => 'IV.1', 'value_var' => 'iv1_nilai_beli', 'op' => 'sum',
             'weight_ref' => '', 'filter_var' => '', 'filter_op' => 'any', 'filter_val' => '', 'order' => 2,
+        ]);
+        // Blok IV.1M (makanan/minuman jadi + rokok per ART) — sebelumnya divalidasi per rincian
+        // tapi TIDAK ikut ke total kalori/belanja mingguan. Rokok kalorinya 0 (tak ada ref.kalori),
+        // tapi nilainya tetap masuk hitungan belanja.
+        \App\Models\Aggregate::create([
+            'qversion_id' => $qv->id, 'name' => 'iv1m_kalori_minggu', 'label' => 'IV.1M · kalori makanan/minuman jadi (kkal/minggu)',
+            'block_code' => 'IV.1M', 'value_var' => 'mj_kuantitas', 'op' => 'weighted_sum',
+            'weight_ref' => 'kalori', 'filter_var' => '', 'filter_op' => 'any', 'filter_val' => '', 'order' => 3,
+        ]);
+        \App\Models\Aggregate::create([
+            'qversion_id' => $qv->id, 'name' => 'iv1m_belanja_minggu', 'label' => 'IV.1M · belanja makanan jadi & rokok (Rp/minggu)',
+            'block_code' => 'IV.1M', 'value_var' => 'mj_nilai', 'op' => 'sum',
+            'weight_ref' => '', 'filter_var' => '', 'filter_op' => 'any', 'filter_val' => '', 'order' => 4,
         ]);
 
         // Rekap Blok IV.1 per kelompok komoditas — subtotal nilai & kalori (disaring nilai ref baris "group")
@@ -423,12 +413,18 @@ class DatabaseSeeder extends Seeder
             'expr' => 'abs(n(iv1_lain_rekap_kelompok) - n(iv1_lain_minggu)) > 1',
             'severity' => 'error', 'message' => 'Rekap IV.3.2 kolom (4) per kelompok tidak sama dengan total produksi sendiri/pemberian.', 'active' => true]);
 
+        // "kalori_total" & "iv1_belanja_minggu" sengaja dibiarkan IV.1-saja (dipakai rekap
+        // IV.3.2 & konsistensi per-kelompok yang memang hanya soal Blok IV.1) — total kalori/
+        // belanja yang BENAR (termasuk makanan jadi & rokok Blok IV.1M) dihitung di sini.
+        DerivedField::create(['qversion_id' => $qv->id, 'var_name' => 'kalori_total_gabungan',
+            'label' => 'Total kalori konsumsi, termasuk makanan jadi (kkal/minggu)',
+            'expr' => 'round(n(kalori_total) + n(iv1m_kalori_minggu), 0)', 'order' => 0]);
         DerivedField::create(['qversion_id' => $qv->id, 'var_name' => 'kalori_per_kapita_hari',
             'label' => 'Kalori per kapita per hari (kkal)',
-            'expr' => 'round(kalori_total / max(n(banyak_art), 1) / 7, 0)', 'order' => 1]);
+            'expr' => 'round(kalori_total_gabungan / max(n(banyak_art), 1) / 7, 0)', 'order' => 1]);
         DerivedField::create(['qversion_id' => $qv->id, 'var_name' => 'belanja_makanan_kapita_bulan',
             'label' => 'Belanja makanan per kapita per bulan (Rp)',
-            'expr' => 'round(iv1_belanja_minggu * 30 / 7 / max(n(banyak_art), 1), 0)', 'order' => 2]);
+            'expr' => 'round((n(iv1_belanja_minggu) + n(iv1m_belanja_minggu)) * 30 / 7 / max(n(banyak_art), 1), 0)', 'order' => 2]);
 
         foreach ([
             ['KALORI-UNDER', 'kalori', '', '',
@@ -628,7 +624,7 @@ class DatabaseSeeder extends Seeder
         // dokumen contoh: beberapa komoditas terisi (sisanya kosong)
         $adm = User::where('username', 'admin')->first();
         $sample = SampleHousehold::create([
-            'cycle_id' => $cycle->id, 'wilayah_code' => '3526101001', 'no_bs' => '020B',
+            'cycle_id' => $cycle->id, 'wilayah_code' => '3526010001', 'no_bs' => '020B',
             'no_ruta' => '001', 'krt_name' => 'Contoh KP', 'status' => 'proses',
             'petugas_id' => User::where('username', 'ppl_ani')->first()->id,
             'pml_id' => User::where('username', 'rahmawati')->first()->id,
@@ -636,7 +632,7 @@ class DatabaseSeeder extends Seeder
         $doc = Document::create(['sample_id' => $sample->id, 'qversion_id' => $qv->id,
             'status' => 'draft', 'created_by' => $adm->id]);
         $qmap = Question::where('block_id', $b->id)->get()->keyBy('var_name');
-        $qart = Question::where('block_id', $bp->id)->where('var_name', 'banyak_art')->first();
+        $qart = Question::where('block_id', $bIII->id)->where('var_name', 'banyak_art')->first();
         Answer::create(['document_id' => $doc->id, 'question_id' => $qart->id, 'art_index' => 0, 'raw_value' => '4']);
         // beras (1), telur ayam ras (~72), minyak goreng (~), gula pasir; harga 1 di luar rentang
         foreach ([
@@ -688,19 +684,14 @@ class DatabaseSeeder extends Seeder
                 Answer::create(['document_id' => $doc->id, 'question_id' => $q->id, 'art_index' => 0, 'raw_value' => $val]);
             }
         }
-        // Blok III — roster 4 ART konsisten dengan banyak_art
+        // Blok III — ringkasan (bukan roster; lihat catatan Inc 132 di atas)
         $qIIImap = Question::where('block_id', $bIII->id)->get()->keyBy('var_name');
         foreach ([
-            1 => ['art_nama' => 'Contoh KP', 'art_hub_krt' => '1', 'art_jk' => '1', 'art_umur' => '45', 'art_kawin' => '2'],
-            2 => ['art_nama' => 'Sri Contoh', 'art_hub_krt' => '2', 'art_jk' => '2', 'art_umur' => '41', 'art_kawin' => '2'],
-            3 => ['art_nama' => 'Dwi Contoh', 'art_hub_krt' => '3', 'art_jk' => '1', 'art_umur' => '15', 'art_kawin' => '1'],
-            4 => ['art_nama' => 'Tri Contoh', 'art_hub_krt' => '3', 'art_jk' => '2', 'art_umur' => '9', 'art_kawin' => '1'],
-        ] as $ri => $cells) {
-            foreach ($cells as $var => $val) {
-                if ($q = $qIIImap->get($var)) {
-                    Answer::create(['document_id' => $doc->id, 'question_id' => $q->id,
-                        'art_index' => $ri, 'raw_value' => (string) $val]);
-                }
+            'b3_no_urut_informasi' => '1', 'b3_nama_informasi' => 'Contoh KP',
+            'b3_jml_komoditas_makanan' => '3', 'b3_jml_komoditas_nonmakanan' => '6',
+        ] as $var => $val) {
+            if ($q = $qIIImap->get($var)) {
+                Answer::create(['document_id' => $doc->id, 'question_id' => $q->id, 'art_index' => 0, 'raw_value' => $val]);
             }
         }
 
@@ -708,10 +699,12 @@ class DatabaseSeeder extends Seeder
         $qIdent = Question::whereIn('block_id', [$bI->id, $bII->id])->get()->keyBy('var_name');
         foreach ([
             'b1_kode_wilayah' => $sample->wilayah_code, 'b1_klasifikasi' => '2',
-            'b1_no_bs' => $sample->no_bs, 'b1_no_ruta' => $sample->no_ruta, 'b1_nama_krt' => $sample->krt_name,
-            'b2_pcl_kode' => 'PCL-3526-01', 'b2_pml_kode' => 'PML-3526-01',
-            'b2_tgl_cacah' => '2026-03-05', 'b2_tgl_periksa' => '2026-03-08',
-            'b2_kunjungan' => '2', 'b2_hasil' => '1', 'b2_moda' => '1',
+            'b1_kode_sls' => $sample->no_bs, 'b1_sls' => 'RT 002/RW 001',
+            'b1_no_bangunan' => '007', 'b1_no_ruta' => $sample->no_ruta, 'b1_nama_krt' => $sample->krt_name,
+            'b1_alamat' => 'Jl. Contoh No. 1',
+            'b2_pendata' => 'Ani Kurniawati / 3526-01', 'b2_pendata_jabatan' => '3',
+            'b2_pemeriksa' => 'Rahmawati / 3526-P01', 'b2_pemeriksa_jabatan' => '3',
+            'b2_tgl_cacah' => '2026-03-05', 'b2_tgl_periksa' => '2026-03-08', 'b2_hasil' => '1',
         ] as $var => $val) {
             if ($q = $qIdent->get($var)) {
                 Answer::create(['document_id' => $doc->id, 'question_id' => $q->id, 'art_index' => 0, 'raw_value' => (string) $val]);
@@ -727,11 +720,11 @@ class DatabaseSeeder extends Seeder
         $qViimap = Question::where('block_id', $bVII->id)->get()->keyBy('var_name');
         $qIIImap = Question::where('block_id', $bIII->id)->get()->keyBy('var_name');
         $qIdent = Question::whereIn('block_id', [$bI->id, $bII->id])->get()->keyBy('var_name');
-        $qart = Question::where('block_id', $bp->id)->where('var_name', 'banyak_art')->first();
+        $qart = Question::where('block_id', $bIII->id)->where('var_name', 'banyak_art')->first();
         $foodRows = \App\Models\BlockRow::where('block_id', $b->id)->orderBy('row_index')->pluck('ref', 'row_index');
         $petugas = ['ppl_ani', 'ppl_dodi', 'ppl_eka'];
-        $desaList = ['3526101001', '3526101002', '3526201001', '3526201002'];
-        $klas = ['3526101001' => '1', '3526101002' => '2', '3526201001' => '2', '3526201002' => '2'];
+        $desaList = ['3526010001', '3526010002', '3526020001', '3526020002'];
+        $klas = ['3526010001' => '1', '3526010002' => '2', '3526020001' => '2', '3526020002' => '2'];
         $gk = 550000;
         mt_srand(20260301);
         $put = function ($doc, $qMap, $var, $val, $art = 0) {
@@ -765,16 +758,11 @@ class DatabaseSeeder extends Seeder
                 Answer::create(['document_id' => $dg->id, 'question_id' => $qart->id,
                     'art_index' => 0, 'raw_value' => (string) $art]);
 
-                // Blok III roster
-                for ($i = 1; $i <= $art; $i++) {
-                    $hub = $i === 1 ? 1 : ($i === 2 ? 2 : 3);
-                    $umur = $i === 1 ? mt_rand(28, 62) : ($i === 2 ? mt_rand(25, 58) : mt_rand(1, 25));
-                    $put($dg, $qIIImap, 'art_nama', 'ART '.$i, $i);
-                    $put($dg, $qIIImap, 'art_hub_krt', $hub, $i);
-                    $put($dg, $qIIImap, 'art_jk', $i % 2 === 1 ? 1 : 2, $i);
-                    $put($dg, $qIIImap, 'art_umur', $umur, $i);
-                    $put($dg, $qIIImap, 'art_kawin', $umur < 17 ? 1 : ($hub === 3 ? 1 : 2), $i);
-                }
+                // Blok III — ringkasan (bukan roster; lihat catatan Inc 132 di atas)
+                $put($dg, $qIIImap, 'b3_no_urut_informasi', '1');
+                $put($dg, $qIIImap, 'b3_nama_informasi', 'ART 1');
+                $put($dg, $qIIImap, 'b3_jml_komoditas_makanan', '16');
+                $put($dg, $qIIImap, 'b3_jml_komoditas_nonmakanan', '7');
 
                 // Blok IV.1 — kuantitas ditentukan dari target kalori (≈ 2100 kkal/kapita/hari),
                 // nilai = kuantitas × harga satuan dalam rentang wajar → IV1-HARGA & KALORI konsisten
@@ -849,16 +837,19 @@ class DatabaseSeeder extends Seeder
                 $badIdent = ($seq % 9 === 0);
                 $put($dg, $qIdent, 'b1_kode_wilayah', $badIdent ? '3526999999' : $desa);
                 $put($dg, $qIdent, 'b1_klasifikasi', $klas[$desa]);
-                $put($dg, $qIdent, 'b1_no_bs', $bs);
+                $put($dg, $qIdent, 'b1_kode_sls', $bs);
+                $put($dg, $qIdent, 'b1_sls', 'RT 00'.(1 + $seq % 9).'/RW 001');
+                $put($dg, $qIdent, 'b1_no_bangunan', sprintf('%03d', 1 + $seq % 40));
                 $put($dg, $qIdent, 'b1_no_ruta', '001');
                 $put($dg, $qIdent, 'b1_nama_krt', $sh->krt_name);
-                $put($dg, $qIdent, 'b2_pcl_kode', 'PCL-3526-'.sprintf('%02d', 1 + $seq % 5));
-                $put($dg, $qIdent, 'b2_pml_kode', 'PML-3526-01');
+                $put($dg, $qIdent, 'b1_alamat', 'Jl. Contoh No. '.(1 + $seq % 40));
+                $put($dg, $qIdent, 'b2_pendata', 'Petugas '.sprintf('%02d', 1 + $seq % 5).' / 3526-'.sprintf('%02d', 1 + $seq % 5));
+                $put($dg, $qIdent, 'b2_pendata_jabatan', '3');
+                $put($dg, $qIdent, 'b2_pemeriksa', 'Rahmawati / 3526-P01');
+                $put($dg, $qIdent, 'b2_pemeriksa_jabatan', '3');
                 $put($dg, $qIdent, 'b2_tgl_cacah', '2026-03-'.sprintf('%02d', 3 + $seq % 20));
                 $put($dg, $qIdent, 'b2_tgl_periksa', '2026-03-'.sprintf('%02d', 6 + $seq % 20));
-                $put($dg, $qIdent, 'b2_kunjungan', mt_rand(1, 3));
                 $put($dg, $qIdent, 'b2_hasil', '1');
-                $put($dg, $qIdent, 'b2_moda', '1');
 
                 // Blok V/VII dari estimasi PHP rekap pengeluaran (satu kali jalan mesin)
                 $rutaSebulanEst = $makananSebulan + $nfBulan + (int) round($nfTahunTotal / 12);
@@ -902,6 +893,7 @@ class DatabaseSeeder extends Seeder
     {
         $rows = [
             ['admin', 'Administrator Sistem', 'admin123', 'admin', ''],
+            ['pj_kamal', 'Bambang Wijaya', 'pj123', 'pj', '3526010'],
             ['rahmawati', 'Rahmawati', 'pengawas123', 'pml', '3526'],
             ['santoso', 'Budi Santoso', 'pengawas123', 'pml', '3526'],
             ['ppl_ani', 'Ani Kurniawati', 'operator123', 'operator', ''],
@@ -929,14 +921,13 @@ class DatabaseSeeder extends Seeder
     private function wilayah(): array
     {
         $rows = [
-            ['35', 'Jawa Timur', 'provinsi', ''],
-            ['3526', 'Kabupaten Bangkalan', 'kabupaten', '35'],
-            ['352610', 'Kamal', 'kecamatan', '3526'],
-            ['352620', 'Socah', 'kecamatan', '3526'],
-            ['3526101001', 'Kamal', 'desa', '352610'],
-            ['3526101002', 'Tajungan', 'desa', '352610'],
-            ['3526201001', 'Socah', 'desa', '352620'],
-            ['3526201002', 'Buduran', 'desa', '352620'],
+            ['3526', 'Kabupaten Bangkalan', 'kabupaten', ''],
+            ['3526010', 'Kamal', 'kecamatan', '3526'],
+            ['3526020', 'Socah', 'kecamatan', '3526'],
+            ['3526010001', 'Kamal', 'desa', '3526010'],
+            ['3526010002', 'Tajungan', 'desa', '3526010'],
+            ['3526020001', 'Socah', 'desa', '3526020'],
+            ['3526020002', 'Buduran', 'desa', '3526020'],
         ];
         $desa = [];
         foreach ($rows as [$code, $name, $level, $parent]) {
@@ -1765,7 +1756,7 @@ class DatabaseSeeder extends Seeder
         // 2 rumah tangga NYATA (dari contoh terisi Sidona) + 1 sintetis dengan anomali
         $ht = [
             [ // 51008 — YUDI (4 ART) — data nyata
-                'krt' => 'YUDI', 'wil' => '3526101001', 'bs' => '010B', 'ruta' => '006',
+                'krt' => 'YUDI', 'wil' => '3526010001', 'bs' => '010B', 'ruta' => '006',
                 'ruta_ans' => ['r301' => '4', 'r1601' => '1', 'r1602' => '1', 'r1604' => '54',
                     'r1606' => '2', 'r1607' => '1', 'r1608' => '2'],
                 'art' => [
@@ -1780,7 +1771,7 @@ class DatabaseSeeder extends Seeder
                 ],
             ],
             [ // 53906 — SUPINI (1 ART, janda) — data nyata
-                'krt' => 'SUPINI', 'wil' => '3526101002', 'bs' => '011B', 'ruta' => '007',
+                'krt' => 'SUPINI', 'wil' => '3526010002', 'bs' => '011B', 'ruta' => '007',
                 'ruta_ans' => ['r301' => '1', 'r1601' => '1', 'r1602' => '1', 'r1604' => '36',
                     'r1606' => '2', 'r1607' => '1', 'r1608' => '2'],
                 'art' => [
@@ -1789,7 +1780,7 @@ class DatabaseSeeder extends Seeder
                 ],
             ],
             [ // sintetis — sengaja memicu beberapa anomali
-                'krt' => 'CONTOH ANOMALI', 'wil' => '3526201001', 'bs' => '012B', 'ruta' => '001',
+                'krt' => 'CONTOH ANOMALI', 'wil' => '3526020001', 'bs' => '012B', 'ruta' => '001',
                 'ruta_ans' => ['r301' => '4', 'r1601' => '4', 'r1602' => '5', 'r1604' => '4',
                     'r1606' => '7', 'r1607' => '2', 'r1608' => '3',
                     'r_jam_mulai' => '3', 'r_jam_selesai' => '2',                                  // SDN-01, SDN-02
@@ -1927,7 +1918,7 @@ class DatabaseSeeder extends Seeder
     private function samples(SurveyCycle $cycle, array $users, array $desaCodes): array
     {
         $petugas = [$users['ppl_ani'], $users['ppl_dodi'], $users['ppl_eka']];
-        $pmlByKec = ['352610' => $users['rahmawati'], '352620' => $users['santoso']];
+        $pmlByKec = ['3526010' => $users['rahmawati'], '3526020' => $users['santoso']];
         $krt = ['Sugianto', 'Hj. Maryam', 'Abdul Rahman', 'Suparno', 'Nur Hidayah',
             'Slamet Riyadi', 'Endang S.', 'Muhaimin', 'Rukiyah', 'Fauzan',
             'Painem', 'Hartono', 'Siti Aisyah', 'Bambang W.', 'Ngatinah', 'Yusuf'];
@@ -1936,7 +1927,7 @@ class DatabaseSeeder extends Seeder
         $made = [];
         $idx = 0;
         foreach ($desaCodes as $desa) {
-            $kec = substr($desa, 0, 6);
+            $kec = substr($desa, 0, 7);
             foreach (['001B', '002B'] as $bs) {
                 for ($r = 1; $r <= 4; $r++) {
                     $made[] = SampleHousehold::create([
@@ -1960,7 +1951,7 @@ class DatabaseSeeder extends Seeder
         $engine = app(RuleEngine::class);
 
         $fixtures = [
-            ['kode_wilayah' => '3526101001', 'banyak_art' => '4', 'ada_balita' => '1',
+            ['kode_wilayah' => '3526010001', 'banyak_art' => '4', 'ada_balita' => '1',
                 'ada_art_sekolah' => '1', 'ada_art_usaha' => '5', 'ada_asuransi' => '1',
                 'ada_merokok' => '1', 'status_rumah' => '1',
                 'iv2_listrik' => '150000', 'iv2_air' => '40000', 'iv2_pulsa_hp' => '100000',
@@ -1968,7 +1959,7 @@ class DatabaseSeeder extends Seeder
                 'iv2_pakaian_anak' => '0', 'iv2_pbb' => '0', 'iv2_asuransi_kesehatan' => '0',
                 'v_produksi_dikonsumsi_setahun' => '0', 'v_transfer_barang_setahun' => '0',
                 'v_total_penerimaan' => '8000000', 'v_total_pengeluaran' => '8000000'],
-            ['kode_wilayah' => '3526101001', 'banyak_art' => '2', 'ada_balita' => '5',
+            ['kode_wilayah' => '3526010001', 'banyak_art' => '2', 'ada_balita' => '5',
                 'ada_art_sekolah' => '5', 'ada_art_usaha' => '1', 'ada_asuransi' => '5',
                 'ada_merokok' => '5', 'status_rumah' => '2',
                 'iv2_listrik' => '90000', 'iv2_air' => '25000', 'iv2_pulsa_hp' => '60000',
@@ -1982,7 +1973,7 @@ class DatabaseSeeder extends Seeder
                 'iv2_listrik' => '0', 'iv2_air' => '0', 'iv2_pulsa_hp' => '0',
                 'v_produksi_dikonsumsi_setahun' => '0', 'v_transfer_barang_setahun' => '0',
                 'v_total_penerimaan' => '5000000', 'v_total_pengeluaran' => '8000000'],
-            ['kode_wilayah' => '3526201001', 'banyak_art' => '5', 'ada_balita' => '1',
+            ['kode_wilayah' => '3526020001', 'banyak_art' => '5', 'ada_balita' => '1',
                 'ada_art_sekolah' => '1', 'ada_art_usaha' => '1', 'ada_asuransi' => '1',
                 'ada_merokok' => '1', 'status_rumah' => '1',
                 'iv2_listrik' => '200000', 'iv2_air' => '55000', 'iv2_pulsa_hp' => '150000',

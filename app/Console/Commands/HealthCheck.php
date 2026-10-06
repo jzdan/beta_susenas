@@ -9,6 +9,7 @@ use App\Models\DocumentSnapshot;
 use App\Models\QuestionnaireVersion;
 use App\Models\RuleResult;
 use App\Models\SampleHousehold;
+use App\Models\User;
 use App\Models\ValidationRule;
 use App\Services\ExpressionEvaluator;
 use App\Services\RuleEngine;
@@ -131,6 +132,15 @@ class HealthCheck extends Command
         if ($noDoc > 0) {
             $this->warn("• {$noDoc} sampel berstatus proses/selesai tapi belum punya dokumen.");
             $problems++;
+        }
+
+        // 10. lebih dari satu PJ aktif untuk kecamatan yang sama
+        $dupePj = User::where('role', 'pj')->where('active', true)
+            ->select('wilayah_scope')->groupBy('wilayah_scope')
+            ->havingRaw('count(*) > 1')->pluck('wilayah_scope');
+        if ($dupePj->isNotEmpty()) {
+            $this->error('• Lebih dari satu PJ aktif untuk kecamatan: '.$dupePj->implode(', '));
+            $problems += $dupePj->count();
         }
 
         if ($problems === 0) {

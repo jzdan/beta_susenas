@@ -6,17 +6,19 @@
 <p class="muted">Satu rentang harga per komoditas untuk aturan <span class="mono">IV1-HARGA-MAHAL</span> /
   <span class="mono">IV1-HARGA-MURAH</span> (harga satuan = nilai &divide; kuantitas harus di dalam rentang),
   dan <span class="mono">kalori</span> per satuan
-  untuk aturan <span class="mono">KALORI-*</span>. Berlaku untuk <strong>seluruh sampel</strong> —
-  versi kuesioner aktif <strong>{{ $activeQvCode }}</strong>.</p>
+  untuk aturan <span class="mono">KALORI-*</span>. Berlaku untuk seluruh sampel versi ini.</p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
+
+@include('admin.partials._qv_switch')
 
 <section class="panel">
   <details>
     <summary style="cursor:pointer;font-weight:600">Impor massal dari Excel / CSV</summary>
     <form method="post" action="{{ route('admin.harga.import') }}" class="stack-form mt" enctype="multipart/form-data">
       @csrf
+      <input type="hidden" name="qv" value="{{ $qv->id }}">
       <p class="muted small">Kolom wajib <span class="mono">code, harga_min, harga_max</span>; opsional <span class="mono">kalori</span>.
         Baris dicocokkan lewat <span class="mono">code</span> ke daftar di bawah.</p>
       <label>Unggah berkas <span class="mono">.xlsx</span> / <span class="mono">.csv</span>
@@ -69,7 +71,7 @@
         <td class="right"><button form="hf{{ $k->id }}" type="submit" class="btn-ghost">Simpan</button></td>
       </tr>
     @empty
-      <tr><td colspan="6" class="muted">Blok IV.1 belum punya daftar komoditas untuk versi {{ $activeQvCode }}.</td></tr>
+      <tr><td colspan="6" class="muted">Blok IV.1 belum punya daftar komoditas untuk versi {{ $qv->code }}.</td></tr>
     @endforelse
     </tbody>
   </table>

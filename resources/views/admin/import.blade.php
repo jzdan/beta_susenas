@@ -7,6 +7,8 @@
   Baris pertama = header. Kolom wajib: <span class="mono">kode_rincian, var_name, label</span>.
   Kolom opsional: <span class="mono">qtype, unit, skip_expr, help_text</span> (qtype default <span class="mono">decimal</span>).</p>
 
+@include('admin.partials._qv_switch')
+
 @if($hasil)
 <div class="alert {{ $hasil['dilewati'] && !$hasil['dibuat'] ? 'err' : '' }}">
   <strong>{{ $hasil['dibuat'] }}</strong> rincian ditambahkan ke Blok {{ $hasil['blok']->code }}.

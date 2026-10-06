@@ -115,6 +115,7 @@ class RuleEngine
         $qById = [];
         $repeatById = [];        // question_id => repeat ('ruta'|'art'|'list')
         $blockCodeByVar = [];    // var_name => block code (untuk blok berulang)
+        $blockRepeatByCode = []; // block code => repeat (dipakai computeAggregate utk unpack list_art)
         $rosterVars = [];
         foreach ($questions as $q) {
             $qById[$q->id] = $q;
@@ -122,6 +123,7 @@ class RuleEngine
             if ($q->blk_repeat !== 'ruta') {
                 $blockCodeByVar[$q->var_name] = $q->blk_code;
             }
+            $blockRepeatByCode[$q->blk_code] = $q->blk_repeat;
             if ($q->blk_repeat === 'art') {
                 $rosterVars[$q->var_name] = true;
             }
@@ -186,7 +188,8 @@ class RuleEngine
 
         // --- agregat cek-silang (NERACA): agregasi terkelompok atas blok berulang ---
         foreach (\App\Models\Aggregate::where('qversion_id', $qvId)->orderBy('order')->get() as $agg) {
-            $ctx[$agg->name] = $this->computeAggregate($agg, $repeatByVar, $rowRefs[$agg->block_code] ?? []);
+            $isListArt = ($blockRepeatByCode[$agg->block_code] ?? '') === 'list_art';
+            $ctx[$agg->name] = $this->computeAggregate($agg, $repeatByVar, $rowRefs[$agg->block_code] ?? [], $isListArt);
         }
 
         foreach (DerivedField::where('qversion_id', $qvId)->orderBy('order')->get() as $d) {
@@ -205,8 +208,12 @@ class RuleEngine
      * Mengalikan value_var[row] hanya untuk baris yang filter-nya lolos.
      *
      * @param  array<string,array<int,mixed>>  $repeatByVar
+     * @param  bool  $isListArt  true bila blok agregat ini `repeat='list_art'` — art_index-nya
+     *                           dipaketkan (`baris*1000+no_art`, lihat `Block::packRowArt`), jadi
+     *                           harus dibongkar dulu sebelum dipakai mencari `block_rows.ref`
+     *                           (yang key-nya baris komoditas polos, bukan indeks terpaket).
      */
-    private function computeAggregate(\App\Models\Aggregate $agg, array $repeatByVar, array $rowRefs): float
+    private function computeAggregate(\App\Models\Aggregate $agg, array $repeatByVar, array $rowRefs, bool $isListArt = false): float
     {
         $values = $repeatByVar[$agg->value_var] ?? [];
         $filter = $repeatByVar[$agg->filter_var] ?? [];
@@ -217,6 +224,7 @@ class RuleEngine
             if (ExpressionEvaluator::isBlank($val)) {
                 continue;
             }
+            $refRow = $isListArt ? Block::unpackRowArt((int) $rowIdx)[0] : $rowIdx;
             $fv = $filter[$rowIdx] ?? null;
             $pass = match ($agg->filter_op) {
                 'eq' => (string) ($fv ?? '') === ($codes[0] ?? ''),
@@ -226,14 +234,14 @@ class RuleEngine
             };
             // penyaring berdasarkan nilai referensi baris (mis. kelompok komoditas)
             if ($pass && $agg->filter_ref !== '') {
-                $pass = (string) ($rowRefs[$rowIdx][$agg->filter_ref] ?? '') === $agg->filter_ref_val;
+                $pass = (string) ($rowRefs[$refRow][$agg->filter_ref] ?? '') === $agg->filter_ref_val;
             }
             if (!$pass) {
                 continue;
             }
             $num = ExpressionEvaluator::toNum($val) ?? 0.0;
             if ($agg->op === 'weighted_sum' && $agg->weight_ref !== '') {
-                $num *= ExpressionEvaluator::toNum($rowRefs[$rowIdx][$agg->weight_ref] ?? null) ?? 0.0;
+                $num *= ExpressionEvaluator::toNum($rowRefs[$refRow][$agg->weight_ref] ?? null) ?? 0.0;
             }
             $picked[] = $num;
         }

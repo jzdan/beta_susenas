@@ -31,7 +31,7 @@ class VisitPhotoController extends Controller
         if ($s && (int) $s->petugas_id === (int) $user->id) {
             return true;
         }
-        if (in_array($user->role, ['pml', 'viewer'], true)) {
+        if (in_array($user->role, ['pml', 'pj', 'viewer'], true)) {
             $scope = $user->wilayah_scope;
 
             return $s && (! $scope || str_starts_with((string) $s->wilayah_code, $scope));
@@ -43,7 +43,7 @@ class VisitPhotoController extends Controller
     public function store(Request $request, Document $document)
     {
         $this->guardEnabled();
-        abort_unless(in_array($request->user()->role, ['operator', 'pml', 'admin'], true), 403);
+        abort_unless(in_array($request->user()->role, ['operator', 'pml', 'pj', 'admin'], true), 403);
         abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci.');
         if ($request->user()->role === 'operator') {
             abort_unless((int) $document->sample->petugas_id === (int) $request->user()->id, 403);

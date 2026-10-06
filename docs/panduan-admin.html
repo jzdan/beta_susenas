@@ -78,7 +78,7 @@
     <div class="conn"></div>
     <div class="node"><span class="who">Admin</span>1. Buat akun pengguna: PML (Pengawas) &amp; PCL (Operator Entri)</div>
     <div class="conn"></div>
-    <div class="node"><span class="who">Admin · sekali</span>2. Impor master Wilkerstat (provinsi → kabupaten → kecamatan → desa)</div>
+    <div class="node"><span class="who">Admin · sekali</span>2. Impor master Wilkerstat (kabupaten → kecamatan → desa)</div>
     <div class="conn"></div>
     <div class="node"><span class="who">Admin · tiap periode</span>3. Buat Siklus Survei (periode + jadwal lapangan)</div>
     <div class="conn"></div>
@@ -121,23 +121,25 @@
     <tr><td>Nama</td><td>nama lengkap (dipakai di laporan &amp; avatar)</td></tr>
     <tr><td>Peran</td><td><strong>Operator Entri</strong> = PCL/pencacah · <strong>Pengawas (PML)</strong> = PML/pengolah · <strong>Administrator</strong> · <strong>Peninjau</strong> (lihat saja)</td></tr>
     <tr><td>Kata sandi</td><td>minimal 8 karakter (kosongkan saat menyunting = tidak diubah)</td></tr>
-    <tr><td>Wilayah scope</td><td><strong>PML</strong>: kode kecamatan (mis. <span class="m">352601</span>) — otomatis membatasi dashboard/antrean ke wilayahnya. <strong>PCL</strong>: kosongkan.</td></tr>
+    <tr><td>Wilayah scope</td><td><strong>PML</strong>: kode kecamatan (mis. <span class="m">3526001</span>) — otomatis membatasi dashboard/antrean ke wilayahnya. <strong>PCL</strong>: kosongkan.</td></tr>
   </table>
   <p>Klik <strong>Simpan</strong>. Berikan username + kata sandi ke petugas masing-masing. Ganti sandi lewat menu <strong>Akun</strong>.</p>
   <div class="callout warn"><span class="k">Perhatikan</span>Ganti kata sandi akun <span class="m">admin</span> bawaan sebelum dipakai produksi.</div>
 
   <h3>B2 · Impor master Wilkerstat (sekali)</h3>
-  <p>Menu <strong>Setup awal → Impor Wilkerstat</strong>. Tempel CSV berkolom <span class="m">code,name,level,parent_code</span>, lalu <strong>Pratinjau</strong> → <strong>Simpan</strong>.</p>
+  <p>Menu <strong>Setup awal → Impor Wilkerstat</strong>. Kabupaten adalah jenjang teratas (aplikasi ini untuk 1 kabupaten
+    saja, tanpa jenjang provinsi). Tambah satu-per-satu lewat form <strong>Tambah/Sunting/Hapus</strong> di halaman itu,
+    atau tempel CSV berkolom <span class="m">code,name,level,parent_code</span> untuk banyak sekaligus, lalu
+    <strong>Pratinjau</strong> → <strong>Simpan</strong>.</p>
   <table>
     <tr><th>Jenjang</th><th>Panjang kode</th><th>Contoh</th></tr>
-    <tr><td>provinsi</td><td>2</td><td><span class="m">35</span> — Jawa Timur</td></tr>
-    <tr><td>kabupaten</td><td>4</td><td><span class="m">3526</span> — Bangkalan</td></tr>
-    <tr><td>kecamatan</td><td>6</td><td><span class="m">352601</span> — Kamal … <span class="m">352618</span> — Klampis</td></tr>
-    <tr><td>desa</td><td>10</td><td><span class="m">3526012001</span></td></tr>
+    <tr><td>kabupaten</td><td>4</td><td><span class="m">3526</span> — Bangkalan (tanpa induk)</td></tr>
+    <tr><td>kecamatan</td><td>7</td><td><span class="m">3526001</span> — Kamal … <span class="m">3526018</span> — Klampis</td></tr>
+    <tr><td>desa</td><td>10</td><td><span class="m">3526001001</span></td></tr>
   </table>
   <ul>
-    <li>Urutkan dari atas: provinsi → kabupaten → kecamatan → desa (induk harus muncul lebih dulu).</li>
-    <li><span class="m">parent_code</span> harus jadi <strong>awalan</strong> dari <span class="m">code</span>.</li>
+    <li>Urutkan dari atas: kabupaten → kecamatan → desa (induk harus muncul lebih dulu).</li>
+    <li><span class="m">parent_code</span> harus jadi <strong>awalan</strong> dari <span class="m">code</span> (kosongkan untuk kabupaten).</li>
     <li>Tingkat kecamatan sudah cukup untuk penugasan &amp; filter. Desa opsional (untuk Peta Progres per desa).</li>
   </ul>
 
@@ -160,8 +162,8 @@
         <td><span class="m">krt_name</span>, <span class="m">petugas</span> (username PCL), <span class="m">pml</span> (username PML), <span class="m">weight</span></td></tr>
   </table>
   <p class="m" style="white-space:pre-line">wilayah_code,no_bs,no_ruta,krt_name,petugas,pml
-3526012001,001B,001,Budi Santoso,ppl_ani,pml_kamal
-3526012001,001B,002,Sri Wahyuni,ppl_ani,pml_kamal</p>
+3526001001,001B,001,Budi Santoso,ppl_ani,pml_kamal
+3526001001,001B,002,Sri Wahyuni,ppl_ani,pml_kamal</p>
 
   <h3>B6 · Pembagian daerah untuk PML &amp; PCL</h3>
   <p><strong>Cara 1 — lewat file DSRT (paling efisien):</strong> isi kolom <span class="m">petugas</span> &amp; <span class="m">pml</span> untuk tiap baris. Sekali impor, penugasan langsung beres.</p>

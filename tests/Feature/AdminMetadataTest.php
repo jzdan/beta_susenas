@@ -83,8 +83,8 @@ class AdminMetadataTest extends TestCase
 
     public function test_block_repeat_cannot_change_when_answers_exist(): void
     {
-        $doc = Document::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.KP'))->firstOrFail();
-        $block = Block::where('qversion_id', $doc->qversion_id)->where('code', 'III')->firstOrFail();
+        $doc = Document::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.K'))->firstOrFail();
+        $block = Block::where('qversion_id', $doc->qversion_id)->where('code', 'ART')->firstOrFail();
 
         $this->actingAs($this->admin())->post("/admin/blok/{$block->id}", [
             'title' => 'ART (diubah)', 'repeat' => 'ruta',
@@ -293,6 +293,56 @@ class AdminMetadataTest extends TestCase
         ])->assertSessionHasErrors('wizard');
     }
 
+    public function test_guided_rule_builder_kombinasi_needs_two_conditions_and_joins_with_and(): void
+    {
+        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+        $admin = $this->admin();
+
+        // satu syarat saja -> ditolak (kombinasi minimal 2 syarat)
+        $this->actingAs($admin)->post('/admin/aturan-terpandu', [
+            'code' => 'UJI-KOMBI-KURANG', 'severity' => 'warning', 'kind' => 'kombinasi', 'join' => 'and',
+            'cond_field' => ['banyak_art', '', '', '', ''],
+            'cond_op2' => ['>', 'terisi', 'terisi', 'terisi', 'terisi'],
+            'cond_val2' => ['10', '', '', '', ''],
+            'message' => 'x',
+        ])->assertSessionHasErrors('wizard');
+        $this->assertDatabaseMissing('validation_rules', ['code' => 'UJI-KOMBI-KURANG']);
+
+        // dua syarat, gabung DAN
+        $this->actingAs($admin)->post('/admin/aturan-terpandu', [
+            'code' => 'UJI-KOMBI', 'severity' => 'warning', 'kind' => 'kombinasi', 'join' => 'and',
+            'cond_field' => ['banyak_art', 'ada_balita', '', '', ''],
+            'cond_op2' => ['>', '==', 'terisi', 'terisi', 'terisi'],
+            'cond_val2' => ['10', '1', '', '', ''],
+            'message' => 'ART banyak tapi status balita janggal.',
+        ])->assertRedirect()->assertSessionHas('ok');
+
+        $r = ValidationRule::where('qversion_id', $qv->id)->where('code', 'UJI-KOMBI')->firstOrFail();
+        $this->assertStringContainsString('n(banyak_art) > 10', $r->expr);
+        $this->assertStringContainsString('n(ada_balita) == 1', $r->expr);
+        $this->assertStringContainsString(' and ', $r->expr);
+        $this->assertSame('', $this->app->make(\App\Services\ExpressionEvaluator::class)
+            ->checkSyntax($r->expr, \App\Services\RuleEngine::ROSTER_FUNCS));
+    }
+
+    public function test_wizard_impact_previews_before_saving_without_writing_anything(): void
+    {
+        $before = ValidationRule::count();
+        $res = $this->actingAs($this->admin())->post('/admin/aturan-terpandu/uji', [
+            'kind' => 'kombinasi', 'join' => 'or',
+            'cond_field' => ['banyak_art', 'ada_balita'],
+            'cond_op2' => ['>', '=='],
+            'cond_val2' => ['1', '1'],
+        ]);
+        $res->assertOk();
+        $data = $res->json();
+        $this->assertTrue($data['ok']);
+        $this->assertArrayHasKey('fire_docs', $data);
+        $this->assertArrayHasKey('docs', $data);
+        $this->assertStringContainsString(' or ', $data['expr']);
+        $this->assertSame($before, ValidationRule::count(), 'uji dulu tidak boleh menyimpan aturan');
+    }
+
     public function test_aggregate_can_be_edited_inline(): void
     {
         $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
@@ -392,5 +442,75 @@ class AdminMetadataTest extends TestCase
         $this->assertSame($srcAggs, Aggregate::where('qversion_id', $dst->id)->count());
         $this->assertSame($srcRowRules,
             ValidationRule::where('qversion_id', $dst->id)->where('row_block', '!=', '')->count());
+    }
+
+    /**
+     * Inc 131 — admin tidak lagi harus "Jadikan aktif" cuma untuk menyunting versi
+     * lain. Selector `?qv=` di Metadata/Aturan/Harga mengganti versi yang DILIHAT/
+     * DISUNTING tanpa menyentuh versi yang dipakai PCL untuk entri data (is_active).
+     */
+    public function test_can_browse_and_edit_a_non_active_version_without_activating_it(): void
+    {
+        $admin = $this->admin();
+        $activeBefore = $this->activeQv();
+
+        $this->actingAs($admin)->post('/admin/versi/duplikat', ['new_code' => 'UJI-NONAKTIF'])->assertRedirect();
+        $other = QuestionnaireVersion::where('code', 'UJI-NONAKTIF')->firstOrFail();
+        $this->assertFalse($other->is_active);
+        $this->assertTrue($activeBefore->fresh()->is_active, 'duplikasi tidak boleh mengubah versi aktif');
+
+        // Metadata?qv=<non-aktif> menampilkan blok versi itu, bukan versi aktif
+        $res = $this->actingAs($admin)->get("/admin/metadata?qv={$other->id}");
+        $res->assertOk();
+        $this->assertSame($other->id, $res->viewData('qv')->id);
+        $this->assertSame($activeBefore->id, $res->viewData('activeId'));
+
+        // Tambah blok baru lewat form (hidden qv=...) -> nempel ke versi NON-aktif, bukan aktif
+        $this->actingAs($admin)->post('/admin/blok', [
+            'qv' => $other->id, 'code' => 'ZZQ', 'title' => 'Blok Uji Non-aktif', 'repeat' => 'ruta',
+        ])->assertRedirect();
+        $this->assertDatabaseHas('blocks', ['qversion_id' => $other->id, 'code' => 'ZZQ']);
+        $this->assertDatabaseMissing('blocks', ['qversion_id' => $activeBefore->id, 'code' => 'ZZQ']);
+
+        // Tambah parameter -> juga nempel ke versi yang dipilih
+        $this->actingAs($admin)->post('/admin/parameter', [
+            'qv' => $other->id, 'name' => 'ambang_nonaktif', 'value' => '7',
+        ])->assertRedirect();
+        $this->assertDatabaseHas('parameters', ['qversion_id' => $other->id, 'name' => 'ambang_nonaktif']);
+
+        // Versi aktif tidak berubah sepanjang proses
+        $this->assertTrue($activeBefore->fresh()->is_active);
+        $this->assertFalse($other->fresh()->is_active);
+    }
+
+    public function test_rules_and_harga_pages_scope_to_selected_non_active_version(): void
+    {
+        $admin = $this->admin();
+        $activeBefore = $this->activeQv();
+
+        $this->actingAs($admin)->post('/admin/versi/duplikat', ['new_code' => 'UJI-ATURAN-NONAKTIF'])->assertRedirect();
+        $other = QuestionnaireVersion::where('code', 'UJI-ATURAN-NONAKTIF')->firstOrFail();
+
+        // Aturan Validasi: daftar & tester scoped ke versi terpilih
+        $res = $this->actingAs($admin)->get("/admin/aturan?qv={$other->id}");
+        $res->assertOk();
+        $this->assertSame($other->id, $res->viewData('qv')->id);
+        $this->assertTrue(collect($res->viewData('docs'))->every(fn ($d) => $d->qversion_id === $other->id));
+
+        // Wizard terpandu -> aturan baru nempel ke versi non-aktif
+        $this->actingAs($admin)->post('/admin/aturan-terpandu', [
+            'qv' => $other->id, 'code' => 'UJI-NONAKTIF-WAJIB', 'severity' => 'warning',
+            'kind' => 'wajib', 'field_a' => 'banyak_art', 'message' => 'x',
+        ])->assertRedirect();
+        $this->assertDatabaseHas('validation_rules', ['qversion_id' => $other->id, 'code' => 'UJI-NONAKTIF-WAJIB']);
+        $this->assertDatabaseMissing('validation_rules', ['qversion_id' => $activeBefore->id, 'code' => 'UJI-NONAKTIF-WAJIB']);
+
+        // Harga & Kalori: daftar komoditas scoped ke IV.1 milik versi terpilih (bukan aktif)
+        $hres = $this->actingAs($admin)->get("/admin/harga?qv={$other->id}");
+        $hres->assertOk();
+        $this->assertSame($other->id, $hres->viewData('qv')->id);
+        $expectedIds = BlockRow::whereIn('block_id',
+            Block::where('qversion_id', $other->id)->where('code', 'IV.1')->pluck('id'))->pluck('id')->sort()->values();
+        $this->assertSame($expectedIds->all(), collect($hres->viewData('komoditas'))->pluck('id')->sort()->values()->all());
     }
 }

@@ -93,15 +93,12 @@ class ListArtBlockTest extends TestCase
         $b = $this->iv1m();
         $doc = Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail();
         $qKuant = Question::where('block_id', $b->id)->where('var_name', 'mj_kuantitas')->firstOrFail();
-        $qArtRoster = Question::whereIn('block_id', Block::where('qversion_id', $b->qversion_id)->where('repeat', 'art')->pluck('id'))
-            ->first();
         $op = User::where('username', 'ppl_ani')->firstOrFail();
 
-        // isian di ART 16 (list_art) & ART 12 (roster art)
+        // isian di ART 16 (list_art) — VSEN26.KP tidak punya blok roster ('art') lagi
+        // sejak Inc 132 (Blok III bukan roster); pengujian shrink untuk roster ada di K.
         Answer::create(['document_id' => $doc->id, 'question_id' => $qKuant->id,
             'art_index' => Block::packRowArt(196, 16), 'raw_value' => '3']);
-        Answer::create(['document_id' => $doc->id, 'question_id' => $qArtRoster->id,
-            'art_index' => 12, 'raw_value' => 'x']);
 
         $this->actingAs($op)->postJson("/entri/{$doc->id}/jumlah-art", ['count' => 10])
             ->assertOk()->assertJson(['ok' => true]);
@@ -109,6 +106,25 @@ class ListArtBlockTest extends TestCase
         $this->assertSame('10', Answer::where('document_id', $doc->id)
             ->whereHas('question', fn ($q) => $q->where('var_name', 'banyak_art'))->value('raw_value'));
         $this->assertDatabaseMissing('answers', ['document_id' => $doc->id, 'art_index' => Block::packRowArt(196, 16)]);
+    }
+
+    /** Sisi roster ('art'-repeat, bukan list_art) dari shrink jumlah ART — diuji di VSEN26.K. */
+    public function test_set_art_count_shrinks_roster_answers_on_kor(): void
+    {
+        $qv = QuestionnaireVersion::where('code', 'VSEN26.K')->firstOrFail();
+        $doc = Document::where('qversion_id', $qv->id)->where('status', '!=', 'bersih')->firstOrFail();
+        $bArt = Block::where('qversion_id', $qv->id)->where('code', 'ART')->firstOrFail();
+        $qArtRoster = Question::where('block_id', $bArt->id)->where('var_name', 'r407')->firstOrFail();
+        $op = User::where('username', 'ppl_ani')->firstOrFail();
+
+        Answer::updateOrCreate(['document_id' => $doc->id, 'question_id' => $qArtRoster->id, 'art_index' => 12],
+            ['raw_value' => '30']);
+
+        $this->actingAs($op)->postJson("/entri/{$doc->id}/jumlah-art", ['count' => 10])
+            ->assertOk()->assertJson(['ok' => true]);
+
+        $this->assertSame('10', Answer::where('document_id', $doc->id)
+            ->whereHas('question', fn ($q) => $q->where('var_name', 'r301'))->value('raw_value'));
         $this->assertDatabaseMissing('answers', ['document_id' => $doc->id, 'question_id' => $qArtRoster->id, 'art_index' => 12]);
     }
 
@@ -140,6 +156,10 @@ class ListArtBlockTest extends TestCase
             if (! $doc) {
                 continue;
             }
+            // operator dikunci ke periode versi yang sedang aktif — tandai versi yang sedang
+            // diuji giliran ini sebagai aktif (masing-masing beda periode di data seed).
+            QuestionnaireVersion::query()->update(['is_active' => false]);
+            $qv->update(['is_active' => true]);
 
             $res = $this->actingAs($op)->get("/entri/{$doc->id}")->assertOk();
             $this->assertSame($var, $res->viewData('state')['art_var'], "art_var untuk {$code}");
@@ -150,6 +170,43 @@ class ListArtBlockTest extends TestCase
             $this->assertSame('5', Answer::where('document_id', $doc->id)
                 ->whereHas('question', fn ($q) => $q->where('var_name', $var))->value('raw_value'));
         }
+    }
+
+    public function test_iv1m_kalori_and_belanja_feed_into_weekly_totals(): void
+    {
+        // Inc 129 — sebelumnya Blok IV.1M (makanan jadi & rokok) divalidasi per rincian tapi
+        // TIDAK ikut kalori_total/belanja mingguan (bug: computeAggregate belum membongkar
+        // art_index terpaket row*1000+art punya list_art, jadi ref.kalori/nilai tak pernah kena).
+        $b = $this->iv1m();
+        $doc = Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail();
+        $row = $b->rows()->where('row_index', 188)->firstOrFail(); // Roti tawar
+        $kalori = (float) $row->ref['kalori'];
+        $this->assertGreaterThan(0, $kalori, 'baris uji harus punya ref.kalori');
+
+        $qArt = Question::whereIn('block_id', Block::where('qversion_id', $b->qversion_id)->pluck('id'))
+            ->where('var_name', 'banyak_art')->firstOrFail();
+        Answer::updateOrCreate(['document_id' => $doc->id, 'question_id' => $qArt->id, 'art_index' => 0], ['raw_value' => '2']);
+
+        $engine = app(RuleEngine::class);
+        $before = $engine->buildContext($doc);
+        $kaloriBefore = (float) ($before['kalori_total'] ?? 0);
+
+        $qKuant = Question::where('block_id', $b->id)->where('var_name', 'mj_kuantitas')->firstOrFail();
+        $qNilai = Question::where('block_id', $b->id)->where('var_name', 'mj_nilai')->firstOrFail();
+        $idx = Block::packRowArt(188, 1);
+        Answer::create(['document_id' => $doc->id, 'question_id' => $qKuant->id, 'art_index' => $idx, 'raw_value' => '4']);
+        Answer::create(['document_id' => $doc->id, 'question_id' => $qNilai->id, 'art_index' => $idx, 'raw_value' => '20000']);
+
+        $after = $engine->buildContext($doc);
+        $this->assertEqualsWithDelta(4 * $kalori, $after['iv1m_kalori_minggu'], 0.01);
+        $this->assertEquals(20000.0, $after['iv1m_belanja_minggu']);
+        $this->assertEqualsWithDelta(
+            round($kaloriBefore + 4 * $kalori),
+            $after['kalori_total_gabungan'],
+            1.0,
+        );
+        $expectedPerKapita = round(($after['kalori_total_gabungan']) / 2 / 7, 0);
+        $this->assertEquals($expectedPerKapita, $after['kalori_per_kapita_hari']);
     }
 
     public function test_entry_form_renders_list_art_block(): void

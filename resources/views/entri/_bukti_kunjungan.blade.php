@@ -27,7 +27,7 @@
     </div>
   @endif
 
-  @if(in_array(auth()->user()->role, ['operator','pml','admin']) && $doc->status !== 'bersih' && ! $doc->cycleLocked())
+  @if(in_array(auth()->user()->role, ['operator','pml','pj','admin']) && $doc->status !== 'bersih' && ! $doc->cycleLocked())
     <form method="post" action="{{ route('entri.foto.store', $doc) }}" enctype="multipart/form-data" class="stack-form mt">
       @csrf
       <label>Tambah foto (JPG/PNG/WebP, maks 8 MB)

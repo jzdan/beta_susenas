@@ -14,6 +14,44 @@
 
 @if(session('ok'))<div class="alert no-print" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 
+<section class="panel no-print" style="border-style:dashed;border-color:var(--accent);background:var(--accent-soft)">
+  <h2 style="color:var(--accent-strong)">⚡ Aksi cepat — untuk siklus ini</h2>
+  <div class="grid2">
+    <div class="panel" style="margin:0">
+      <h2>Instrumen &amp; validasi</h2>
+      @if($versionObjs->isEmpty())
+        <p class="muted small">Belum ada versi kuesioner untuk siklus ini.</p>
+      @else
+        @foreach ($versionObjs as $v)
+          <p class="small" style="margin:4px 0">
+            <span class="mono">{{ $v->code }}</span> —
+            <a href="{{ route('admin.metadata', ['qv' => $v->id]) }}">Metadata</a> ·
+            <a href="{{ route('admin.aturan', ['qv' => $v->id]) }}">Aturan Validasi</a> ·
+            <a href="{{ route('admin.harga', ['qv' => $v->id]) }}">Harga &amp; Kalori</a>
+          </p>
+        @endforeach
+      @endif
+    </div>
+    <div class="panel" style="margin:0">
+      <h2>Sampel &amp; PCL</h2>
+      <p class="small" style="margin:4px 0">
+        <a href="{{ route('monitoring.samples', ['cycle' => $cycle->id]) }}">Daftar Sampel siklus ini →</a></p>
+      <p class="small" style="margin:4px 0">
+        <a href="{{ route('admin.impor.sampel') }}">Impor Sampel →</a></p>
+    </div>
+    <div class="panel" style="margin:0">
+      <h2>Wilayah kerja</h2>
+      <p class="muted small" style="margin:4px 0 6px">Master wilayah kabupaten — dipakai bersama, tidak khusus siklus ini.</p>
+      <p class="small" style="margin:4px 0"><a href="{{ route('admin.impor.wilayah') }}">Impor Wilkerstat →</a></p>
+    </div>
+    <div class="panel" style="margin:0">
+      <h2>Pengguna</h2>
+      <p class="muted small" style="margin:4px 0 6px">Akun PCL/PML/PJ — dipakai bersama, tidak khusus siklus ini.</p>
+      <p class="small" style="margin:4px 0"><a href="{{ route('admin.pengguna') }}">Kelola Pengguna →</a></p>
+    </div>
+  </div>
+</section>
+
 <section class="panel">
   <h2>Respons &amp; disposisi</h2>
   <div class="summary-counts">

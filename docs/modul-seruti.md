@@ -1,8 +1,10 @@
 # Modul SERUTI — VSERUTI26.INTI
 
-Kuesioner **SERUTI** (Survei Konsumsi & Investasi Rumah Tangga) adalah pendamping
-Susenas pada subsampel. Sumber struktur: `WTF Susenas Seruti Maret 2026.xlsx`
+Kuesioner **SERUTI** (Survei Ekonomi Rumah Tangga Triwulanan) — dilaksanakan
+4x setahun (tiap triwulan), berdampingan dengan Susenas pada TW I & TW III.
+Sumber struktur: `WTF Susenas Seruti Maret 2026.xlsx`
 (sheet `SERUTI IV.2`, `SERUTI V-VI`) dan PDF `Kuesioner Seruti Inti 2026`.
+Lihat juga `Susenas2026CycleSeeder` untuk kerangka siklus 4 triwulan (Inc 123).
 
 Seperti kuesioner lain, ini **data** — di-seed lewat `SerutiSeeder` + CSV, bukan kode.
 

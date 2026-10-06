@@ -4,7 +4,7 @@
 @section('content')
 <p><a class="btn-ghost" href="{{ route('monitoring.sample', $sample) }}">← Sampel</a>
   <a class="btn-ghost" href="{{ route('entri.print', $doc) }}">Cetak / arsip</a></p>
-<h1>Entri Kuesioner</h1>
+<h1>Entri Kuesioner <span class="chip">{{ $sample->cycle->name ?? '—' }}</span></h1>
 <p class="muted mono">
   {{ $qv->code }} · {{ $wil[$sample->wilayah_code] ?? $sample->wilayah_code }} ·
   BS {{ $sample->no_bs }} · Ruta {{ $sample->no_ruta }} · dok #{{ $doc->id }}
@@ -191,7 +191,7 @@
       </table>
       @endif
 
-      @if(in_array(auth()->user()->role, ['operator','pml','admin']) && $doc->status !== 'bersih')
+      @if(in_array(auth()->user()->role, ['operator','pml','pj','admin']) && $doc->status !== 'bersih')
       <form method="post" action="{{ route('entri.finalize', $doc) }}" class="mt">
         @csrf
         <button type="submit" @disabled($state['n_err'] > 0)>

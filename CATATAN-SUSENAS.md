@@ -28,12 +28,13 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 
 ## Akun demo
 
-| Username    | Sandi         | Peran                        |
-|-------------|---------------|------------------------------|
-| `admin`     | `admin123`    | Administrator                |
-| `rahmawati` | `pengawas123` | Pengawas (PML), wilayah 3526 |
-| `ppl_ani`   | `operator123` | Operator entri               |
-| `viewer`    | `viewer123`   | Peninjau                     |
+| Username    | Sandi         | Peran                                |
+|-------------|---------------|---------------------------------------|
+| `admin`     | `admin123`    | Administrator                        |
+| `pj_kamal`  | `pj123`       | PJ Kecamatan Kamal, wilayah 3526010   |
+| `rahmawati` | `pengawas123` | Pengawas (PML), wilayah 3526         |
+| `ppl_ani`   | `operator123` | Operator entri                       |
+| `viewer`    | `viewer123`   | Peninjau                             |
 
 ## Yang sudah diport (setara prototipe Python) + Increment 6
 
@@ -584,7 +585,7 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 ### Increment 52 — impor Wilkerstat: validasi hierarki + pratinjau
 
 - Impor master wilayah kini: urutkan otomatis (kode pendek/induk dulu),
-  validasi **panjang kode per jenjang** (prov 2, kab 4, kec 6, desa 10),
+  validasi **panjang kode per jenjang** (kab 4, kec 7, desa 10),
   `parent_code` **harus awalan** dari `code` & sudah ada (di sistem/berkas).
 - Mode **Pratinjau** (dry-run dalam transaksi) + Impor & simpan; laporan baris dilewati per alasan.
 - 100 tes lulus (`WilayahImportTest`: urut induk-dulu, pratinjau tak persist, kode salah & induk yatim dilewati).
@@ -1425,6 +1426,686 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 - `ReferencePriceTest` + `RuleEngineTest` disesuaikan; tes baru untuk
   bedakan mahal/murah + cek angka muncul di pesan. **200 tes lulus**,
   `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 118 — CRUD wilayah (bukan cuma impor CSV)
+
+- User: "yang impor wilkerstat tidak bisa ditambahkan selain impor csv apakah
+  bisa ditambahkan crud saja?"
+- Halaman **Impor Wilkerstat** (`/admin/impor-wilayah`) sekarang punya CRUD
+  satu-per-satu selain impor massal:
+  - **Tambah** — form kode/nama/jenjang/induk baru di atas halaman
+    (`wilayahStore`, `POST /admin/wilayah` → `admin.wilayah.simpan`). Validasi
+    sama seperti impor: panjang kode sesuai jenjang, `parent_code` harus
+    awalan dari kode & sudah ada di sistem, kode tak boleh duplikat.
+  - **Sunting** — form di hasil Telusuri diperluas: sekarang bisa ubah nama
+    **dan** kode induk (pindah ke induk lain), tidak cuma nama
+    (`wilayahRename` diperluas, route lama `admin.wilayah.rename` tetap sama
+    — kompatibel dengan pemanggilan lama yang cuma kirim `name`).
+  - **Hapus** — tombol per baris (`wilayahDestroy`, `DELETE /admin/wilayah/{id}`
+    → `admin.wilayah.hapus`), ditolak dengan pesan jelas bila wilayah masih
+    punya anak (`parent_code` menunjuk ke situ) atau masih dipakai
+    `sample_households.wilayah_code`.
+  - Kode wilayah sendiri tidak bisa diubah setelah dibuat (dipakai bebas
+    sebagai string referensi di `sample_households`, bukan FK — mengubahnya
+    akan memutus tautan sampel yang sudah ada).
+- Impor CSV tetap ada untuk perubahan massal (banyak baris sekaligus).
+- 5 tes baru (`WilayahBrowseTest`): tambah, tolak panjang kode salah/
+  duplikat/induk tak ada, sunting pindah induk, hapus diblokir oleh anak lalu
+  berhasil setelah anak dihapus, hapus diblokir bila dipakai sampel.
+- **205 tes lulus**, `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 119 — hapus jenjang "provinsi" dari master wilayah
+
+- User: "di project susenas ini hanya wilayah kabupaten tidak ada provinsi".
+- Aplikasi ini untuk 1 kabupaten saja — jenjang provinsi di master wilayah
+  tidak relevan (dari awal cuma numpang jadi induk kabupaten, tak pernah
+  dipakai filter/scope apa pun).
+- **Kabupaten sekarang jenjang teratas** (tanpa induk): `WIL_LEN` &
+  `LEVELS` di `AdminController` tak lagi punya `provinsi`; semua
+  pengecekan `level !== 'provinsi'` → `level !== 'kabupaten'`. Form
+  Tambah/impor CSV: pilihan jenjang cuma kabupaten/kecamatan/desa.
+- Migrasi `2026_09_14_090000_drop_provinsi_wilayah_level` — hapus baris
+  `level='provinsi'` yang ada & kosongkan `parent_code` kabupaten di DB yang
+  sudah jalan.
+- Seed (`wilayah()`): baris "35 Jawa Timur provinsi" dihapus; "3526 Kabupaten
+  Bangkalan" sekarang `parent_code` kosong.
+- `docs/wilkerstat-bangkalan-kecamatan.csv` & `docs/panduan-admin.pdf`/`.html`
+  diperbarui (kode contoh & tabel jenjang tak lagi menyebut provinsi).
+- `WilayahImportTest` disesuaikan (baris uji "panjang kode salah" ganti dari
+  level provinsi jadi kecamatan berkode pendek, karena provinsi kini
+  bukan level yang dikenal).
+- **205 tes lulus**, `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 120 — urutkan menu sidebar sesuai alur kerja
+
+- User: "di sidebar kayaknya tidak urut sesuai fungsi".
+- Bagian Admin di `layouts/app.blade.php` sebelumnya berurutan "Admin ·
+  Kuesioner" → "Admin · Data" → "Setup awal (sekali)" — jadi hal yang
+  pertama kali dikerjakan admin (Impor Wilkerstat) malah tampil **paling
+  bawah**, dan Pengguna (bikin akun PML/PCL) terselip di tengah "Data".
+  Disusun ulang mengikuti urutan kerja nyata (lih. `docs/panduan-admin.pdf`):
+  1. **Setup awal (sekali)** — Impor Wilkerstat, Pengguna
+  2. **Siklus & sampel (tiap periode)** — Jadwal Lapangan, Impor Sampel,
+     Impor Dokumen
+  3. **Konten & validasi kuesioner** — Metadata, Aturan Validasi,
+     Impor Rincian, Harga & Kalori Komoditas
+- Susulan (user: "metadata bukannya masuk ke konten dan validasi?"): Metadata
+  sebenarnya editor blok/rincian/parameter/**versi kuesioner** — bukan tugas
+  per-periode seperti Jadwal Lapangan/Impor Sampel — jadi dipindah dari
+  grup "Siklus & sampel" ke "Konten & validasi kuesioner".
+- CSS-only/markup-only (tidak ada logika yang berubah). **205 tes lulus**,
+  `susenas:health` bersih.
+
+### Increment 121 — peran baru "PJ" (Penanggung Jawab Kecamatan)
+
+- User menjelaskan struktur yang diinginkan: tiap desa ada petugas lapangan
+  (PCL) yang dinaungi PML, tiap PML dinaungi PJ, dan **satu PJ per
+  kecamatan**. Diklarifikasi via pertanyaan: PJ perlu peran terpisah
+  (bukan sekadar akun PML berwilayah lebih luas), kewenangannya setara PML
+  tapi lingkup kecamatan.
+- `User::ROLE_LABELS` — tambah `'pj' => 'Penanggung Jawab (PJ) Kecamatan'`.
+  Tidak perlu kolom/tabel baru: cakupan PJ pakai mekanisme `wilayah_scope`
+  yang sudah ada (pencocokan awalan kode) — PJ dengan scope `3526010` otomatis
+  melihat **semua** desa di kecamatan itu, tanpa perubahan pada query
+  manapun.
+- Setiap gerbang izin yang sebelumnya `['pml','admin']` diperluas jadi
+  `['pj','pml','admin']` (dan yang menyertakan `viewer`/`operator`
+  disesuaikan juga) — routes/web.php, `CleaningController`,
+  `MonitoringController`, `VisitPhotoController`, nav sidebar, halaman
+  Pengolahan/Dashboard/Entri/Bukti kunjungan/Catatan. PJ jadi bisa: lihat &
+  tugaskan sampel, bersihkan dokumen, lihat Kinerja Tim & Log Audit,
+  Tabulasi & Ekspor — semua dibatasi wilayah_scope-nya sendiri.
+  (Dibersihkan sekalian: sisa role `'editor'` yang sudah dilebur ke `pml`
+  sejak Inc 101 tapi masih nongol di satu gate `_catatan.blade.php`.)
+- `AdminController::saveUser` — validasi khusus role `pj`: wilayah_scope
+  wajib kode kecamatan 7 digit yang ada di master wilayah, dan **ditolak**
+  bila kecamatan itu sudah punya PJ aktif lain (satu PJ per kecamatan).
+  PJ **tidak** dimasukkan ke daftar "PML yang bisa ditugaskan" pada sampel
+  (`assignableUsers` tetap `role=pml` saja) — PJ mengawasi lewat cakupan
+  wilayah, bukan sebagai PML per sampel.
+- `susenas:health` — cek baru #10: lebih dari satu PJ aktif untuk kecamatan
+  yang sama (jaga-jaga bila data masuk lewat jalur lain).
+- Seed: akun demo `pj_kamal` / `pj123`, wilayah 3526010 (Kamal). Ditambahkan
+  ke tabel "Akun demo" di halaman login & catatan ini.
+- Tes baru `PjRoleTest` (9 tes: validasi scope kecamatan/kode tak
+  dikenal/dobel PJ, sunting akun sendiri tak kena tolak-dobel, PJ melihat
+  sampel lintas-desa dalam satu kecamatan, PJ punya akses setara PML di
+  Pengolahan/Kinerja/Audit/Tabulasi, PJ bisa tugaskan petugas, PJ tak
+  ditawarkan sebagai PML assignable) + 1 tes health-check dobel-PJ.
+  **215 tes lulus**, `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 122 — "query" bebas di form terpandu Aturan Validasi
+
+- User: "gimana kalau diberi semacam query juga untuk validasi?" — form
+  terpandu sebelumnya cuma 5 jenis pemeriksaan tetap (wajib/wajib
+  jika/rentang/batas/banding), masing-masing **satu syarat**. Tidak bisa
+  menggabungkan dua sinyal sekaligus (mis. "aset banyak TAPI belanja
+  makanan dilaporkan rendah" — persis kasus deteksi bawah-lapor yang
+  dibahas sebelumnya).
+- Jenis baru **"Gabungan beberapa syarat (query bebas)"** —
+  `assembleRuleExpr()` kind `kombinasi`: sampai 5 baris syarat
+  (rincian + operator + nilai), digabung **DAN**/**ATAU** sesuai pilihan.
+  Tetap dropdown/isian, bukan nulis ekspresi. Minimal 2 syarat (kalau cuma
+  1, pakai jenis lain yang sudah ada).
+- **"Uji dulu"** — tombol baru di form terpandu (berlaku utk semua jenis,
+  bukan cuma kombinasi): menyusun ekspresi dari isian saat ini lewat
+  endpoint baru `POST /admin/aturan-terpandu/uji` (`wizardImpact()`, tidak
+  menyimpan apa pun) lalu tampilkan **berapa dokumen/baris yang akan
+  menyala** — dipakai `RuleEngine::previewExpression()` yang sudah ada.
+  Sekarang admin bisa "coba dulu sebelum aktif" tanpa harus buka Mode
+  lanjutan.
+- UI: 5 baris syarat dirender sekali (hemat JS — tak perlu clone DOM),
+  baris ke-3..5 disembunyikan awal + tombol "+ Tambah syarat" membuka
+  satu-satu. **Bug kecil ketemu & diperbaiki saat verifikasi**: atribut
+  `hidden` HTML kalah oleh `.row-form{display:flex}`/`.btn-ghost{display:
+  inline-block}` (aturan penulis selalu menang atas default user-agent) —
+  ditambah `.kombi-row[hidden]`/`#kombi-add[hidden]{display:none}` supaya
+  baris ekstra benar-benar tersembunyi.
+- 3 tes baru (`AdminMetadataTest`): kombinasi ditolak jika <2 syarat,
+  kombinasi 2-syarat tersimpan & sintaksnya valid, `wizardImpact` mengembalikan
+  pratinjau tanpa menulis baris aturan apa pun. **217 tes lulus**,
+  `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 123 — kerangka siklus Susenas + Seruti 2026 (4 triwulan)
+
+- User menjelaskan hubungan Susenas (2x/tahun: Maret, September) dan Seruti
+  (4x/tahun: tiap triwulan, terintegrasi dengan Susenas di TW I & TW III) +
+  tabel instrumen per periode:
+  | | Maret | Juni | September | November |
+  |---|---|---|---|---|
+  | Susenas | K + KP | — | Modul + KP | — |
+  | Seruti | INTI | INTI + MAK | INTI | INTI + MAK |
+- Web search **tidak berhasil** dapat PDF/struktur asli 2026 — dokumennya
+  hidup di portal SIRUSA (login) & Google Drive pelatihan internal per
+  kabupaten, tidak terindeks publik. Ditemukan 1 koreksi dari situs resmi
+  *.bps.go.id: SERUTI = **Survei Ekonomi Rumah Tangga Triwulanan** (bukan
+  "Survei Konsumsi & Investasi Rumah Tangga" seperti tertulis sebelumnya di
+  `docs/modul-seruti.md` — sudah diperbaiki).
+- **Temuan penting sebelum membangun apa pun**: sistem mengasumsikan
+  **1 siklus = 1 kuesioner** (`createDocument()` ambil qversion ber-id
+  terbesar di `cycle_id` sampel — tidak ada cara pilih instrumen per
+  sampel). Kalau 1 siklus "TW I 2026" diisi 3 qversion (K, KP, INTI)
+  sekaligus, cuma satu yang kepakai. Ditanyakan ke user, dipilih:
+  **1 siklus per instrumen** (bukan per triwulan) — tanpa ubah kode inti,
+  sama seperti `VSEN26.KP` yang sudah begini.
+- **`Susenas2026CycleSeeder`** (baru, terpisah dari `DatabaseSeeder` —
+  tidak jalan otomatis, seperti `SerutiSeeder`; jalankan manual
+  `php artisan db:seed --class=Database\\Seeders\\Susenas2026CycleSeeder`):
+  - Reuse apa adanya: `VSEN26.K`, `VSEN26.KP` (Maret, sudah ada),
+    `VSERUTI26.INTI` (TW I, panggil `SerutiSeeder` kalau belum ada).
+  - Duplikasi struktur (blok/rincian/pilihan/aturan — helper
+    `duplicateInto()`, sama logikanya dengan `AdminController::
+    duplicateVersion()` tapi lintas-siklus) ke instrumen yang diasumsikan
+    isinya sama sampai ada revisi nyata: `VSEN26.KP-TW3` (dari KP Maret),
+    `VSERUTI26.INTI-TW2/-TW3/-TW4` (dari INTI TW I).
+  - **Placeholder kosong** (sengaja, bukan konten karangan) untuk yang
+    strukturnya belum diketahui sama sekali: `VSEN26.M`,
+    `VSERUTI26.MAK-TW2`, `VSERUTI26.MAK-TW4` — qversion tanpa blok, muncul
+    sebagai warning nyata di `susenas:health` ("versi kuesioner tanpa
+    blok") sampai isinya benar-benar dikirim.
+  - Hasil: 10 siklus (3 reuse + 7 baru), 11 qversion total kalau dijalankan.
+    **Tidak menyentuh dataset demo/tes utama** — `migrate:fresh --seed`
+    tanpa seeder ini tetap 3 qversion, bersih seperti sebelumnya.
+- 5 tes baru (`Susenas2026CycleSeederTest`): tidak jalan otomatis di seed
+  default, 10 siklus × 1 qversion masing-masing terbentuk benar, duplikat
+  punya struktur sama dengan sumbernya, placeholder benar-benar kosong,
+  `susenas:health` menandai placeholder, seeder idempoten (jalan 2x tidak
+  dobel). **222 tes lulus**, `migrate:fresh --seed` (default) +
+  `susenas:health` tetap bersih.
+
+### Increment 124 — Jadwal Lapangan dibungkus per tahun
+
+- User: "di jadwal lapangan bungkus pertahun biar ga numpuk begitu" — 10
+  siklus baru 2026 (Inc 123) bikin halaman jadi satu tumpukan panjang.
+- `AdminController::jadwalForm()` — siklus dikelompokkan per tahun (4 digit
+  awal `period`, format `YYYY-MM`), tahun terbaru dulu; dalam satu tahun
+  diurutkan kronologis per `period` (Maret → Juni → September → November),
+  bukan lagi id terbalik.
+- View: tiap tahun jadi `<details class="rule-group">` (dipinjam dari
+  gaya "Blok" di Aturan Validasi) — bisa dilipat/dibuka, tahun pertama
+  otomatis terbuka.
+- Murni tampilan + urutan, tidak ada perubahan data. **222 tes lulus**,
+  `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 125 — perbaiki panjang kode kecamatan (bug, 6→7 digit)
+
+- User meluruskan format kode wilayah BPS asli: kabupaten `3526` + kecamatan
+  **3 digit** (`3526060`, bukan `352606`) + desa 3 digit lagi (total 10).
+  Sistem yang dibangun Inc 118/119 salah — kecamatan divalidasi **6** digit
+  (asumsi kecamatan 2 digit lokal). Kalau tidak diperbaiki, impor Wilkerstat
+  Bangkalan **asli** nanti akan ditolak sistem ("panjang kode salah").
+- Format benar: kode wilayah statistik BPS = provinsi(2)+kabupaten(2)=4,
+  +kecamatan(3)=**7**, +desa(3)=10. `AdminController::WIL_LEN`:
+  `['kabupaten'=>4,'kecamatan'=>7,'desa'=>10]` (sebelumnya kecamatan=6).
+- **Bug lain ikut ketemu** saat menelusuri dampaknya — 3 tempat lain
+  menghitung "6 karakter pertama = kode kecamatan" secara terpisah dari
+  `WIL_LEN`, jadi tidak ikut kebawa kalau cuma ganti konstanta itu:
+  - `AdminController::saveUser` — validasi panjang scope PJ (Inc 121) punya
+    angka `6` sendiri → diubah pakai `self::WIL_LEN['kecamatan']` (bukan
+    angka lepas lagi).
+  - `MonitoringController::peta()`/`samples()` dan `TabulationController`
+    (3 tempat) — `substr($code, 0, 6)` untuk kelompokkan per kecamatan di
+    Peta Progres & Tabulasi → jadi `substr(..., 0, 7)`.
+  - `DatabaseSeeder::samples()` — `substr($desa, 0, 6)` untuk cari PML per
+    kecamatan → jadi `substr(..., 0, 7)`.
+  - Dropdown jenjang di `admin/import_wilayah.blade.php` (Tambah satu
+    wilayah) punya salinan `['kabupaten'=>4,'kecamatan'=>6,...]` sendiri,
+    lepas dari `WIL_LEN` juga — disamakan.
+- Data dummy diselaraskan ke format baru: kecamatan contoh Kamal/Socah
+  `352610`/`352620` → `3526010`/`3526020`; desa turunannya juga digeser
+  (`3526101001`→`3526010001`, dst.) — di `DatabaseSeeder`, semua tes yang
+  mereferensikan kode itu, contoh CSV di halaman impor, `docs/panduan-
+  admin.pdf`/`.html`, `docs/wilkerstat-bangkalan-kecamatan.csv` (18
+  kecamatan `3526001`–`3526018`).
+- Ditambahkan catatan "jebakan" di `CLAUDE.md`: jangan tulis ulang angka
+  panjang kode wilayah di tempat lain — selalu rujuk `WIL_LEN`.
+- **222 tes lulus** (banyak disesuaikan ke kode 7-digit), `migrate:fresh
+  --seed` + `susenas:health` bersih (termasuk dicoba dengan
+  `Susenas2026CycleSeeder` aktif).
+
+### Increment 126 — "kabupaten" dihapus dari jenjang yang bisa ditambah
+
+- User (screenshot form Tambah wilayah): "kok ada jenjang kabupaten? untuk
+  provinsi dan kabupaten default 35 dan 26" — aplikasi ini cuma untuk satu
+  kabupaten (Bangkalan/`3526`, sudah ada sejak seed), jadi "kabupaten"
+  seharusnya tidak ditawarkan sebagai pilihan Jenjang saat **menambah**
+  wilayah baru (beda dari `provinsi` yang dihapus total di Inc 119 —
+  `kabupaten` tetap ada sebagai konsep/jenjang teratas, cuma tidak boleh
+  nambah *yang kedua*).
+- `admin/import_wilayah.blade.php` — dropdown Jenjang di form "Tambah satu
+  wilayah" sekarang cuma `kecamatan`/`desa` (kabupaten dihapus dari opsi).
+- `AdminController::wilayahStore` — validasi `level` jadi
+  `required|in:kecamatan,desa` (sebelumnya termasuk `kabupaten`); cabang
+  `$level !== 'kabupaten'` yang sekarang selalu benar disederhanakan.
+  Impor CSV massal **tetap** menerima baris `kabupaten` (untuk kasus
+  *update nama* kabupaten yang sudah ada — tidak lewat form tambah-satu).
+- 1 tes baru: `POST /admin/wilayah` dengan `level=kabupaten` ditolak
+  (`assertSessionHasErrors('level')`), tidak ada baris baru tersimpan.
+  **223 tes lulus**, `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 127 — tampilkan nama siklus di Tugas Saya/Daftar Sampel/Entri
+
+- User: "misal sekarang bulan Maret 2027, gimana nanti PCL bisa tau ini survey
+  untuk bulan Maret?" — dicek: **tidak ada satu pun** halaman (Tugas Saya,
+  Daftar Sampel, header Entri Kuesioner) yang menampilkan nama siklus/
+  periode. Cuma wilayah/ruta/status. Dengan sekarang 9+ siklus 2026 berjalan
+  (Inc 123), PCL yang kebagian sampel dari beberapa siklus sekaligus tidak
+  bisa membedakan.
+- `MonitoringController::myTasks()` — eager-load relasi `cycle`, tambah
+  `'siklus' => $s->cycle->name` ke `$pending`/`$returned`/`$noteRows`.
+- `MonitoringController::samples()` — tambah `cycleNames` (map) + filter
+  `?cycle=` (mirip filter `wil`/`status`/`petugas` yang sudah ada) +
+  `cycles` (daftar buat dropdown filter).
+- View: kolom **Siklus** di tabel Daftar Sampel & Tugas Saya, dropdown
+  filter "Semua siklus" di Daftar Sampel, chip nama siklus di judul
+  halaman Sampel & Entri Kuesioner.
+- **Bug ketemu saat verifikasi**: closure `noteRows` lupa `use ($siklus)`
+  → error 500 di Tugas Saya kalau ada catatan menunggu tanggapan. Diperbaiki
+  sebelum dilaporkan.
+- **223 tes lulus**, `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 128 — urutan menu Admin ikuti alur diagram proses
+
+- User mengirim diagram alur admin (bikin siklus → tentukan PCL/daerah/
+  responden → aktifkan kuesioner & validator) dan minta menu diurutkan
+  persis begitu, bukan dikelompokkan per "seberapa sering dikerjakan"
+  seperti sebelumnya (Inc 120).
+- `layouts/app.blade.php` — 3 grup Admin diurutkan ulang & diberi nomor
+  eksplisit sesuai diagram:
+  1. **Buat siklus** — Jadwal Lapangan
+  2. **Wilayah, PCL & sampel** — Impor Wilkerstat, Pengguna, Impor Sampel,
+     Impor Dokumen (gabungan grup "Setup awal" & "Siklus & sampel" lama,
+     karena di diagram langkah "tentukan PCL ditugaskan ke daerah siapa
+     dan respondennya siapa" itu satu langkah, bukan dipisah setup-awal
+     vs tiap-periode)
+  3. **Kuesioner & validasi** — Metadata, Aturan Validasi, Impor Rincian,
+     Harga & Kalori Komoditas
+- CSS-only/markup-only. **223 tes lulus**, `migrate:fresh --seed` +
+  `susenas:health` bersih.
+
+### Increment 129 — bug: Blok IV.1M (makanan jadi & rokok) tak ikut agregat mingguan
+
+- Ditemukan saat mengecek daftar "kurang apa" (item #5, dikerjakan duluan
+  karena tak ada blocker): rincian di Blok **IV.1M** (list_art — makanan
+  jadi & rokok per ART) tervalidasi per-baris, tapi kalori/belanjanya
+  **tidak pernah** ikut masuk ke `kalori_total`/pengeluaran mingguan
+  gabungan — walau agregat `weighted_sum`/`filter_ref` sudah dikonfigurasi.
+- Akar masalah: blok `list_art` menyimpan `Answer.art_index` sebagai indeks
+  terpaket `row*1000+art` (`Block::packRowArt`), tapi `block_rows.ref`
+  (tempat `kalori`/harga rujukan komoditas disimpan) diindeks pakai
+  `row_index` polos. `RuleEngine::computeAggregate()` lama langsung
+  memakai `art_index` terpaket itu untuk mencari `$rowRefs[...]` →
+  selalu meleset (miss diam-diam, hasil agregat 0).
+- Fix: `buildContext()` kini juga membangun `$blockRepeatByCode` (kode
+  blok → tipe repeat); `computeAggregate()` menerima flag `$isListArt` dan
+  membongkar indeks via `Block::unpackRowArt()` sebelum lookup
+  `filter_ref`/`weight_ref`.
+- Agregat baru `iv1m_kalori_minggu`/`iv1m_belanja_minggu`; turunan baru
+  `kalori_total_gabungan`; `kalori_per_kapita_hari` & `belanja_makanan_
+  kapita_bulan` diperbarui supaya ikut menjumlahkan kontribusi IV.1M.
+- Tes baru: `ListArtBlockTest::test_iv1m_kalori_and_belanja_feed_into_
+  weekly_totals` (pakai baris "Roti tawar", row_index 188).
+- 224 tes lulus, `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 130 — Blok I & II diluruskan ke struktur VSEN26.KP asli
+
+- Lanjutan permintaan "cari apalagi yang ngasal": PDF kuesioner asli
+  (`WTF Susenas Seruti/2. Kuesioner/2. 2025.11.02 VSEN26.KP Maret
+  2026.pdf`) diekstrak via `scripts/pdftext.php` dan dibandingkan ke
+  metadata yang dibangun — **Blok I & II ternyata banyak dikarang**:
+  nomor rincian salah, field asli hilang, sebagian field (kode PCL/PML,
+  moda kunjungan) tidak ada padanannya di form nyata sama sekali.
+- **Blok I "Keterangan Tempat"** (rincian 101–111 asli) — ditambah field
+  yang tadinya hilang: `b1_kode_sls` (ganti nama dari `b1_no_bs`), `b1_sls`
+  (nama SLS/sub-SLS, baru), `b1_no_bangunan` (nomor urut bangunan, baru),
+  `b1_alamat` (baru). `b1_klasifikasi`/`b1_no_ruta`/`b1_nama_krt` tetap.
+  Kode wilayah (provinsi–kab–kec–desa, R101–104) sengaja **tetap 1 field
+  gabungan** `b1_kode_wilayah` (bukan dipecah 4 kotak terpisah) — app ini
+  scope-nya satu kabupaten dan tabel `Wilayah` sudah simpan kode gabungan,
+  jadi dipecah tidak menambah nilai untuk sistem ini.
+- **Blok II "Keterangan Pendataan"** (rincian 201–203 asli) — field lama
+  yang dikarang (`b2_pcl_kode`, `b2_pml_kode`, `b2_kunjungan`, `b2_moda`)
+  **dihapus total**, diganti struktur asli: `b2_pendata`/`b2_pendata_
+  jabatan`/`b2_tgl_cacah` (R201, pendata), `b2_pemeriksa`/`b2_pemeriksa_
+  jabatan`/`b2_tgl_periksa` (R202, pemeriksa), `b2_hasil` (R203, hasil
+  pendataan ruta — kodelist asli 1–5: lengkap/tidak lengkap/tak ada ART
+  responden/menolak/ruta pindah).
+- Aturan validasi disesuaikan: `IDENT-BS` cek `b1_kode_sls` (bukan
+  `b1_no_bs`); `II-KUNJUNGAN` **dihapus** (fieldnya tak ada di form asli);
+  `II-PCL` cek `blank(b2_pendata)`; pesan `II-TANGGAL` diubah dari
+  "pencacahan" jadi "pendataan". Help-text contoh di `rules.blade.php`
+  ikut disamakan.
+- **Efek samping RNG di fixture** — seeder memakai `mt_srand(20260301)`
+  supaya data contoh reproducible. Menghapus 1 panggilan `mt_rand()` (bekas
+  `b2_kunjungan`) menggeser urutan draw acak sesudahnya, sampai bikin
+  `TabulationTest::test_welfare_indicators_compute_headcount_and_food_
+  share` gagal (properti mean>median kepengeluaran per kapita kebalik) —
+  **bukan bug logika**, murni pergeseran urutan RNG (dibuktikan lewat 3x
+  rerun deterministik + eksperimen sisip-ulang). Fix: taruh 1 pemanggilan
+  `mt_rand(1,3)` "spacer" persis di posisi lama (dikomentari jelas
+  alasannya) supaya urutan draw sesudahnya sama seperti sebelum field
+  dihapus.
+- **Belum dikerjakan (sengaja ditunda)**: Blok III di form asli ternyata
+  cuma **5 rincian ringkas** (301–305: banyak ART, no. urut & nama pemberi
+  informasi, jumlah komoditas makanan/bukan-makanan terisi) — **bukan**
+  roster demografi ART lengkap (nama/hub-KRT/JK/umur/kawin per ART)
+  seperti yang terlanjur dibangun sekarang. Butuh audit terpisah + cross-
+  check ke PDF `VSEN26.K` asli (KOR mungkin beda dari KP) sebelum diubah,
+  karena dampaknya lebih besar (banyak fitur bergantung ke roster ART).
+- 224 tes lulus, `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 131 — Metadata/Aturan/Harga bisa disunting tanpa "Jadikan aktif"
+
+- Item #2 dari daftar prioritas: sebelumnya `metadata()`, `rulesView()`,
+  `hargaForm()`, `importForm()` (dan semua form "Tambah ..." di baliknya)
+  selalu baca/tulis ke `activeQv()` — admin terpaksa klik "Jadikan aktif"
+  cuma untuk menyunting versi kuesioner LAIN, padahal itu juga langsung
+  mengganti versi yang dipakai PCL untuk entri data baru (efek samping
+  operasional yang tidak diinginkan cuma untuk mengedit metadata).
+- Helper baru `AdminController::selectedQv(Request)` — baca `?qv=<id>`
+  (GET) / field tersembunyi `qv` (POST), fallback ke `activeQv()` bila
+  kosong/tidak valid. Beda dari `activeQv()`: yang itu tetap satu-satunya
+  versi yang dipakai PCL untuk entri data baru, **tidak berubah** oleh
+  selector ini.
+- Diterapkan di 3 halaman: **Metadata** (`admin.metadata`), **Aturan
+  Validasi** (`admin.aturan` — termasuk wizard terpandu, "Uji dulu",
+  toggle massal, tester "Pratinjau dampak"), **Harga & Kalori Komoditas**
+  (`admin.harga` — termasuk impor massal). Juga **Impor Rincian**
+  (`admin.impor`, dropdown blok tujuan). Semua tempat yang bikin baris
+  metadata baru (blok/parameter/agregat/turunan/aturan) sekarang nempel
+  ke versi yang **sedang dilihat**, bukan selalu versi aktif; redirect
+  sesudah simpan/hapus ikut membawa `?qv=` supaya admin tidak "terlempar"
+  balik ke versi aktif.
+- Partial baru `admin/partials/_qv_switch.blade.php` — dropdown ganti
+  versi (auto-submit lewat `URLSearchParams`, jadi filter GET lain di
+  halaman Aturan tetap ikut terbawa), plus badge peringatan kalau sedang
+  menyunting versi **tidak aktif**. Tabel versi di Metadata sekarang
+  bedakan chip "aktif" (global) vs "dilihat" (konteks halaman saat ini).
+- `ValidationRule` dapat relasi `qversion()` baru (dipakai supaya link
+  "Sunting" sebuah aturan selalu buka versi aturan itu sendiri, bukan
+  ikut selector `?qv=` yang mungkin basi di URL).
+- 2 tes baru di `AdminMetadataTest`: duplikasi versi lalu tambah blok/
+  parameter lewat `?qv=`/`qv` tanpa mengaktifkannya (pastikan versi aktif
+  TIDAK berubah dan item baru nempel ke versi yang dipilih), dan cek
+  Aturan/Harga ter-scope ke versi non-aktif yang dipilih.
+- 226 tes lulus, `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 132 — Blok III VSEN26.KP diluruskan (bukan roster demografi)
+
+- Lanjutan audit "cari apalagi yang ngasal": PDF asli VSEN26.K
+  (`1. 20251107_VSEN26.K_GAB.pdf`) diekstrak & dibandingkan ke VSEN26.KP.
+  Ternyata **VSEN26.K sudah benar** — Blok III kode `III` = "RINGKASAN"
+  (301–305: banyak ART, ART umur 0–4/5+/10+ th, perempuan 10–54 th pernah
+  kawin), roster demografi lengkap ada di blok **terpisah** kode `ART`.
+  **VSEN26.KP salah** — Blok III-nya (`III`) dibangun meniru struktur
+  roster K (nama/hub-KRT/JK/umur/kawin per ART), padahal field itu **sama
+  sekali tidak ada** di form KP asli. Blok III KP asli cuma 5 rincian
+  ringkas: "BANYAKNYA ART, PEMBERI INFORMASI, DAN JUMLAH KOMODITAS YANG
+  TERISI" (301 banyaknya ART, 302 no. urut pemberi informasi, 303 nama
+  pemberi informasi, 304 jumlah komoditas makanan/minuman/rokok terisi,
+  305 jumlah komoditas bukan makanan terisi).
+- Ditanya ke user apakah data roster ART itu (walau salah tempat) tetap
+  mau dipertahankan di KP — dikonfirmasi **tidak**, cukup dihapus ("bisa
+  ditambah manual" kalau nanti benar-benar dibutuhkan).
+- `kpFullQuestionnaire()`: blok palsu `POKOK` (cuma berisi `banyak_art`,
+  dibuat supaya tidak perlu menyentuh `III`) **dihapus**; `banyak_art`
+  sekarang jadi rincian 301 asli di dalam blok `III` itu sendiri. Field
+  roster lama (`art_nama`, `art_hub_krt`, `art_jk`, `art_umur`,
+  `art_kawin`) **dihapus total**, diganti 5 field asli (`banyak_art`,
+  `b3_no_urut_informasi`, `b3_nama_informasi`, `b3_jml_komoditas_makanan`,
+  `b3_jml_komoditas_nonmakanan`); `repeat` blok `III` berubah dari `art`
+  ke `ruta` (bukan roster lagi).
+- 6 aturan validasi demografi yang nempel di roster lama (`III-JML-ART`,
+  `III-KRT-TUNGGAL`, `III-UMUR`, `III-KAWIN-ANAK`, `III-KRT-MUDA`,
+  `III-PASANGAN-JK`) **dihapus** — datanya sendiri sudah tidak ada di KP.
+  Tidak dipindah ke K (K juga belum punya aturan roster sama sekali,
+  sengaja ditunda — item terpisah kalau dibutuhkan nanti).
+- Efek RNG di seeder (lagi): melepas loop roster (banyak `mt_rand()` per
+  ART) menggeser urutan draw acak sesudahnya — kali ini jauh lebih besar
+  dari Inc 130. Spacer `mt_rand(1,3)` dari Inc 130 **dihapus** (sudah
+  tidak relevan); dicoba tanpa kompensasi apa pun dan properti mean>median
+  `TabulationTest::test_welfare_indicators_...` **tetap lolos** — tidak
+  perlu spacer baru.
+- Dampak di 4 file tes: `test_blok_iii_roster_consistency_rules`
+  (RuleEngineTest) dihapus total (mengetes 3 dari 6 aturan yang baru
+  dihapus); `test_roster_form_expands_rows_to_banyak_art` (EntryFlowTest)
+  diganti `test_blok_iii_is_a_flat_summary_not_a_roster` (verifikasi Blok
+  III **tidak** ikut berkembang mengikuti `banyak_art` — regresi guard
+  biar bug ini tidak balik lagi); `test_finalize_refuses_while_errors_
+  remain` dan `test_block_repeat_cannot_change_when_answers_exist`
+  dialihkan ke aturan/blok lain yang masih ada (`IDENT-WILAYAH`, blok
+  `ART` milik K); `test_set_art_count_shrinks_and_drops_orphaned_answers`
+  (ListArtBlockTest) dipangkas ke skenario `list_art` saja + tes baru
+  `test_set_art_count_shrinks_roster_answers_on_kor` menutup sisi roster
+  ('art'-repeat) pakai VSEN26.K. `ImportTemplateTest` (kolom lebar
+  `__<n>` utk roster) dialihkan dari VSEN26.KP ke VSEN26.K (`r407`) —
+  KP sekarang tidak punya blok roster sama sekali untuk didemonstrasikan.
+  Placeholder contoh di `import_dokumen.blade.php` (`art_umur__1` dst.)
+  disamakan ke `r407__1` (var nyata) supaya tidak menunjuk ke field yang
+  sudah tidak ada.
+- 226 tes lulus, `migrate:fresh --seed` + `susenas:health` bersih.
+- **Belum dikerjakan**: item #1 (model identitas sampel SLS/sub-SLS,
+  DSRT) dan item #3 (isi VSEN26.M/VSERUTI26.MAK) — masih terblokir
+  seperti sebelumnya.
+
+### Increment 133 — panel "Aksi Cepat" di halaman Siklus (hub navigasi)
+
+- User mengusulkan navigasi Admin per-tahun: klik tahun → klik siklus →
+  kelola instrumen/wilayah/PCL/responden/validator dari satu tempat.
+  Sebelum dikerjakan, dibuatkan **PDF rancangan UI** dulu (`docs/
+  rancangan-ui-hub-siklus.pdf`, mockup HTML→PDF pakai Edge headless
+  `--print-to-pdf`) untuk ditinjau — user setuju, lanjut implementasi.
+- Diklarifikasi dulu: **Wilayah (kecamatan/desa) dan Pengguna (PCL/PML)
+  adalah data bersama** (tidak berubah tiap tahun, dipakai lintas siklus)
+  — jadi TIDAK dijadikan data per-tahun, cuma pintasan/tautan dari hub.
+  Yang genuinely per-siklus (instrumen, sampel, aturan/harga) sudah benar
+  strukturnya lewat "Duplikasi versi" — tinggal kurang jalan pintas
+  navigasinya.
+- Implementasi numpang di halaman **`/admin/siklus/{cycle}`** yang sudah
+  ada (dashboard monitoring — respons, corong pengolahan, temuan
+  tersering — tidak diubah), ditambah 1 panel baru di atasnya: **"⚡ Aksi
+  cepat — untuk siklus ini"**, isi 4 kartu:
+  1. **Instrumen & validasi** — tiap versi kuesioner milik siklus ini
+     dapat tautan Metadata/Aturan Validasi/Harga & Kalori, masing-masing
+     dengan `?qv=<id>` (pakai selector versi dari Inc 131 — bukan
+     endpoint baru).
+  2. **Sampel & PCL** — Daftar Sampel dengan `?cycle=<id>` (filter yang
+     sudah ada), + Impor Sampel.
+  3. **Wilayah kerja** — tautan ke Impor Wilkerstat, dengan keterangan
+     eksplisit "dipakai bersama, tidak khusus siklus ini".
+  4. **Pengguna** — tautan ke Kelola Pengguna, keterangan sama.
+- `AdminController::cycleShow()` — tambah `versionObjs` (id+code per
+  versi kuesioner siklus ini) ke view data; `versions` (daftar kode saja,
+  dipakai baris judul) tetap seperti semula.
+- Jadwal Lapangan tidak perlu diubah — tombol "Kesiapan & penutupan →"
+  ke halaman Siklus **sudah ada** sejak sebelumnya, sudah berfungsi
+  sebagai pintu masuk yang dimaksud.
+- 1 tes baru di `CycleLockTest`: cek panel "Aksi cepat" muncul dan
+  tautannya benar-benar mengarah ke qversion/cycle milik siklus itu
+  sendiri (bukan versi aktif global).
+- 227 tes lulus, `migrate:fresh --seed` + `susenas:health` bersih.
+
+### Increment 134 — kode induk wilayah diturunkan otomatis, tidak diisi manual
+
+- User nambah kecamatan Galis lewat "Tambah satu wilayah", lalu tanya kok
+  ada input "Induk" segala — dijelaskan fungsinya (validasi hierarki kode
+  wilayah), lalu user menunjukkan itu **redundan**: kode kecamatan selalu
+  7 digit berawalan `3526` (kabupaten Bangkalan, satu-satunya di app ini),
+  kode desa selalu 10 digit berawalan kode kecamatannya — jadi induk bisa
+  dihitung langsung dari kode, tidak perlu diketik manual.
+- `AdminController::deriveWilayahParent(code, level)` (baru) — induk =
+  awalan `code` sepanjang `WIL_LEN[jenjang di atasnya]` (kecamatan→4,
+  desa→7). Dipakai di 3 tempat:
+  - `wilayahStore()` (Tambah satu wilayah) — field `parent_code` **dihapus
+    dari form & validasi**, diturunkan otomatis. Pesan error "induk belum
+    ada" sekarang muncul di key `code` (bukan `parent_code` yang sudah
+    tidak ada).
+  - `wilayahImport()` (impor CSV massal) — kolom `parent_code` di CSV
+    **tidak dibaca lagi** (diabaikan kalau ada, demi kompatibilitas file
+    lama); selalu diturunkan dari `code`.
+  - `wilayahRename()` (sunting nama di Telusuri) — kemampuan mengubah
+    `parent_code` manual **dihapus total**; sekarang cuma urus nama.
+    Tidak ada skenario sah untuk `parent_code` beda dari hasil turunan
+    kode, jadi tidak ada yang hilang.
+- `import_wilayah.blade.php` — input "Induk" di form Tambah & di baris
+  sunting Telusuri dihapus; kolom "Induk" di tabel hasil pencarian tetap
+  tampil (cuma display, sekarang selalu benar by construction). Contoh
+  CSV & placeholder diperbarui (kolom `parent_code` dibuang).
+- Efek ke `WilayahBrowseTest`/`WilayahImportTest`: beberapa skenario uji
+  "induk salah/hilang" disesuaikan (sekarang dipicu lewat kode yang
+  awalannya memang tak ada di sistem, bukan lewat isian `parent_code`
+  yang salah ketik — karena isian itu sudah tidak ada). Tes
+  `test_crud_edit_updates_parent_code` diganti
+  `test_rename_ignores_parent_code_input` (kalau field itu tetap dikirim
+  di request lama/klien lain, harus diam-diam diabaikan, bukan error).
+- 227 tes lulus, `migrate:fresh --seed` + `susenas:health` bersih.
+- **Catatan untuk user**: `migrate:fresh --seed` yang dijalankan buat
+  verifikasi increment ini **menghapus** kecamatan Galis yang tadi
+  ditambahkan manual (itu memang bukan bagian dari seed default) — perlu
+  ditambahkan ulang kalau masih dibutuhkan.
+
+### Increment 135 — operator dikunci ke periode kuesioner yang aktif
+
+- User menemukan (lewat 2 screenshot): di admin, versi aktif di Metadata
+  Kuesioner `VSEN26.KP`, tapi operator (`ppl_ani`) sedang mengentri dokumen
+  `VSEN27.KP (CONTOH)`. Dijelaskan itu bukan bug — `is_active` cuma
+  menentukan versi yang sedang disunting di menu admin, dokumen memakai
+  qversion sesuai `cycle_id` sampelnya sendiri, terlepas dari `is_active`.
+  User lalu minta: operator harus terkunci ke periode yang aktif — begitu
+  admin mengaktifkan satu versi, siklus lain tertutup bagi operator.
+- Awalnya dikunci per **satu `cycle_id`** (versi aktif → 1 siklus). Ternyata
+  ini salah: `VSEN26.K` (KOR) dan `VSEN26.KP` (KP) periode yang sama sengaja
+  disimpan sebagai **dua `survey_cycle` terpisah**, padahal di lapangan
+  nyata KOR & KP dicacah **bersamaan** oleh PPL yang sama. Dikoreksi jadi
+  dikunci per **periode** (`survey_cycle.period`), bukan per `cycle_id`
+  tunggal — semua siklus seperiode dengan versi aktif tetap sama-sama
+  terbuka (ketahuan dari 2 tes yang gagal setelah versi "1 cycle" diterapkan:
+  `ListArtBlockTest` kombinasi KOR+KP, `SerutiModuleTest`).
+- `QuestionnaireVersion::active()` (baru, dipakai ulang oleh
+  `AdminController::activeQv()` yang lama) + `QuestionnaireVersion::activeCycleIds()`
+  — daftar ID `survey_cycle` yang periodenya sama dengan versi aktif.
+- Diterapkan di 3 titik, **hanya utk role `operator`** (pml/pj/admin/viewer
+  tetap lintas periode — perlu utk pengolahan data lama):
+  - `MonitoringController::visibleSamples()` — dasar dashboard/tugas/peta/daftar
+    sampel operator, ditambah `whereIn('cycle_id', activeCycleIds())`.
+  - `MonitoringController::createDocument()` — abort 403 kalau operator
+    coba buat dokumen di sampel luar periode aktif.
+  - `EntryController::assertActiveCycle()` (baru, dipanggil di `form/saveAnswer/
+    setArtCount/finalize`) — abort 403 kalau operator coba buka/isi dokumen
+    di siklus luar periode aktif.
+- Dropdown filter siklus di Daftar Sampel juga disaring utk operator (cuma
+  tawarkan siklus yang memang bisa dibuka).
+- 2 tes disesuaikan ke asumsi baru (bukan melemahkan pengujian, keduanya
+  sengaja lintas-kuesioner/periode untuk cek mekanisme generik):
+  `ListArtBlockTest::test_apply_art_button_works_across_questionnaires`
+  mengaktifkan versi yang sedang diuji tiap giliran loop;
+  `VisitPhotoTest::operatorDoc()` disaring ke `activeCycleIds()`.
+- User bandingkan screenshot: di admin (Jadwal Lapangan) siklus dikelompokkan
+  per tahun (`<details class="rule-group">`), tapi di Tugas Saya operator
+  masih daftar rata tanpa pengelompokan — "di operator tidak terbungkus
+  seperti ini". `monitoring/tugas.blade.php` — bagian "Dikembalikan untuk
+  perbaikan" & "Sampel belum tuntas" dikelompokkan per siklus
+  (`$pending->groupBy('siklus')` / `$returned->groupBy('siklus')`) dengan
+  `<details open>` yang sama, kolom "Siklus" pada tabel dibuang (sudah jadi
+  judul kelompok).
+- 227 tes lulus.
+
+### Increment 136 — Master Wilkerstat: kode ganda & daftar dikelompokkan per kecamatan
+
+- User coba tambah desa `3526020001` "Kesek" lewat Master Wilkerstat, ditolak
+  "sudah ada" — tapi dicari nama "Kesek" tidak ketemu. Ditelusuri: kode itu
+  memang sudah dipakai desa **"Socah"** di data demo, bukan Kesek — jadi
+  penolakannya benar, cuma nama yang salah diasumsikan. Ketahuan juga: kode
+  kecamatan demo (Kamal=3526010, Socah=3526020) beda dari kode BPS resmi di
+  `docs/wilkerstat-bangkalan-kecamatan.csv` yang user baru tambahkan
+  (Kamal=3526001, Socah=3526010) — diputuskan **dibiarkan** (data demo,
+  bukan mesti sama persis BPS asli).
+- Ketahuan juga bug UX terpisah: setelah "Tambah satu wilayah" berhasil,
+  halaman `back()` ke form yang sama tanpa kotak pencarian terisi — hasil
+  tambahan tidak kelihatan sampai dicari manual.
+  `AdminController::wilayahStore()` sekarang redirect dengan `q` = kode yang
+  baru ditambahkan, jadi langsung tampil.
+- User lalu minta lebih jauh: daftar wilayah harusnya **selalu tampil semua**
+  (bukan cuma muncul kalau dicari) + tetap ada fitur cari, karena desa nanti
+  bisa banyak. `wilayahForm()`/`wilayahImport()` dirombak: `AdminController::
+  wilayahGroups()` (baru, dipakai bersama keduanya) mengelompokkan SEMUA
+  kecamatan + desanya (bukan lagi query `limit(300)` yang cuma jalan kalau
+  ada `q`). `q` menyaring: kecamatan yang cocok kode/nama menampilkan semua
+  desanya, kecamatan yang tidak cocok cuma menampilkan desa yang cocok.
+  Kabupaten (cuma 1, selalu ada) ditampilkan terpisah, tak ikut disaring.
+  Tampilan pakai `<details class="rule-group" open>` per kecamatan — pola
+  yang sama seperti pengelompokan Tugas Saya (Inc 135) & Jadwal Lapangan.
+- `WilayahBrowseTest::test_search_by_code_prefix_and_name` disesuaikan ke
+  struktur `groups` (kec+desa bersarang) dari `list` (flat) yang lama.
+- 227 tes lulus.
+
+### Increment 137 — form "Tambah satu sampel" di Impor Sampel
+
+- User tanya alur menambah responden baru (habis nambah desa Blega): ternyata
+  halaman **Impor Sampel** cuma ada CSV, tidak ada input langsung utk 1 baris
+  — sama seperti keluhan wilkerstat di Inc 136.
+- `AdminController::sampelStore()` (baru) + route `POST /admin/sampel`
+  (`admin.sampel.simpan`). Validasi: `wilayah_code` harus desa yang ada di
+  master wilayah, kombinasi cycle+wilayah+no_bs+no_ruta tidak boleh duplikat
+  (pesan error inline, bukan 422 generik). Dropdown **Petugas**/**PML** pakai
+  `sampelFormExtras()` (operator & pml/pj aktif) — dipakai bersama
+  `sampelForm()` & `sampelImport()` supaya konsisten.
+- Sukses → redirect ke halaman detail sampel (`monitoring.sample`) supaya
+  langsung kelihatan hasilnya, bukan cuma pesan sukses tanpa bukti di layar
+  (pola yang sama dengan `wilayahStore` di Inc 136).
+- Ternyata dropdown Petugas **belum** disaring per wilayah (baik yang baru
+  ini maupun fitur "Tugaskan" lama, `MonitoringController::assignableUsers()`)
+  — cuma filter role+aktif. Sengaja belum diubah, ditawarkan ke user (belum
+  diputuskan perlu atau tidak, karena di data contoh operator memang tidak
+  diberi wilayah_scope sama sekali).
+- Tes baru `SampleAddSingleTest` (4 skenario: sukses, kode desa tidak ada,
+  duplikat, ditolak untuk non-admin). 231 tes lulus.
+
+### Increment 138 — wilayah scope pengguna selalu satu kecamatan (dropdown)
+
+- User: "untuk menambahkan pengguna itu wilayah scope menggunakan kecamatan
+  saja". Ditelusuri: `wilayah_scope` di form Manajemen Pengguna selama ini
+  cuma `<input>` teks bebas — divalidasi ketat (wajib kode kecamatan) HANYA
+  utk role `pj`; PML/operator boleh diisi apa saja (kode desa, kabupaten,
+  bahkan typo) tanpa ditolak. Data contoh pun sudah kepakai tidak konsisten:
+  `rahmawati`/`santoso` (pml) scope-nya `3526` (kabupaten, bukan kecamatan).
+- `admin/users.blade.php` — input diganti `<select>` isi daftar kecamatan
+  dari master wilayah + opsi "— (semua kecamatan)". Tidak ada lagi opsi
+  desa/kabupaten/teks bebas.
+- `AdminController::saveUser()` — validasi kecamatan-valid digeneralisasi ke
+  SEMUA peran (sebelumnya cuma blok khusus `role==='pj'`); aturan tambahan
+  "wajib diisi" + "satu PJ per kecamatan" tetap eksklusif utk `pj`.
+  Scope kabupaten (`3526`) di data lama tidak diubah paksa di DB — cuma
+  tervalidasi ketat lagi kalau disunting ulang lewat form ini (dan itu pun
+  setara kosong di aplikasi 1-kabupaten ini, jadi tak ada fungsi yang hilang).
+- `editUser()` (JS) — kalau scope tersimpan bukan kode kecamatan valid (data
+  lama), dropdown jatuh ke "semua" alih-alih nyangkut kosong tak terpilih.
+- Tes baru `UserWilayahScopeTest` (terima kecamatan valid & kosong, tolak
+  kode desa & kabupaten — utk role `pml`, bukan cuma `pj` yang sudah dites
+  `PjRoleTest`). 235 tes lulus.
+
+### Increment 139 — form sampel: Kode desa jadi dropdown + Petugas tersaring per kecamatan
+
+- Lanjutan Inc 137/138. User: "untuk kode desa juga tambahkan bisa di
+  dropdown dan penambahan petugas sesuai dengan kode kecamatan agar langsung
+  terfilter biar di kecamatan lain tidak masuk".
+- **Kode desa** — dari `<input>` teks bebas jadi `<select>` dikelompokkan per
+  kecamatan (`<optgroup>`), sumbernya `AdminController::wilayahGroups('')`
+  (dipakai ulang dari Inc 136, sama seperti di Master Wilkerstat).
+- **Petugas** — disaring JS begitu Kode desa dipilih: cuma operator yang
+  `wilayah_scope`-nya kosong ("bisa kemana saja") atau persis sama dengan
+  kecamatan desa itu yang muncul. `sampelFormExtras()` sekarang mengirim
+  `operators` lengkap (`id`,`name`,`scope`), bukan cuma `pluck('name','id')`,
+  supaya JS bisa menyaring tanpa round-trip server.
+- **Pertahanan sisi server** (bukan cuma kosmetik JS) — `sampelStore()`
+  menolak kalau `petugas_id` yang dikirim scope-nya tidak cocok dgn
+  kecamatan desa yang dipilih, meski request dikirim manual di luar form.
+- 2 tes baru (`test_rejects_petugas_scoped_to_a_different_kecamatan`,
+  `test_allows_petugas_scoped_to_the_matching_kecamatan`). 237 tes lulus.
+- **Catatan**: operator di data contoh (`ppl_ani` dst.) defaultnya TIDAK
+  punya `wilayah_scope` (kosong) — jadi semuanya masih muncul di semua
+  kecamatan sampai admin mengisi scope mereka lewat Manajemen Pengguna
+  (dropdown kecamatan, Inc 138).
 
 ### Increment 73 — SERUTI ditunda dari seed default
 

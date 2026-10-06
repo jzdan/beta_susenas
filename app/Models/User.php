@@ -24,6 +24,7 @@ class User extends Authenticatable
 
     public const ROLE_LABELS = [
         'admin' => 'Administrator',
+        'pj' => 'Penanggung Jawab (PJ) Kecamatan',
         'pml' => 'Pengawas (PML) / Pengolah',
         'operator' => 'Operator Entri',
         'viewer' => 'Peninjau',

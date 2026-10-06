@@ -41,8 +41,8 @@ class PrintViewTest extends TestCase
     public function test_print_view_shows_clean_value_alongside_raw(): void
     {
         $doc = $this->kpDoc();
-        $b = Block::where('qversion_id', $doc->qversion_id)->where('code', 'III')->firstOrFail();
-        $q = Question::where('block_id', $b->id)->where('var_name', 'art_umur')->firstOrFail();
+        $b = Block::where('qversion_id', $doc->qversion_id)->where('code', 'IV.1')->firstOrFail();
+        $q = Question::where('block_id', $b->id)->where('var_name', 'iv1_kuantitas')->firstOrFail();
         Answer::updateOrCreate(
             ['document_id' => $doc->id, 'question_id' => $q->id, 'art_index' => 1],
             ['raw_value' => '450', 'clean_value' => '45'],

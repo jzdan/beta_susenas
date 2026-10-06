@@ -20,7 +20,7 @@ Route::middleware('role')->group(function () {
     Route::post('/akun/sandi', [\App\Http\Controllers\AccountController::class, 'updatePassword'])->name('akun.sandi');
 
     Route::post('/dokumen/{document}/catatan', [\App\Http\Controllers\DocumentNoteController::class, 'store'])
-        ->middleware('role:operator,pml,admin')->name('dokumen.catatan');
+        ->middleware('role:operator,pml,pj,admin')->name('dokumen.catatan');
 
     Route::prefix('notifikasi')->name('notifikasi.')->group(function () {
         Route::get('/', [\App\Http\Controllers\NotificationController::class, 'index'])->name('index');
@@ -35,22 +35,22 @@ Route::middleware('role')->group(function () {
         Route::get('/sampel', [MonitoringController::class, 'samples'])->name('samples');
         Route::get('/sampel/{sample}', [MonitoringController::class, 'sample'])->name('sample');
         Route::post('/sampel/{sample}/status', [MonitoringController::class, 'setStatus'])
-            ->middleware('role:pml,admin')->name('sample.status');
+            ->middleware('role:pj,pml,admin')->name('sample.status');
         Route::post('/sampel/{sample}/tugaskan', [MonitoringController::class, 'assign'])
-            ->middleware('role:pml,admin')->name('sample.assign');
+            ->middleware('role:pj,pml,admin')->name('sample.assign');
         Route::post('/sampel/{sample}/ganti', [MonitoringController::class, 'replace'])
-            ->middleware('role:pml,admin')->name('sample.replace');
+            ->middleware('role:pj,pml,admin')->name('sample.replace');
         Route::post('/sampel-tugaskan', [MonitoringController::class, 'bulkAssign'])
-            ->middleware('role:pml,admin')->name('samples.bulk-assign');
+            ->middleware('role:pj,pml,admin')->name('samples.bulk-assign');
         Route::post('/sampel/{sample}/dokumen', [MonitoringController::class, 'createDocument'])
             ->middleware('role:operator,admin')->name('sample.document');
         Route::get('/audit', [MonitoringController::class, 'audit'])
-            ->middleware('role:pml,admin')->name('audit');
+            ->middleware('role:pj,pml,admin')->name('audit');
         Route::get('/kinerja', [MonitoringController::class, 'kinerja'])
-            ->middleware('role:pml,admin')->name('kinerja');
+            ->middleware('role:pj,pml,admin')->name('kinerja');
     });
 
-    Route::prefix('pengolahan')->name('pengolahan.')->middleware('role:pml,admin')->group(function () {
+    Route::prefix('pengolahan')->name('pengolahan.')->middleware('role:pj,pml,admin')->group(function () {
         Route::get('/', [CleaningController::class, 'index'])->name('index');
         Route::post('/revalidasi', [CleaningController::class, 'revalidate'])->name('revalidate');
         Route::post('/bersih-massal', [CleaningController::class, 'bulkClean'])->name('bulk-clean');
@@ -63,15 +63,15 @@ Route::middleware('role')->group(function () {
         Route::post('/{document}/batal-terima-warning', [CleaningController::class, 'unackWarning'])->name('batal-terima-warning');
     });
 
-    Route::prefix('tabulasi')->name('tabulasi.')->middleware('role:pml,admin,viewer')->group(function () {
+    Route::prefix('tabulasi')->name('tabulasi.')->middleware('role:pj,pml,admin,viewer')->group(function () {
         Route::get('/', [TabulationController::class, 'index'])->name('index');
         Route::get('/indikator', [TabulationController::class, 'indicators'])->name('indikator');
         Route::get('/ekspor-data', [TabulationController::class, 'exportRaw'])
-            ->middleware('role:pml,admin')->name('export.raw');
+            ->middleware('role:pj,pml,admin')->name('export.raw');
         Route::get('/ekspor-warning', [TabulationController::class, 'exportRules'])
-            ->middleware('role:pml,admin')->name('export.rules');
+            ->middleware('role:pj,pml,admin')->name('export.rules');
         Route::get('/ekspor-koreksi', [TabulationController::class, 'exportCorrections'])
-            ->middleware('role:pml,admin')->name('export.corrections');
+            ->middleware('role:pj,pml,admin')->name('export.corrections');
     });
 
     Route::prefix('entri')->name('entri.')->group(function () {
@@ -82,7 +82,7 @@ Route::middleware('role')->group(function () {
         Route::post('/{document}/jumlah-art', [EntryController::class, 'setArtCount'])
             ->middleware('role:operator,admin')->name('set-art');
         Route::post('/{document}/finalisasi', [EntryController::class, 'finalize'])
-            ->middleware('role:operator,pml,admin')->name('finalize');
+            ->middleware('role:operator,pml,pj,admin')->name('finalize');
         Route::post('/{document}/foto-kunjungan', [\App\Http\Controllers\VisitPhotoController::class, 'store'])->name('foto.store');
     });
 
@@ -124,6 +124,7 @@ Route::middleware('role')->group(function () {
         Route::post('/aturan/{rule}/toggle', [AdminController::class, 'toggleRule'])->name('aturan.toggle');
         Route::post('/aturan/{rule}/cepat', [AdminController::class, 'quickRule'])->name('aturan.cepat');
         Route::post('/aturan-terpandu', [AdminController::class, 'buildRule'])->name('aturan.terpandu');
+        Route::post('/aturan-terpandu/uji', [AdminController::class, 'wizardImpact'])->name('aturan.terpandu.uji');
         Route::post('/aturan-toggle-massal', [AdminController::class, 'bulkToggleRules'])->name('aturan.toggle-massal');
         Route::post('/aturan/uji', [AdminController::class, 'testRule'])->name('aturan.test');
         Route::post('/aturan/dampak', [AdminController::class, 'ruleImpact'])->name('aturan.impact');
@@ -137,8 +138,11 @@ Route::middleware('role')->group(function () {
         Route::post('/versi-impor', [AdminController::class, 'qversionImportRun'])->name('versi.import.run');
         Route::get('/impor-wilayah', [AdminController::class, 'wilayahForm'])->name('impor.wilayah');
         Route::post('/impor-wilayah', [AdminController::class, 'wilayahImport'])->name('impor.wilayah.run');
+        Route::post('/wilayah', [AdminController::class, 'wilayahStore'])->name('wilayah.simpan');
         Route::post('/wilayah/{wilayah}/nama', [AdminController::class, 'wilayahRename'])->name('wilayah.rename');
+        Route::delete('/wilayah/{wilayah}', [AdminController::class, 'wilayahDestroy'])->name('wilayah.hapus');
         Route::get('/impor-sampel', [AdminController::class, 'sampelForm'])->name('impor.sampel');
+        Route::post('/sampel', [AdminController::class, 'sampelStore'])->name('sampel.simpan');
         Route::post('/impor-sampel', [AdminController::class, 'sampelImport'])->name('impor.sampel.run');
         Route::get('/pengguna', [AdminController::class, 'users'])->name('pengguna');
         Route::post('/pengguna', [AdminController::class, 'saveUser'])->name('pengguna.save');

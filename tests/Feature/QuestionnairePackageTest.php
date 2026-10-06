@@ -107,7 +107,9 @@ class QuestionnairePackageTest extends TestCase
         // mode commit
         $this->actingAs($admin)->post('/admin/versi-impor', [
             'data' => $json, 'cycle_id' => $src->cycle_id, 'code' => 'VSEN26.KP.WEB', 'mode' => 'commit', 'force' => '1',
-        ])->assertRedirect(route('admin.metadata'));
+        ])->assertRedirect(route('admin.metadata', [
+            'qv' => QuestionnaireVersion::where('code', 'VSEN26.KP.WEB')->value('id'),
+        ]));
         $this->assertDatabaseHas('questionnaire_versions', ['code' => 'VSEN26.KP.WEB']);
     }
 

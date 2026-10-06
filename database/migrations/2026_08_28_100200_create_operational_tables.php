@@ -13,7 +13,7 @@ return new class extends Migration
             $t->id();
             $t->string('code', 16)->unique();
             $t->string('name', 128);
-            $t->string('level', 16);            // provinsi|kabupaten|kecamatan|desa
+            $t->string('level', 16);            // kabupaten|kecamatan|desa (kabupaten = jenjang teratas, aplikasi 1 kabupaten)
             $t->string('parent_code', 16)->default('');
         });
 

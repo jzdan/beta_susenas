@@ -4,58 +4,118 @@
 @section('content')
 @php($byLevel = $byLevel ?? collect())
 @php($fQ = $fQ ?? '')
-@php($list = $list ?? collect())
+@php($groups = $groups ?? collect())
 <h1>Master Wilkerstat</h1>
-<p class="muted"><em>Setup awal.</em> Muat daftar kecamatan &amp; desa kabupaten sekali di awal;
-  ulangi hanya jika ada pemekaran/perubahan wilayah. Untuk daftar sampel tiap semester, pakai <strong>Impor Sampel</strong>.</p>
+<p class="muted"><em>Setup awal.</em> Muat daftar kecamatan &amp; desa kabupaten sekali di awal.
+  Untuk perubahan kecil (pemekaran wilayah, ganti nama) pakai <strong>Tambah/Sunting/Hapus</strong> di bawah;
+  untuk banyak sekaligus pakai impor CSV. Untuk daftar sampel tiap semester, pakai <strong>Impor Sampel</strong>.</p>
 <p class="muted">Total kode: <strong>{{ $n }}</strong>
-  @foreach (['provinsi','kabupaten','kecamatan','desa'] as $lv)
+  @foreach (['kabupaten','kecamatan','desa'] as $lv)
     · {{ $byLevel[$lv] ?? 0 }} {{ $lv }}
   @endforeach
 </p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
+@if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
+
+<section class="panel">
+  <h2>Tambah satu wilayah</h2>
+  <p class="muted small">Untuk menambah beberapa kode sekaligus, pakai impor CSV di bawah. Kode yang sudah ada tidak bisa ditambah lagi — sunting lewat Telusuri.</p>
+  <form method="post" action="{{ route('admin.wilayah.simpan') }}" class="row-form">
+    @csrf
+    <label class="small">Kode <input name="code" value="{{ old('code') }}" class="mono" style="width:120px" placeholder="mis. 3526190" required></label>
+    <label class="small">Nama <input name="name" value="{{ old('name') }}" style="min-width:200px" required></label>
+    <label class="small">Jenjang
+      <select name="level" required>
+        <option value="">—</option>
+        @foreach (['kecamatan'=>7,'desa'=>10] as $lv => $len)
+        <option value="{{ $lv }}" @selected(old('level')===$lv)>{{ $lv }} ({{ $len }} digit)</option>
+        @endforeach
+      </select>
+    </label>
+    <button type="submit">Tambah</button>
+  </form>
+  <p class="muted small">Kode induk (kecamatan → kabupaten <span class="mono">3526</span>, desa → kecamatannya)
+    <strong>tidak perlu diisi</strong> — diturunkan otomatis dari awalan Kode di atas, induknya harus sudah ada duluan.
+    Kabupaten tidak ada di daftar Jenjang — cuma ada satu (Bangkalan/3526) dan sudah tersedia sejak awal, tidak perlu/bisa ditambah lagi.</p>
+</section>
 
 <section class="panel">
   <h2>Telusuri</h2>
   <form method="get" class="row-form">
-    <input type="search" name="q" value="{{ $fQ }}" placeholder="kode (awalan) atau nama" style="min-width:240px" autofocus>
+    <input type="search" name="q" value="{{ $fQ }}" placeholder="cari kode (awalan) atau nama kecamatan/desa" style="min-width:280px" autofocus>
     <button type="submit">Cari</button>
     @if($fQ)<a class="btn-ghost" href="{{ route('admin.impor.wilayah') }}">Reset</a>@endif
   </form>
-  @if($fQ)
-    @if($list->isEmpty())
-      <p class="muted mt">Tidak ada wilayah cocok.</p>
-    @else
-    <div class="tablewrap mt">
-    <table class="tbl">
-      <thead><tr><th>Kode</th><th>Nama</th><th>Jenjang</th><th>Induk</th><th></th></tr></thead>
-      <tbody>
-      @foreach ($list as $w)
-        <tr>
-          <td class="mono">{{ $w->code }}</td>
-          <td>
-            <form method="post" action="{{ route('admin.wilayah.rename', $w->id) }}" class="row-form">
-              @csrf
-              <input name="name" value="{{ $w->name }}" style="min-width:200px">
-              <button class="btn-ghost">Simpan</button>
-            </form>
-          </td>
-          <td>{{ $w->level }}</td>
-          <td class="mono muted">{{ $w->parent_code ?: '—' }}</td>
-          <td class="right"><a class="btn-ghost" href="{{ route('admin.impor.wilayah', ['q' => $w->code]) }}">anak →</a></td>
-        </tr>
-      @endforeach
-      </tbody>
-    </table>
-    </div>
-    <p class="muted small">Maks 300 baris. Untuk perubahan massal, pakai impor CSV di bawah.</p>
-    @endif
+
+  @if($kabupaten)
+    <p class="muted small mt">Kabupaten: <span class="mono">{{ $kabupaten->code }}</span> — {{ $kabupaten->name }}</p>
+  @endif
+
+  @if($groups->isEmpty())
+    <p class="muted mt">{{ $fQ ? 'Tidak ada kecamatan/desa cocok.' : 'Belum ada kecamatan.' }}</p>
+  @else
+    @foreach ($groups as $g)
+    <details class="rule-group" open>
+      <summary style="cursor:pointer;font-weight:600">
+        <span class="mono">{{ $g['kec']->code }}</span> — {{ $g['kec']->name }}
+        <span class="muted small">— {{ $g['desa']->count() }} desa</span>
+      </summary>
+      <div class="tablewrap mt">
+      <table class="tbl">
+        <thead><tr><th>Kode</th><th>Nama</th><th>Jenjang</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="mono">{{ $g['kec']->code }}</td>
+            <td>
+              <form method="post" action="{{ route('admin.wilayah.rename', $g['kec']->id) }}" class="row-form">
+                @csrf
+                <input name="name" value="{{ $g['kec']->name }}" style="min-width:200px">
+                <button class="btn-ghost">Simpan</button>
+              </form>
+            </td>
+            <td>kecamatan</td>
+            <td class="right nowrap">
+              <form method="post" action="{{ route('admin.wilayah.hapus', $g['kec']->id) }}" class="inline"
+                onsubmit="return confirm('Hapus wilayah {{ $g['kec']->code }} — {{ $g['kec']->name }}?')">
+                @csrf @method('DELETE')
+                <button class="btn-ghost" type="submit">hapus</button>
+              </form>
+            </td>
+          </tr>
+          @foreach ($g['desa'] as $w)
+          <tr>
+            <td class="mono">{{ $w->code }}</td>
+            <td>
+              <form method="post" action="{{ route('admin.wilayah.rename', $w->id) }}" class="row-form">
+                @csrf
+                <input name="name" value="{{ $w->name }}" style="min-width:200px">
+                <button class="btn-ghost">Simpan</button>
+              </form>
+            </td>
+            <td>desa</td>
+            <td class="right nowrap">
+              <form method="post" action="{{ route('admin.wilayah.hapus', $w->id) }}" class="inline"
+                onsubmit="return confirm('Hapus wilayah {{ $w->code }} — {{ $w->name }}?')">
+                @csrf @method('DELETE')
+                <button class="btn-ghost" type="submit">hapus</button>
+              </form>
+            </td>
+          </tr>
+          @endforeach
+        </tbody>
+      </table>
+      </div>
+    </details>
+    @endforeach
+    <p class="muted small">Wilayah hanya bisa dihapus bila tidak punya anak &amp; tidak dipakai sampel. Untuk perubahan massal, pakai impor CSV di bawah.</p>
   @endif
 </section>
 
-<p class="muted">Impor CSV — kolom wajib: <span class="mono">code, name, level</span>. Opsional: <span class="mono">parent_code</span>.
-  <span class="mono">level</span> = provinsi / kabupaten / kecamatan / desa. Kode yang sudah ada akan <em>diperbarui</em>.</p>
+<p class="muted">Impor CSV — kolom wajib: <span class="mono">code, name, level</span>.
+  <span class="mono">level</span> = kabupaten / kecamatan / desa (kabupaten = jenjang teratas, tanpa induk).
+  Kode induk tidak perlu kolom sendiri — diturunkan otomatis dari awalan <span class="mono">code</span>.
+  Kode yang sudah ada akan <em>diperbarui</em>.</p>
 
 @if($hasil)
 <div class="alert {{ $hasil['dilewati'] && !($hasil['baru'] || $hasil['diperbarui']) ? 'err' : '' }}">
@@ -68,14 +128,14 @@
 @endif
 
 <section class="panel">
-  <p class="muted small">Validasi: panjang kode sesuai jenjang (prov 2, kab 4, kec 6, desa 10),
-    <span class="mono">parent_code</span> harus awalan dari <span class="mono">code</span> dan sudah ada.
+  <p class="muted small">Validasi: panjang kode sesuai jenjang (kab 4, kec 7, desa 10); induk hasil turunan
+    dari awalan <span class="mono">code</span> harus sudah ada (kecuali kabupaten — jenjang teratas, tanpa induk).
     Baris diurutkan otomatis (induk dulu).</p>
   <form method="post" action="{{ route('admin.impor.wilayah.run') }}" class="stack-form">
     @csrf
     <label>Data CSV
       <textarea name="data" rows="12" class="mono" required
-        placeholder="code,name,level,parent_code&#10;3526,Kabupaten Bangkalan,kabupaten,35">{{ $hasil['data'] ?? '' }}</textarea>
+        placeholder="code,name,level&#10;3526,Kabupaten Bangkalan,kabupaten&#10;3526010,Kamal,kecamatan">{{ $hasil['data'] ?? '' }}</textarea>
     </label>
     <div class="row-form">
       <button type="submit" name="mode" value="preview">Pratinjau</button>
@@ -87,10 +147,9 @@
 
 <section class="panel">
   <h2>Contoh</h2>
-<pre class="schema">code,name,level,parent_code
-35,Jawa Timur,provinsi,
-3526,Kabupaten Bangkalan,kabupaten,35
-352610,Kamal,kecamatan,3526
-3526101001,Kamal,desa,352610</pre>
+<pre class="schema">code,name,level
+3526,Kabupaten Bangkalan,kabupaten
+3526010,Kamal,kecamatan
+3526010001,Kamal,desa</pre>
 </section>
 @endsection

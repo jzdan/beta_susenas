@@ -57,7 +57,7 @@ class TabulationController extends Controller
     private function groupKey($row, string $group, array $wil, array $users): string
     {
         return match ($group) {
-            'kecamatan' => $wil[substr($row->wilayah_code, 0, 6)] ?? substr($row->wilayah_code, 0, 6),
+            'kecamatan' => $wil[substr($row->wilayah_code, 0, 7)] ?? substr($row->wilayah_code, 0, 7),
             'desa' => $wil[$row->wilayah_code] ?? $row->wilayah_code,
             'petugas' => $users[$row->petugas_id] ?? '—',
             'status' => $row->sample_status,
@@ -253,7 +253,7 @@ class TabulationController extends Controller
             if (! is_numeric($x) || $x <= 0) {
                 continue;
             }
-            $key = $wil[substr($r->wilayah_code, 0, 6)] ?? substr($r->wilayah_code, 0, 6);
+            $key = $wil[substr($r->wilayah_code, 0, 7)] ?? substr($r->wilayah_code, 0, 7);
             foreach (['__TOTAL__' => 'Semua wilayah', $key => $key] as $bk => $bl) {
                 $bucket[$bk]['label'] = $bl;
                 $bucket[$bk]['x'][] = (float) $x;
@@ -392,7 +392,7 @@ class TabulationController extends Controller
             foreach ($rows as $r) {
                 $line = [
                     $r->id, $r->wilayah_code,
-                    $wil[substr($r->wilayah_code, 0, 6)] ?? '',
+                    $wil[substr($r->wilayah_code, 0, 7)] ?? '',
                     $wil[$r->wilayah_code] ?? '',
                     $r->no_bs, $r->no_ruta, $r->krt_name,
                     $users[$r->petugas_id] ?? '', $r->sample_status, $r->doc_status,

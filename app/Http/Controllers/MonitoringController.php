@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\QuestionnaireVersion;
 use App\Models\RuleResult;
 use App\Models\SampleHousehold;
+use App\Models\SurveyCycle;
 use App\Models\User;
 use App\Models\Wilayah;
 use Illuminate\Http\Request;
@@ -43,6 +44,10 @@ class MonitoringController extends Controller
         }
         if ($user->role === 'operator') {
             $q->where('petugas_id', $user->id);
+            // operator hanya boleh melihat/mengerjakan siklus yang seperiode dengan versi
+            // kuesioner yang sedang ditandai aktif (KOR & KP periode yang sama tetap
+            // sama-sama terbuka) — begitu admin mengaktifkan periode lain, ini tertutup.
+            $q->whereIn('cycle_id', QuestionnaireVersion::activeCycleIds());
         }
         return $q;
     }
@@ -51,8 +56,11 @@ class MonitoringController extends Controller
     public function myTasks(Request $request)
     {
         $user = $request->user();
-        $samples = $this->visibleSamples($user)->with('documents:id,sample_id,status,return_reason,returned_at')->get();
+        $samples = $this->visibleSamples($user)
+            ->with(['documents:id,sample_id,status,return_reason,returned_at', 'cycle:id,name,period'])
+            ->get();
         $wil = Wilayah::pluck('name', 'code');
+        $siklus = fn ($s) => $s->cycle->name ?? '—';
 
         // sampel belum tuntas (belum/proses)
         $pending = $samples->whereIn('status', ['belum', 'proses'])
@@ -60,6 +68,7 @@ class MonitoringController extends Controller
             ->map(fn ($s) => [
                 'sample' => $s,
                 'wil' => $wil[$s->wilayah_code] ?? $s->wilayah_code,
+                'siklus' => $siklus($s),
                 'doc' => $s->documents->firstWhere('status', '!=', 'bersih') ?? $s->documents->first(),
             ])->values();
 
@@ -70,6 +79,7 @@ class MonitoringController extends Controller
                 $returned->push([
                     'doc' => $doc, 'sample' => $s,
                     'wil' => $wil[$s->wilayah_code] ?? $s->wilayah_code,
+                    'siklus' => $siklus($s),
                 ]);
             }
         }
@@ -83,13 +93,14 @@ class MonitoringController extends Controller
             ->map(fn ($g) => $g->sortBy('id')->last())
             ->filter(fn ($n) => (int) $n->by_user !== (int) $user->id)
             ->sortByDesc('id')->take(15);
-        $noteRows = $lastNotes->map(function ($n) use ($samples, $wil) {
+        $noteRows = $lastNotes->map(function ($n) use ($samples, $wil, $siklus) {
             $doc = $samples->flatMap->documents->firstWhere('id', $n->document_id);
             $s = $doc ? $samples->firstWhere('id', $doc->sample_id) : null;
 
             return [
                 'note' => $n, 'doc_id' => $n->document_id,
                 'ruta' => $s ? (($wil[$s->wilayah_code] ?? $s->wilayah_code)." · Ruta {$s->no_ruta}") : '',
+                'siklus' => $s ? $siklus($s) : '—',
             ];
         })->values();
 
@@ -143,7 +154,7 @@ class MonitoringController extends Controller
         foreach ($agg(fn ($s) => $s->wilayah_code) as $code => $a) {
             $perWil[] = [
                 'code' => $code, 'name' => $wilNames[$code] ?? $code,
-                'kec' => $wilNames[substr($code, 0, 6)] ?? substr($code, 0, 6),
+                'kec' => $wilNames[substr($code, 0, 7)] ?? substr($code, 0, 7),
                 'total' => $a['total'], 'done' => $a['done'],
                 'rate' => $a['total'] ? round(100 * $a['done'] / $a['total'], 1) : 0.0,
             ];
@@ -231,7 +242,7 @@ class MonitoringController extends Controller
         $tree = [];
         foreach ($rows as $s) {
             $desa = $s->wilayah_code;
-            $kec = substr($desa, 0, 6);
+            $kec = substr($desa, 0, 7);
             $tree[$kec] ??= ['name' => $wil[$kec] ?? $kec, 'total' => 0, 'done' => 0, 'desa' => []];
             $tree[$kec]['desa'][$desa] ??= ['name' => $wil[$desa] ?? $desa, 'total' => 0, 'done' => 0, 'bs' => []];
             $tree[$kec]['desa'][$desa]['bs'][$s->no_bs] ??= ['t' => 0, 'd' => 0];
@@ -298,14 +309,23 @@ class MonitoringController extends Controller
         if ($p = $request->query('petugas')) {
             $query->where('petugas_id', $p === 'none' ? null : (int) $p);
         }
+        if ($c = $request->query('cycle')) {
+            $query->where('cycle_id', (int) $c);
+        }
         $items = $query->orderBy('wilayah_code')->orderBy('no_bs')->orderBy('no_ruta')->get();
 
-        $canAssign = in_array($request->user()->role, ['pml', 'admin'], true);
+        $canAssign = in_array($request->user()->role, ['pj', 'pml', 'admin'], true);
 
         return view('monitoring.samples', [
             'items' => $items,
             'wilNames' => Wilayah::pluck('name', 'code'),
             'userNames' => User::pluck('name', 'id'),
+            'cycleNames' => SurveyCycle::pluck('name', 'id'),
+            // operator cuma boleh kerja di periode aktif — jangan tawarkan pilihan siklus lain di filter
+            'cycles' => $request->user()->role === 'operator'
+                ? SurveyCycle::whereIn('id', QuestionnaireVersion::activeCycleIds())->get()
+                : SurveyCycle::orderByDesc('period')->get(),
+            'fCycle' => $request->query('cycle', ''),
             'docBySample' => Document::whereIn('sample_id', $items->pluck('id'))->get()->keyBy('sample_id'),
             'statusLabels' => self::STATUS,
             'kecs' => Wilayah::where('level', 'kecamatan')->get(),
@@ -320,7 +340,7 @@ class MonitoringController extends Controller
 
     public function sample(Request $request, SampleHousehold $sample)
     {
-        $canAssign = in_array($request->user()->role, ['pml', 'admin'], true);
+        $canAssign = in_array($request->user()->role, ['pj', 'pml', 'admin'], true);
 
         return view('monitoring.sample', [
             's' => $sample,
@@ -468,6 +488,10 @@ class MonitoringController extends Controller
     public function createDocument(Request $request, SampleHousehold $sample)
     {
         abort_if($sample->cycle?->isLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        if ($request->user()->role === 'operator') {
+            abort_unless(in_array($sample->cycle_id, QuestionnaireVersion::activeCycleIds(), true), 403,
+                'Periode kuesioner siklus ini sedang tidak aktif.');
+        }
         $doc = $sample->documents()->first();
         if (! $doc) {
             $qv = QuestionnaireVersion::where('cycle_id', $sample->cycle_id)->orderByDesc('id')->first();

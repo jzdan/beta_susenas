@@ -23,6 +23,7 @@
       <summary>Akun demo</summary>
       <table>
         <tr><td>admin</td><td>admin123</td><td>Administrator</td></tr>
+        <tr><td>pj_kamal</td><td>pj123</td><td>Penanggung Jawab (PJ) Kec. Kamal</td></tr>
         <tr><td>rahmawati</td><td>pengawas123</td><td>Pengawas / Pengolah</td></tr>
         <tr><td>ppl_ani</td><td>operator123</td><td>Operator entri</td></tr>
         <tr><td>viewer</td><td>viewer123</td><td>Peninjau</td></tr>

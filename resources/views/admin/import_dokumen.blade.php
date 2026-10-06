@@ -56,7 +56,7 @@
     </label>
     <label>Data CSV
       <textarea name="data" rows="12" class="mono" required
-        placeholder="wilayah_code,no_bs,no_ruta,krt_name,banyak_art,kode_wilayah,art_umur__1,art_umur__2&#10;3526101001,001B,005,Kasan,3,3526101001,45,40">{{ $hasil['data'] ?? '' }}</textarea>
+        placeholder="wilayah_code,no_bs,no_ruta,krt_name,r301,r407__1,r407__2&#10;3526010001,001B,005,Kasan,3,45,40">{{ $hasil['data'] ?? '' }}</textarea>
     </label>
     <div class="row-form">
       <button type="submit" name="mode" value="preview">Pratinjau</button>
@@ -98,7 +98,7 @@
 <section class="panel">
   <h2>Alias kolom (pemetaan nama kolom CAPI)</h2>
   <p class="muted small">Bila berkas CAPI memakai nama kolom berbeda dari sistem, daftarkan pemetaannya di sini.
-    Untuk kolom roster, alias-kan per nomor: <span class="mono">KRT_UMUR_1 → art_umur__1</span>.</p>
+    Untuk kolom roster, alias-kan per nomor: <span class="mono">KRT_UMUR_1 → r407__1</span>.</p>
 
   @foreach ($aliases as $code => $list)
     <p class="small"><strong>{{ $code }}</strong>:
@@ -126,7 +126,7 @@
       <input name="target_col" placeholder="kolom sistem (var / var__n)" class="mono">
     </div>
     <label>atau tempel banyak (satu per baris: <span class="mono">sumber,target</span>)
-      <textarea name="bulk" rows="4" class="mono" placeholder="KRT_UMUR_1,art_umur__1&#10;KRT_UMUR_2,art_umur__2"></textarea>
+      <textarea name="bulk" rows="4" class="mono" placeholder="KRT_UMUR_1,r407__1&#10;KRT_UMUR_2,r407__2"></textarea>
     </label>
     <button type="submit">Simpan alias</button>
   </form>

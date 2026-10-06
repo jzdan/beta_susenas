@@ -1,21 +1,20 @@
 code,name,level,parent_code
-35,Jawa Timur,provinsi,
-3526,Kabupaten Bangkalan,kabupaten,35
-352601,Kamal,kecamatan,3526
-352602,Labang,kecamatan,3526
-352603,Kwanyar,kecamatan,3526
-352604,Modung,kecamatan,3526
-352605,Blega,kecamatan,3526
-352606,Konang,kecamatan,3526
-352607,Galis,kecamatan,3526
-352608,Tanah Merah,kecamatan,3526
-352609,Tragah,kecamatan,3526
-352610,Socah,kecamatan,3526
-352611,Bangkalan,kecamatan,3526
-352612,Burneh,kecamatan,3526
-352613,Arosbaya,kecamatan,3526
-352614,Geger,kecamatan,3526
-352615,Kokop,kecamatan,3526
-352616,Tanjung Bumi,kecamatan,3526
-352617,Sepulu,kecamatan,3526
-352618,Klampis,kecamatan,3526
+3526,Kabupaten Bangkalan,kabupaten,
+3526001,Kamal,kecamatan,3526
+3526002,Labang,kecamatan,3526
+3526003,Kwanyar,kecamatan,3526
+3526004,Modung,kecamatan,3526
+3526005,Blega,kecamatan,3526
+3526006,Konang,kecamatan,3526
+3526007,Galis,kecamatan,3526
+3526008,Tanah Merah,kecamatan,3526
+3526009,Tragah,kecamatan,3526
+3526010,Socah,kecamatan,3526
+3526011,Bangkalan,kecamatan,3526
+3526012,Burneh,kecamatan,3526
+3526013,Arosbaya,kecamatan,3526
+3526014,Geger,kecamatan,3526
+3526015,Kokop,kecamatan,3526
+3526016,Tanjung Bumi,kecamatan,3526
+3526017,Sepulu,kecamatan,3526
+3526018,Klampis,kecamatan,3526

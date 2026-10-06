@@ -22,29 +22,36 @@
   </form>
 </section>
 
-@foreach ($cycles as $c)
-<section class="panel">
-  <h2>{{ $c->name }}
-    <small class="muted">{{ $c->period }} · {{ $c->versions_count }} versi kuesioner · {{ $c->samples_count }} sampel</small>
-    @if($c->status === 'selesai')<span class="chip s-selesai">terkunci</span>@endif
-    <a class="btn-ghost" href="{{ route('admin.siklus', $c) }}">Kesiapan &amp; penutupan →</a>
-  </h2>
-  <form method="post" action="{{ route('admin.jadwal.save', $c) }}" class="row-form">
-    @csrf
-    <input name="name" value="{{ $c->name }}" required style="width:230px">
-    <label class="small">Mulai
-      <input type="date" name="field_start" value="{{ $c->field_start?->toDateString() }}">
-    </label>
-    <label class="small">Selesai
-      <input type="date" name="field_end" value="{{ $c->field_end?->toDateString() }}">
-    </label>
-    <label class="small">Status
-      <select name="status">
-        @foreach ($statuses as $s)<option value="{{ $s }}" @selected($c->status === $s)>{{ ucfirst($s) }}</option>@endforeach
-      </select>
-    </label>
-    <button type="submit">Simpan</button>
-  </form>
-</section>
+@foreach ($cyclesByYear as $year => $group)
+<details class="rule-group" @if($loop->first) open @endif>
+  <summary style="cursor:pointer;font-weight:600;font-size:1.05rem;padding:6px 0">
+    {{ $year }} <span class="muted small">— {{ $group->count() }} siklus</span>
+  </summary>
+  @foreach ($group as $c)
+  <section class="panel" style="margin-top:10px">
+    <h2>{{ $c->name }}
+      <small class="muted">{{ $c->period }} · {{ $c->versions_count }} versi kuesioner · {{ $c->samples_count }} sampel</small>
+      @if($c->status === 'selesai')<span class="chip s-selesai">terkunci</span>@endif
+      <a class="btn-ghost" href="{{ route('admin.siklus', $c) }}">Kesiapan &amp; penutupan →</a>
+    </h2>
+    <form method="post" action="{{ route('admin.jadwal.save', $c) }}" class="row-form">
+      @csrf
+      <input name="name" value="{{ $c->name }}" required style="width:230px">
+      <label class="small">Mulai
+        <input type="date" name="field_start" value="{{ $c->field_start?->toDateString() }}">
+      </label>
+      <label class="small">Selesai
+        <input type="date" name="field_end" value="{{ $c->field_end?->toDateString() }}">
+      </label>
+      <label class="small">Status
+        <select name="status">
+          @foreach ($statuses as $s)<option value="{{ $s }}" @selected($c->status === $s)>{{ ucfirst($s) }}</option>@endforeach
+        </select>
+      </label>
+      <button type="submit">Simpan</button>
+    </form>
+  </section>
+  @endforeach
+</details>
 @endforeach
 @endsection

@@ -18,6 +18,11 @@ class ValidationRule extends Model
         return ['active' => 'boolean'];
     }
 
+    public function qversion()
+    {
+        return $this->belongsTo(QuestionnaireVersion::class);
+    }
+
     /**
      * Bila ekspresi memuat tepat satu angka ambang perbandingan (mis. `> 0.25`),
      * kembalikan angka itu sebagai string — supaya bisa diubah tanpa menyentuh

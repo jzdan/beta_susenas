@@ -9,6 +9,7 @@ use App\Models\Block;
 use App\Models\DerivedField;
 use App\Models\Document;
 use App\Models\Question;
+use App\Models\QuestionnaireVersion;
 use App\Models\RuleResult;
 use App\Models\SampleHousehold;
 use App\Models\Wilayah;
@@ -30,8 +31,24 @@ class EntryController extends Controller
         private ExpressionEvaluator $ev,
     ) {}
 
+    /**
+     * Operator hanya boleh membuka/mengisi dokumen milik siklus yang seperiode dengan versi
+     * kuesioner yang sedang aktif (KOR & KP periode yang sama tetap sama-sama terbuka —
+     * lihat QuestionnaireVersion::activeCycleIds()). Peran lain (pml/pj/admin/viewer) tidak
+     * dibatasi (perlu akses lintas siklus/periode utk pengolahan).
+     */
+    private function assertActiveCycle(Request $request, Document $document): void
+    {
+        if ($request->user()->role !== 'operator') {
+            return;
+        }
+        abort_unless(in_array($document->sample->cycle_id, QuestionnaireVersion::activeCycleIds(), true), 403,
+            'Periode kuesioner siklus dokumen ini sedang tidak aktif — hubungi admin.');
+    }
+
     public function form(Request $request, Document $document)
     {
+        $this->assertActiveCycle($request, $document);
         $this->engine->run($document);
         $state = $this->formState($document);
         $sample = $document->sample;
@@ -145,6 +162,7 @@ class EntryController extends Controller
 
     public function saveAnswer(Request $request, Document $document)
     {
+        $this->assertActiveCycle($request, $document);
         abort_if($document->status === 'bersih', 409, 'Dokumen sudah dikunci (bersih)');
         abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
         $data = $request->validate([
@@ -194,6 +212,7 @@ class EntryController extends Controller
      */
     public function setArtCount(Request $request, Document $document)
     {
+        $this->assertActiveCycle($request, $document);
         abort_if($document->status === 'bersih', 409, 'Dokumen sudah dikunci (bersih)');
         abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
         $d = $request->validate(['count' => 'required|integer|min:0|max:'.self::MAX_ART]);
@@ -243,6 +262,7 @@ class EntryController extends Controller
 
     public function finalize(Request $request, Document $document)
     {
+        $this->assertActiveCycle($request, $document);
         abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
         $sum = $this->engine->run($document);
         if ($sum['errors'] > 0) {

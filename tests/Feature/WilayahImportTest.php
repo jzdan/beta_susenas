@@ -24,22 +24,22 @@ class WilayahImportTest extends TestCase
     public function test_import_orders_parents_first_and_commits(): void
     {
         $before = Wilayah::count();
-        // sengaja: anak (desa) sebelum induk (kec) di CSV
-        $csv = "code,name,level,parent_code\n"
-            . "3526309999,Desa Baru,desa,352630\n"
-            . "352630,Kecamatan Baru,kecamatan,3526\n";
+        // sengaja: anak (desa) sebelum induk (kec) di CSV; induk diturunkan dari awalan kode (Inc 134)
+        $csv = "code,name,level\n"
+            . "3526300999,Desa Baru,desa\n"
+            . "3526300,Kecamatan Baru,kecamatan\n";
 
         $this->actingAs($this->admin())->post('/admin/impor-wilayah', ['data' => $csv, 'mode' => 'commit'])
             ->assertOk();
 
         $this->assertSame($before + 2, Wilayah::count());
-        $this->assertDatabaseHas('wilayah', ['code' => '3526309999', 'parent_code' => '352630']);
+        $this->assertDatabaseHas('wilayah', ['code' => '3526300999', 'parent_code' => '3526300']);
     }
 
     public function test_preview_does_not_persist(): void
     {
         $before = Wilayah::count();
-        $csv = "code,name,level,parent_code\n352640,Kec X,kecamatan,3526\n";
+        $csv = "code,name,level\n3526400,Kec X,kecamatan\n";
         $res = $this->actingAs($this->admin())->post('/admin/impor-wilayah', ['data' => $csv, 'mode' => 'preview'])->assertOk();
 
         $this->assertTrue($res->viewData('hasil')['preview']);
@@ -49,10 +49,10 @@ class WilayahImportTest extends TestCase
 
     public function test_bad_code_length_and_orphan_parent_are_skipped(): void
     {
-        $csv = "code,name,level,parent_code\n"
-            . "3526,Kab X,kabupaten,35\n"        // valid (update existing)
-            . "999,Prov Pendek,provinsi,\n"      // panjang salah (prov butuh 2)
-            . "3599101001,Desa Yatim,desa,359910\n";   // induk 359910 tak ada
+        $csv = "code,name,level\n"
+            . "3526,Kab X,kabupaten\n"                 // valid (update existing, jenjang teratas)
+            . "99,Kec Pendek,kecamatan\n"               // panjang salah (kec butuh 7)
+            . "9999999001,Desa Yatim,desa\n";           // induk turunan 9999999 tak ada
         $res = $this->actingAs($this->admin())->post('/admin/impor-wilayah', ['data' => $csv, 'mode' => 'commit'])->assertOk();
 
         $skip = $res->viewData('hasil')['dilewati'];

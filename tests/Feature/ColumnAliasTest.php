@@ -39,7 +39,7 @@ class ColumnAliasTest extends TestCase
         ColumnAlias::create(['qversion_id' => $qv->id, 'source_col' => 'UMUR_KRT', 'target_col' => 'r407__1']);
 
         $csv = "wilayah_code,no_bs,no_ruta,krt_name,JML_ART,UMUR_KRT,KOLOM_NGAWUR\n"
-            . "3526101001,900Z,001,Uji Alias,3,44,x\n";
+            . "3526010001,900Z,001,Uji Alias,3,44,x\n";
 
         $res = $this->actingAs($admin)->post('/admin/impor-dokumen', [
             'cycle_id' => $qv->cycle_id, 'data' => $csv, 'mode' => 'preview',

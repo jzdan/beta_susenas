@@ -19,8 +19,13 @@ tiap semester = `questionnaire_version` baru (data), bukan perubahan kode.
   jalan bila `php artisan schedule:run` dipanggil cron/Task Scheduler.
 - Paket metadata: `php artisan susenas:qversion:export <code>` / `:import <file> [--check]`.
 - Revalidasi massal setelah sunting aturan/agregat/turunan: `php artisan susenas:revalidate [--cycle=] [--all]`.
-- Login seed: admin/admin123, rahmawati/pengawas123 (pml), ppl_ani/operator123
-  (operator), siti_editor/editor123, viewer/viewer123.
+- Login seed: admin/admin123, pj_kamal/pj123 (pj, wilayah 3526010), rahmawati/pengawas123
+  (pml), ppl_ani/operator123 (operator), siti_editor/editor123, viewer/viewer123.
+- Peran (`User::ROLE_LABELS`): `admin`, `pj` (Penanggung Jawab kecamatan — satu per
+  kecamatan, kewenangan setara `pml` tapi wilayah_scope wajib kode kecamatan 7 digit,
+  divalidasi di `AdminController::saveUser`), `pml`, `operator`, `viewer`. Gate `pj`
+  ditambahkan ke setiap tempat yang mengecek `pml` (routes, controller, nav) — lihat
+  Inc 121.
 
 ## Arsitektur metadata
 
@@ -36,6 +41,15 @@ dinamis per ART), `list` (baris tetap dari `block_row`, mis. 194 komoditas),
 Jawaban di `answers` (raw_value + clean_value; `art_index` = 0 utk ruta, nomor ART,
 `block_row.row_index` utk list, atau `row*1000 + no_art` utk list_art —
 `Block::packRowArt` / `unpackRowArt`).
+
+`questionnaire_version.is_active` **cuma 1 di seluruh sistem**, dan cuma menentukan versi
+yang sedang disunting di menu admin (Metadata/Aturan/Harga) — **bukan** yang dipakai
+dokumen (itu ikut `cycle_id` sampelnya, lihat `MonitoringController::createDocument`).
+Role `operator` dikunci ke **periode** (`survey_cycle.period`) milik versi aktif —
+`QuestionnaireVersion::activeCycleIds()` — supaya kuesioner yang dicacah bersamaan dalam
+satu periode (mis. KOR `VSEN26.K` & KP `VSEN26.KP`, disimpan sbg 2 `survey_cycle` terpisah)
+tetap sama-sama terbuka begitu salah satu versinya diaktifkan; role lain (pml/pj/admin/
+viewer) tidak dibatasi (Inc 135).
 
 ## Mesin ekspresi & aturan (kritis-keamanan)
 
@@ -79,6 +93,11 @@ lebar `var__n`, pratinjau dry-run, alias kolom, ekspor round-trip).
 - Blok `list` dikecualikan dari ekspor/impor format-lebar (baris tetap & besar).
 - `duplicateVersion` harus menyalin block_rows + aggregates + row_block aturan.
 - Impor besar dibungkus `DB::beginTransaction` + rollback saat mode pratinjau.
+- **Kode wilayah statistik BPS**: kabupaten(4) + kecamatan(**+3**=7) + desa(**+3**=10) —
+  BUKAN kecamatan(+2)/desa(+4) seperti yang pernah salah dibangun (Inc 118, diperbaiki
+  Inc 125). Panjang resmi ada di `AdminController::WIL_LEN` — pakai konstanta itu,
+  jangan tulis ulang angka `6`/`7`/`10` di tempat lain (sempat kejadian: pesan error PJ
+  di `saveUser` punya angka `6` sendiri, lepas dari `WIL_LEN`).
 
 ## Dokumentasi
 

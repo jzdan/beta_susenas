@@ -51,7 +51,7 @@
     @if($fQ)<a class="btn-ghost" href="{{ route('pengolahan.index', ['status' => $fStatus, 'rule' => $fRule]) }}">✕</a>@endif
   </form>
   @if($fRule)<a class="btn-ghost" href="{{ route('pengolahan.index', ['status' => $fStatus, 'q' => $fQ]) }}">✕ filter aturan: {{ $fRule }}</a>@endif
-  @if(in_array(auth()->user()->role, ['pml','admin']))
+  @if(in_array(auth()->user()->role, ['pml','pj','admin']))
   <form method="post" action="{{ route('pengolahan.revalidate', ['status' => $fStatus, 'rule' => $fRule, 'q' => $fQ]) }}"
         onsubmit="return confirm('Jalankan ulang semua aturan validasi untuk dokumen non-bersih dalam cakupan Anda?')">
     @csrf
@@ -60,7 +60,7 @@
   @endif
 </div>
 
-@php($canBulk = in_array(auth()->user()->role, ['pml','admin']))
+@php($canBulk = in_array(auth()->user()->role, ['pml','pj','admin']))
 @php($eligible = fn($r) => in_array($r['doc']->status, ['selesai','dikembalikan']) && $r['err'] === 0)
 <form method="post" action="{{ route('pengolahan.bulk-clean', ['status' => $fStatus, 'rule' => $fRule, 'q' => $fQ]) }}"
       onsubmit="return confirm('Tandai bersih semua dokumen terpilih?')">

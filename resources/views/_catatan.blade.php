@@ -14,7 +14,7 @@
     <li class="muted">Belum ada catatan.</li>
     @endforelse
   </ul>
-  @if($doc->status !== 'bersih' && in_array(auth()->user()->role, ['operator','pml','editor','admin']))
+  @if($doc->status !== 'bersih' && in_array(auth()->user()->role, ['operator','pml','pj','admin']))
   <form method="post" action="{{ route('dokumen.catatan', $doc) }}" class="catatan-form">
     @csrf
     <input type="hidden" name="from" value="{{ $from }}">

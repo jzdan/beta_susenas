@@ -117,7 +117,7 @@ class CleaningController extends Controller
 
     public function revalidate(Request $request)
     {
-        abort_unless(in_array($request->user()->role, ['pml', 'admin'], true), 403);
+        abort_unless(in_array($request->user()->role, ['pj', 'pml', 'admin'], true), 403);
         $docs = $this->scoped($request)->where('documents.status', '!=', 'bersih')
             ->select('documents.id')->pluck('id');
         $n = 0;
@@ -384,7 +384,7 @@ class CleaningController extends Controller
     /** Tandai bersih beberapa dokumen sekaligus (hanya yang 0 error). */
     public function bulkClean(Request $request)
     {
-        abort_unless(in_array($request->user()->role, ['pml', 'admin'], true), 403);
+        abort_unless(in_array($request->user()->role, ['pj', 'pml', 'admin'], true), 403);
         $d = $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
 
         $ids = $this->scoped($request)

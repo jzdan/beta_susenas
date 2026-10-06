@@ -23,7 +23,7 @@ class ResponseRateTest extends TestCase
         // 10 sampel: 6 selesai, 1 non-respons (menolak), 1 non-respons (bangunan kosong = tidak eligible),
         // 1 diganti (ganti_sampel) + penggantinya belum, 1 belum
         $mk = fn (array $x) => SampleHousehold::create($x + [
-            'cycle_id' => $cycle->id, 'wilayah_code' => '3526101001', 'no_bs' => '077', 'krt_name' => 'x',
+            'cycle_id' => $cycle->id, 'wilayah_code' => '3526010001', 'no_bs' => '077', 'krt_name' => 'x',
         ]);
         foreach (range(1, 6) as $i) {
             $mk(['no_ruta' => "00{$i}", 'status' => 'selesai']);
@@ -64,9 +64,9 @@ class ResponseRateTest extends TestCase
 
         // menambah satu sampel yang langsung diganti tidak menaikkan total aktif
         $c = SurveyCycle::where('name', 'Uji Respons')->first();
-        $asal = SampleHousehold::create(['cycle_id' => $c->id, 'wilayah_code' => '3526101001',
+        $asal = SampleHousehold::create(['cycle_id' => $c->id, 'wilayah_code' => '3526010001',
             'no_bs' => '077', 'no_ruta' => '011', 'krt_name' => 'x', 'status' => 'ganti_sampel']);
-        SampleHousehold::create(['cycle_id' => $c->id, 'wilayah_code' => '3526101001',
+        SampleHousehold::create(['cycle_id' => $c->id, 'wilayah_code' => '3526010001',
             'no_bs' => '077', 'no_ruta' => '011P', 'krt_name' => 'x', 'status' => 'belum', 'replaces_id' => $asal->id]);
 
         $after = $this->actingAs($admin)->get('/monitoring')->viewData('total');

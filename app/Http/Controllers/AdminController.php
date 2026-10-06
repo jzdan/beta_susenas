@@ -25,14 +25,29 @@ use Illuminate\Support\Facades\DB;
 class AdminController extends Controller
 {
     private const QTYPES = ['int', 'decimal', 'code', 'text'];
-    private const LEVELS = ['provinsi', 'kabupaten', 'kecamatan', 'desa'];
+    private const LEVELS = ['kabupaten', 'kecamatan', 'desa'];
 
     public function __construct(private ExpressionEvaluator $ev, private RuleEngine $engine) {}
 
     private function activeQv(): QuestionnaireVersion
     {
-        return QuestionnaireVersion::where('is_active', true)->first()
-            ?? QuestionnaireVersion::orderByDesc('id')->firstOrFail();
+        return QuestionnaireVersion::active();
+    }
+
+    /**
+     * Versi kuesioner yang SEDANG DILIHAT/DISUNTING di Metadata/Aturan/Harga — lewat
+     * query/field `qv`, agar admin tidak perlu "Jadikan aktif" cuma untuk menyunting
+     * versi lain (Inc 131). Beda dari activeQv(): itu tetap satu-satunya versi yang
+     * dipakai PCL untuk entri data baru, tidak berubah oleh selector ini.
+     */
+    private function selectedQv(Request $request): QuestionnaireVersion
+    {
+        $id = $request->input('qv');
+        if ($id && ($qv = QuestionnaireVersion::find($id))) {
+            return $qv;
+        }
+
+        return $this->activeQv();
     }
 
     private function csvRows(string $data, array $required): \Generator
@@ -57,12 +72,13 @@ class AdminController extends Controller
 
     // -------------------------------------------------------- Metadata
 
-    public function metadata()
+    public function metadata(Request $request)
     {
-        $qv = $this->activeQv();
+        $qv = $this->selectedQv($request);
         $rules = $qv->rules;
         return view('admin.metadata', [
             'qv' => $qv,
+            'activeId' => $this->activeQv()->id,
             'blocks' => $qv->blocks()->with('questions')->get(),
             'params' => $qv->parameters,
             'derived' => $qv->derived,
@@ -97,19 +113,21 @@ class AdminController extends Controller
             'filter_ref' => trim($d['filter_ref'] ?? ''),
             'filter_ref_val' => trim($d['filter_ref_val'] ?? ''),
         ];
+        $qv = $this->selectedQv($request);
         if ($d['aggregate_id'] ?? null) {
             \App\Models\Aggregate::where('id', $d['aggregate_id'])->update($payload);
         } else {
-            \App\Models\Aggregate::create($payload + ['qversion_id' => $this->activeQv()->id]);
+            \App\Models\Aggregate::create($payload + ['qversion_id' => $qv->id]);
         }
         AuditLog::record('aggregate', $d['aggregate_id'] ?? 'baru', 'simpan', $d['name']);
-        return redirect()->route('admin.metadata');
+        return redirect()->route('admin.metadata', ['qv' => $qv->id]);
     }
 
     public function delAggregate(\App\Models\Aggregate $aggregate)
     {
+        $qvId = $aggregate->qversion_id;
         $aggregate->delete();
-        return redirect()->route('admin.metadata');
+        return redirect()->route('admin.metadata', ['qv' => $qvId]);
     }
 
     // -------------------------------------------------------- Blok
@@ -122,7 +140,7 @@ class AdminController extends Controller
             'code' => 'required|string', 'title' => 'required|string',
             'repeat' => 'nullable|in:'.implode(',', self::BLOCK_REPEAT),
         ]);
-        $qv = $this->activeQv();
+        $qv = $this->selectedQv($request);
         $n = (int) Block::where('qversion_id', $qv->id)->max('order');
         $b = Block::create([
             'qversion_id' => $qv->id, 'code' => trim($d['code']), 'title' => trim($d['title']),
@@ -146,7 +164,7 @@ class AdminController extends Controller
             AuditLog::record('block', $block->id, 'urutan', "{$a->code} <-> {$b->code}");
         }
 
-        return redirect()->route('admin.metadata');
+        return redirect()->route('admin.metadata', ['qv' => $block->qversion_id]);
     }
 
     public function updateBlock(Request $request, Block $block)
@@ -293,9 +311,10 @@ class AdminController extends Controller
         $qids = $block->questions->pluck('id');
         abort_if(\App\Models\Answer::whereIn('question_id', $qids)->exists(), 400,
             'Blok punya jawaban terisi — tidak bisa dihapus');
+        $qvId = $block->qversion_id;
         $block->delete();
         AuditLog::record('block', $block->id, 'hapus');
-        return redirect()->route('admin.metadata');
+        return redirect()->route('admin.metadata', ['qv' => $qvId]);
     }
 
     // -------------------------------------------------------- Rincian
@@ -439,9 +458,14 @@ class AdminController extends Controller
 
     // -------------------------------------------------------- Impor rincian
 
-    public function importForm()
+    public function importForm(Request $request)
     {
-        return view('admin.import', ['blocks' => $this->activeQv()->blocks, 'hasil' => null]);
+        $qv = $this->selectedQv($request);
+        return view('admin.import', [
+            'qv' => $qv, 'activeId' => $this->activeQv()->id,
+            'versions' => QuestionnaireVersion::orderByDesc('id')->get(),
+            'blocks' => $qv->blocks, 'hasil' => null,
+        ]);
     }
 
     public function importCsv(Request $request)
@@ -479,6 +503,8 @@ class AdminController extends Controller
         }
         AuditLog::record('question', $b->code, 'impor-csv', "{$dibuat} rincian");
         return view('admin.import', [
+            'qv' => $b->qversion, 'activeId' => $this->activeQv()->id,
+            'versions' => QuestionnaireVersion::orderByDesc('id')->get(),
             'blocks' => $b->qversion->blocks,
             'hasil' => ['dibuat' => $dibuat, 'dilewati' => $dilewati, 'blok' => $b],
         ]);
@@ -502,22 +528,24 @@ class AdminController extends Controller
             'var_name' => trim($d['var_name']), 'label' => trim($d['label'] ?? ''),
             'expr' => trim($d['expr']), 'order' => (int) ($d['order'] ?? 0),
         ];
+        $qv = $this->selectedQv($request);
         if ($d['derived_id'] ?? null) {
             DerivedField::where('id', $d['derived_id'])->update($payload);
         } else {
-            DerivedField::create($payload + ['qversion_id' => $this->activeQv()->id]);
+            DerivedField::create($payload + ['qversion_id' => $qv->id]);
         }
         AuditLog::record('derived', $d['derived_id'] ?? 'baru', 'simpan', $d['var_name']);
 
-        return redirect()->route('admin.metadata');
+        return redirect()->route('admin.metadata', ['qv' => $qv->id]);
     }
 
     public function delDerived(DerivedField $derived)
     {
+        $qvId = $derived->qversion_id;
         AuditLog::record('derived', $derived->id, 'hapus', $derived->var_name);
         $derived->delete();
 
-        return redirect()->route('admin.metadata');
+        return redirect()->route('admin.metadata', ['qv' => $qvId]);
     }
 
     public function saveParam(Request $request)
@@ -526,22 +554,24 @@ class AdminController extends Controller
             'name' => 'required|string', 'value' => 'required|string',
             'note' => 'nullable|string', 'param_id' => 'nullable|integer',
         ]);
+        $qv = $this->selectedQv($request);
         if ($d['param_id'] ?? null) {
             Parameter::where('id', $d['param_id'])->update([
                 'name' => trim($d['name']), 'value' => trim($d['value']), 'note' => trim($d['note'] ?? ''),
             ]);
         } else {
-            Parameter::create(['qversion_id' => $this->activeQv()->id, 'name' => trim($d['name']),
+            Parameter::create(['qversion_id' => $qv->id, 'name' => trim($d['name']),
                 'value' => trim($d['value']), 'note' => trim($d['note'] ?? '')]);
         }
         AuditLog::record('parameter', $d['param_id'] ?? 'baru', 'simpan', $d['name']);
-        return redirect()->route('admin.metadata');
+        return redirect()->route('admin.metadata', ['qv' => $qv->id]);
     }
 
     public function delParam(Parameter $parameter)
     {
+        $qvId = $parameter->qversion_id;
         $parameter->delete();
-        return redirect()->route('admin.metadata');
+        return redirect()->route('admin.metadata', ['qv' => $qvId]);
     }
 
     // -------------------------------------------------------- Aturan
@@ -558,7 +588,9 @@ class AdminController extends Controller
 
     private function rulesView(?ValidationRule $edit, ?Request $request = null)
     {
-        $qv = $this->activeQv();
+        // Menyunting aturan tertentu selalu pakai qversion aturan itu sendiri (bukan
+        // selector ?qv= yang mungkin basi di URL) — supaya link "Sunting" selalu benar.
+        $qv = $edit ? $edit->qversion : ($request ? $this->selectedQv($request) : $this->activeQv());
         $all = $qv->rules;
 
         $fSev = $request?->query('sev', '') ?? '';
@@ -606,6 +638,9 @@ class AdminController extends Controller
             ->unique()->reject(fn ($k) => $k === 'group')->sort()->values();
 
         return view('admin.rules', [
+            'qv' => $qv,
+            'activeId' => $this->activeQv()->id,
+            'versions' => QuestionnaireVersion::orderByDesc('id')->get(),
             'rules' => $rules,
             'groups' => $groups,
             'wizardBlocks' => $wizardBlocks,
@@ -616,7 +651,7 @@ class AdminController extends Controller
             'total' => $all->count(),
             'activeCount' => $all->where('active', true)->count(),
             'ruleErrs' => $rules->mapWithKeys(fn ($r) => [$r->id => $this->ev->checkSyntax($r->expr, RuleEngine::ROSTER_FUNCS)]),
-            'docs' => Document::orderBy('id')->get(),
+            'docs' => Document::where('qversion_id', $qv->id)->orderBy('id')->get(),
             'edit' => $edit,
             'scopes' => $all->pluck('scope')->unique()->filter()->sort()->values(),
             'filters' => ['sev' => $fSev, 'scope' => $fScope, 'active' => $fActive, 'q' => $fQ],
@@ -630,7 +665,7 @@ class AdminController extends Controller
             'ids' => 'required|array', 'ids.*' => 'integer',
             'aksi' => 'required|in:aktif,nonaktif',
         ]);
-        $n = ValidationRule::where('qversion_id', $this->activeQv()->id)
+        $n = ValidationRule::where('qversion_id', $this->selectedQv($request)->id)
             ->whereIn('id', $d['ids'])
             ->update(['active' => $d['aksi'] === 'aktif']);
         AuditLog::record('rule', '-', 'toggle-massal', "{$n} aturan -> {$d['aksi']}");
@@ -672,6 +707,31 @@ class AdminController extends Controller
             'banding' => ($p['banding_op'] ?? 'sama') === 'sama'
                 ? "filled({$a}) and filled({$b}) and {$a} != {$b}"
                 : "filled({$a}) and filled({$b}) and {$a} == {$b}",
+            // 'kombinasi' = query bebas: beberapa syarat digabung DAN/ATAU (mis. aset banyak
+            // TAPI belanja makanan dilaporkan rendah — dua sinyal, bukan satu).
+            'kombinasi' => (function () use ($p, $cmp) {
+                $fields = $p['cond_field'] ?? [];
+                $ops = $p['cond_op2'] ?? [];
+                $vals = $p['cond_val2'] ?? [];
+                $joiner = ($p['join'] ?? 'and') === 'or' ? ' or ' : ' and ';
+                $parts = [];
+                foreach ($fields as $i => $f) {
+                    $f = trim((string) $f);
+                    if ($f === '') {
+                        continue;
+                    }
+                    $op = $ops[$i] ?? 'terisi';
+                    $val = $vals[$i] ?? '';
+                    $cond = match ($op) {
+                        'terisi' => "filled({$f})",
+                        'kosong' => "blank({$f})",
+                        default => $cmp($f, $op, $val),
+                    };
+                    $parts[] = "({$cond})";
+                }
+
+                return count($parts) >= 2 ? implode($joiner, $parts) : '';
+            })(),
             default => '',
         };
     }
@@ -683,38 +743,74 @@ class AdminController extends Controller
             'code' => 'required|string|max:40',
             'severity' => 'required|in:warning,error',
             'block' => 'nullable|string',
-            'kind' => 'required|in:wajib,wajib_jika,rentang,batas,banding',
-            'field_a' => 'required|string',
+            'kind' => 'required|in:wajib,wajib_jika,rentang,batas,banding,kombinasi',
+            'field_a' => 'required_unless:kind,kombinasi|nullable|string',
             'field_b' => 'nullable|string',
             'cond_op' => 'nullable|string', 'cond_val' => 'nullable|string',
             'min' => 'nullable|numeric', 'max' => 'nullable|numeric',
             'limit_op' => 'nullable|string', 'limit_val' => 'nullable|numeric',
             'banding_op' => 'nullable|string',
+            'join' => 'nullable|in:and,or',
+            'cond_field' => 'nullable|array', 'cond_field.*' => 'nullable|string',
+            'cond_op2' => 'nullable|array', 'cond_op2.*' => 'nullable|string',
+            'cond_val2' => 'nullable|array', 'cond_val2.*' => 'nullable|string',
             'message' => 'required|string|max:250',
             'note' => 'nullable|string|max:500',
         ]);
         if (in_array($d['kind'], ['wajib_jika', 'banding'], true) && ! ($d['field_b'] ?? '')) {
             return back()->withErrors(['wizard' => 'Jenis pemeriksaan ini butuh rincian kedua.'])->withInput();
         }
-        $qv = $this->activeQv();
+        $qv = $this->selectedQv($request);
         $block = ($d['block'] ?? '') ? $qv->blocks->firstWhere('code', $d['block']) : null;
         $isRow = $block && $block->isRowBlock();
         $expr = $this->assembleRuleExpr($d['kind'], $d);
         if (! $expr || ($err = $this->ev->checkSyntax($expr, RuleEngine::ROSTER_FUNCS))) {
-            return back()->withErrors(['wizard' => 'Tidak bisa menyusun ekspresi'.($err ? ": {$err}" : '').'.'])->withInput();
+            $why = $d['kind'] === 'kombinasi' && ! $expr ? ' (isi minimal 2 syarat)' : ($err ? ": {$err}" : '');
+            return back()->withErrors(['wizard' => 'Tidak bisa menyusun ekspresi'.$why.'.'])->withInput();
         }
         if (ValidationRule::where('qversion_id', $qv->id)->where('code', trim($d['code']))->exists()) {
             return back()->withErrors(['wizard' => 'Kode aturan sudah dipakai.'])->withInput();
         }
+        $targetVar = $d['kind'] === 'kombinasi'
+            ? (string) collect($d['cond_field'] ?? [])->first(fn ($f) => trim((string) $f) !== '')
+            : $d['field_a'];
         ValidationRule::create([
             'qversion_id' => $qv->id, 'code' => trim($d['code']), 'severity' => $d['severity'],
             'scope' => $isRow ? 'baris' : 'dokumen', 'row_block' => $isRow ? $block->code : '',
-            'target_var' => $d['field_a'], 'expr' => $expr,
+            'target_var' => $targetVar, 'expr' => $expr,
             'message' => trim($d['message']), 'note' => trim($d['note'] ?? '') ?: null, 'active' => true,
         ]);
         AuditLog::record('rule', 'baru', 'tambah-terpandu', $d['code']);
 
-        return redirect()->route('admin.aturan')->with('ok', "Aturan {$d['code']} dibuat. Ekspresi: {$expr}");
+        return redirect()->route('admin.aturan', ['qv' => $qv->id])
+            ->with('ok', "Aturan {$d['code']} dibuat. Ekspresi: {$expr}");
+    }
+
+    /**
+     * "Uji dulu" di form terpandu — susun ekspresi dari isian wizard (tanpa menyimpan)
+     * lalu tampilkan berapa dokumen/baris yang akan menyala, seperti query pratinjau.
+     */
+    public function wizardImpact(Request $request)
+    {
+        $kind = (string) $request->input('kind');
+        if (! in_array($kind, ['wajib', 'wajib_jika', 'rentang', 'batas', 'banding', 'kombinasi'], true)) {
+            return response()->json(['ok' => false, 'error' => 'Jenis pemeriksaan tidak dikenal.']);
+        }
+        $expr = $this->assembleRuleExpr($kind, $request->except(['_token']));
+        if (! $expr) {
+            $why = $kind === 'kombinasi' ? 'isi minimal 2 syarat' : 'lengkapi isian dulu';
+            return response()->json(['ok' => false, 'error' => "Tidak bisa menyusun ekspresi ({$why})."]);
+        }
+        if ($err = $this->ev->checkSyntax($expr, RuleEngine::ROSTER_FUNCS)) {
+            return response()->json(['ok' => false, 'error' => $err]);
+        }
+        $qv = $this->selectedQv($request);
+        $blockCode = (string) $request->input('block', '');
+        $block = $blockCode ? $qv->blocks->firstWhere('code', $blockCode) : null;
+        $isRow = $block && $block->isRowBlock();
+        $report = $this->engine->previewExpression($expr, $isRow ? $block->code : '', $qv->id);
+
+        return response()->json(['ok' => true, 'expr' => $expr] + $report);
     }
 
     public function saveRule(Request $request)
@@ -739,7 +835,7 @@ class AdminController extends Controller
             ValidationRule::where('id', $d['rule_id'])->update($payload);
             AuditLog::record('rule', $d['rule_id'], 'ubah', $d['code']);
         } else {
-            ValidationRule::create($payload + ['qversion_id' => $this->activeQv()->id, 'active' => true]);
+            ValidationRule::create($payload + ['qversion_id' => $this->selectedQv($request)->id, 'active' => true]);
             AuditLog::record('rule', 'baru', 'tambah', $d['code']);
         }
         return redirect()->route('admin.aturan');
@@ -767,17 +863,18 @@ class AdminController extends Controller
 
     public function delRule(ValidationRule $rule)
     {
+        $qvId = $rule->qversion_id;
         RuleResult::where('rule_id', $rule->id)->delete();
         $rule->delete();
         AuditLog::record('rule', $rule->id, 'hapus');
-        return redirect()->route('admin.aturan');
+        return redirect()->route('admin.aturan', ['qv' => $qvId]);
     }
 
     public function toggleRule(ValidationRule $rule)
     {
         $rule->update(['active' => ! $rule->active]);
         AuditLog::record('rule', $rule->id, 'toggle', 'active='.($rule->active ? '1' : '0'));
-        return redirect()->route('admin.aturan');
+        return redirect()->route('admin.aturan', ['qv' => $rule->qversion_id]);
     }
 
     public function testRule(Request $request)
@@ -855,7 +952,7 @@ class AdminController extends Controller
         }
         AuditLog::record('qversion', $qv->id, 'impor-paket', $qv->code);
 
-        return redirect()->route('admin.metadata')->with('ok', "Versi '{$qv->code}' diimpor.");
+        return redirect()->route('admin.metadata', ['qv' => $qv->id])->with('ok', "Versi '{$qv->code}' diimpor.");
     }
 
     /** Buku kode (codebook) satu versi kuesioner — halaman referensi & cetak. */
@@ -890,7 +987,7 @@ class AdminController extends Controller
             return response()->json(['ok' => false, 'error' => $err]);
         }
         $report = $this->engine->previewExpression(
-            trim($d['expr']), trim($d['row_block'] ?? ''), $this->activeQv()->id,
+            trim($d['expr']), trim($d['row_block'] ?? ''), $this->selectedQv($request)->id,
         );
 
         return response()->json(['ok' => true] + $report);
@@ -944,7 +1041,7 @@ class AdminController extends Controller
                 'severity' => $r->severity, 'message' => $r->message, 'active' => $r->active]);
         }
         AuditLog::record('qversion', $dst->id, 'duplikat', "{$src->code} -> {$d['new_code']}");
-        return redirect()->route('admin.metadata')->with('ok', "Versi \"{$dst->code}\" dibuat. Klik \"Jadikan aktif\" untuk menyuntingnya.");
+        return redirect()->route('admin.metadata', ['qv' => $dst->id])->with('ok', "Versi \"{$dst->code}\" dibuat.");
     }
 
     /** Ubah kode & tanggal berlaku versi kuesioner. */
@@ -961,7 +1058,7 @@ class AdminController extends Controller
         $qv->update(['code' => $code, 'effective_date' => ($d['effective_date'] ?? null) ?: null]);
         AuditLog::record('qversion', $qv->id, 'ubah', $code);
 
-        return redirect()->route('admin.metadata')->with('ok', "Versi \"{$code}\" diperbarui.");
+        return redirect()->route('admin.metadata', ['qv' => $qv->id])->with('ok', "Versi \"{$code}\" diperbarui.");
     }
 
     /** Pilih versi kuesioner yang disunting di menu Admin. */
@@ -971,7 +1068,7 @@ class AdminController extends Controller
         $qv->update(['is_active' => true]);
         AuditLog::record('qversion', $qv->id, 'aktifkan', $qv->code);
 
-        return redirect()->route('admin.metadata')->with('ok', "Versi aktif: {$qv->code}.");
+        return redirect()->route('admin.metadata', ['qv' => $qv->id])->with('ok', "Versi aktif: {$qv->code}.");
     }
 
     public function deleteVersion(QuestionnaireVersion $qv)
@@ -1000,6 +1097,7 @@ class AdminController extends Controller
         return view('admin.users', [
             'users' => User::orderBy('role')->orderBy('username')->get(),
             'roles' => User::ROLE_LABELS,
+            'kecamatans' => Wilayah::where('level', 'kecamatan')->orderBy('code')->get(['code', 'name']),
         ]);
     }
 
@@ -1015,9 +1113,32 @@ class AdminController extends Controller
             'password' => ($id ? 'nullable' : 'required').'|string|min:8',
             'user_id' => 'nullable|integer',
         ]);
+        $scope = trim($d['wilayah_scope'] ?? '');
+
+        // Wilayah scope selalu berupa kode KECAMATAN (bukan desa/kabupaten) — dipilih dari
+        // dropdown, bukan diketik bebas. Kosong = tidak dibatasi (lihat seluruh kabupaten;
+        // aplikasi ini 1 kabupaten, jadi scope kabupaten toh sama saja dengan kosong).
+        if ($scope !== '' && (strlen($scope) !== self::WIL_LEN['kecamatan']
+            || ! Wilayah::where('code', $scope)->where('level', 'kecamatan')->exists())) {
+            return back()->withErrors(['wilayah_scope' => "Kode kecamatan '{$scope}' tidak ditemukan di master wilayah."])->withInput();
+        }
+        // PJ: satu per kecamatan — scope wajib diisi & belum dipakai PJ aktif lain.
+        if ($d['role'] === 'pj') {
+            if ($scope === '') {
+                return back()->withErrors(['wilayah_scope' => 'PJ wajib diisi wilayah scope (kecamatan).'])->withInput();
+            }
+            $dupe = User::where('role', 'pj')->where('wilayah_scope', $scope)->where('active', true);
+            if ($id) {
+                $dupe->where('id', '!=', $id);
+            }
+            if ($dupe->exists()) {
+                return back()->withErrors(['wilayah_scope' => "Sudah ada PJ aktif untuk kecamatan {$scope} — satu kecamatan hanya boleh satu PJ."])->withInput();
+            }
+        }
+
         $payload = [
             'username' => $d['username'], 'name' => $d['name'], 'role' => $d['role'],
-            'wilayah_scope' => trim($d['wilayah_scope'] ?? ''),
+            'wilayah_scope' => $scope,
         ];
         if (! empty($d['password'])) {
             $payload['password'] = \Illuminate\Support\Facades\Hash::make($d['password']);
@@ -1151,16 +1272,19 @@ class AdminController extends Controller
 
     // -------------------------------------------------------- Harga & kalori komoditas
 
-    private function hargaBlocks(): \Illuminate\Support\Collection
+    private function hargaBlocks(QuestionnaireVersion $qv): \Illuminate\Support\Collection
     {
-        return $this->activeQv()->blocks()->where('code', 'IV.1')->orderBy('order')->get();
+        return $qv->blocks()->where('code', 'IV.1')->orderBy('order')->get();
     }
 
-    public function hargaForm()
+    public function hargaForm(Request $request)
     {
+        $qv = $this->selectedQv($request);
         return view('admin.harga', [
-            'activeQvCode' => $this->activeQv()->code,
-            'komoditas' => \App\Models\BlockRow::whereIn('block_id', $this->hargaBlocks()->pluck('id'))
+            'qv' => $qv,
+            'activeId' => $this->activeQv()->id,
+            'versions' => QuestionnaireVersion::orderByDesc('id')->get(),
+            'komoditas' => \App\Models\BlockRow::whereIn('block_id', $this->hargaBlocks($qv)->pluck('id'))
                 ->orderBy('row_index')->get(),
         ]);
     }
@@ -1213,7 +1337,8 @@ class AdminController extends Controller
         if (! $rows || ! array_key_exists('code', $rows[0] ?? []) || ! array_key_exists('harga_min', $rows[0] ?? [])) {
             return back()->withErrors(['file' => 'Kolom wajib: code, harga_min, harga_max (opsional kalori).']);
         }
-        $byCode = \App\Models\BlockRow::whereIn('block_id', $this->hargaBlocks()->pluck('id'))->get()->keyBy('code');
+        $qv = $this->selectedQv($request);
+        $byCode = \App\Models\BlockRow::whereIn('block_id', $this->hargaBlocks($qv)->pluck('id'))->get()->keyBy('code');
 
         $n = 0;
         $skip = [];
@@ -1246,7 +1371,7 @@ class AdminController extends Controller
         }
         AuditLog::record('block_row', 'IV.1', 'impor-harga', "{$n} komoditas");
 
-        return redirect()->route('admin.harga')->with('ok', "{$n} komoditas diperbarui."
+        return redirect()->route('admin.harga', ['qv' => $qv->id])->with('ok', "{$n} komoditas diperbarui."
             .($skip ? ' Dilewati: '.implode('; ', $skip) : ''));
     }
 
@@ -1458,35 +1583,125 @@ class AdminController extends Controller
 
     // -------------------------------------------------------- Impor wilkerstat
 
+    /**
+     * Selalu tampilkan semua wilayah (dikelompokkan per kecamatan, bukan cuma muncul
+     * saat dicari) — daftar desa bisa ratusan baris, jadi dikelompokkan spy tetap
+     * telusur-mudah. `q` menyaring: kecamatan yang cocok menampilkan semua desanya,
+     * kecamatan yang tidak cocok cuma menampilkan desa yang cocok saja. Dipakai
+     * bersama oleh wilayahForm() dan wilayahImport() (supaya hasil impor langsung
+     * kelihatan di halaman yang sama, bukan cuma pesan ringkasan).
+     *
+     * @return array{groups: \Illuminate\Support\Collection, kabupaten: ?Wilayah}
+     */
+    private function wilayahGroups(string $fQ): array
+    {
+        $hit = fn (Wilayah $w) => $fQ === '' || str_starts_with($w->code, $fQ) || stripos($w->name, $fQ) !== false;
+
+        $desaByKec = Wilayah::where('level', 'desa')->orderBy('code')->get()->groupBy('parent_code');
+        $groups = Wilayah::where('level', 'kecamatan')->orderBy('code')->get()
+            ->map(function (Wilayah $k) use ($desaByKec, $fQ, $hit) {
+                $desa = $desaByKec->get($k->code, collect());
+                if ($fQ !== '' && ! $hit($k)) {
+                    $desa = $desa->filter($hit)->values();
+                }
+                return ['kec' => $k, 'desa' => $desa];
+            })
+            ->filter(fn ($g) => $fQ === '' || $hit($g['kec']) || $g['desa']->isNotEmpty())
+            ->values();
+
+        return ['groups' => $groups, 'kabupaten' => Wilayah::where('level', 'kabupaten')->first()];
+    }
+
     public function wilayahForm(Request $request)
     {
         $fQ = trim((string) $request->query('q', ''));
-        $list = collect();
-        if ($fQ !== '') {
-            $list = Wilayah::where(fn ($w) => $w->where('code', 'like', $fQ.'%')
-                ->orWhere('name', 'like', "%{$fQ}%"))
-                ->orderBy('code')->limit(300)->get();
-        }
 
         return view('admin.import_wilayah', [
             'n' => Wilayah::count(),
             'byLevel' => Wilayah::selectRaw('level, count(*) as n')->groupBy('level')->pluck('n', 'level'),
-            'fQ' => $fQ, 'list' => $list, 'hasil' => null,
+            ...$this->wilayahGroups($fQ),
+            'fQ' => $fQ, 'hasil' => null,
         ]);
     }
 
     public function wilayahRename(Request $request, Wilayah $wilayah)
     {
         $d = $request->validate(['name' => 'required|string|max:120']);
+        $name = trim($d['name']);
         $old = $wilayah->name;
-        $wilayah->update(['name' => trim($d['name'])]);
-        AuditLog::record('wilayah', $wilayah->code, 'ubah-nama', "{$old} -> {$wilayah->name}");
+        $changed = $name !== $old;
+        if ($changed) {
+            $wilayah->update(['name' => $name]);
+        }
+        AuditLog::record('wilayah', $wilayah->code, 'ubah-nama',
+            $changed ? "nama: {$old} -> {$name}" : 'tanpa perubahan');
 
-        return back()->with('ok', "Nama {$wilayah->code} diperbarui.");
+        return back()->with('ok', "Wilayah {$wilayah->code} diperbarui.");
     }
 
-    /** panjang kode per jenjang wilayah (konvensi sistem ini). */
-    private const WIL_LEN = ['provinsi' => 2, 'kabupaten' => 4, 'kecamatan' => 6, 'desa' => 10];
+    /** panjang kode per jenjang wilayah (konvensi sistem ini) — kabupaten adalah jenjang teratas (aplikasi 1 kabupaten). */
+    // kode wilayah statistik BPS: provinsi(2)+kabupaten(2)=4, +kecamatan(3)=7, +desa(3)=10.
+    private const WIL_LEN = ['kabupaten' => 4, 'kecamatan' => 7, 'desa' => 10];
+    private const WIL_PARENT_LEVEL = ['kecamatan' => 'kabupaten', 'desa' => 'kecamatan'];
+
+    /**
+     * Kode induk selalu bisa diturunkan dari kode itu sendiri (awalan sepanjang jenjang di
+     * atasnya) — tidak perlu diisi manual (Inc 134). Kosong untuk 'kabupaten' (jenjang teratas).
+     */
+    private function deriveWilayahParent(string $code, string $level): string
+    {
+        $parentLevel = self::WIL_PARENT_LEVEL[$level] ?? null;
+
+        return $parentLevel ? substr($code, 0, self::WIL_LEN[$parentLevel]) : '';
+    }
+
+    public function wilayahStore(Request $request)
+    {
+        // 'kabupaten' sengaja tidak diterima di sini — cuma ada satu (Bangkalan/3526, sudah
+        // ada sejak seed/setup awal), bukan sesuatu yang admin tambahkan lewat CRUD harian.
+        $d = $request->validate([
+            'code' => 'required|string|max:10',
+            'name' => 'required|string|max:120',
+            'level' => 'required|in:kecamatan,desa',
+        ]);
+        $code = trim($d['code']);
+        $name = trim($d['name']);
+        $level = $d['level'];
+
+        if (strlen($code) !== self::WIL_LEN[$level]) {
+            return back()->withErrors(['code' => "Panjang kode untuk jenjang {$level} harus ".self::WIL_LEN[$level].' digit.'])->withInput();
+        }
+        if (Wilayah::where('code', $code)->exists()) {
+            return back()->withErrors(['code' => "Kode '{$code}' sudah ada — gunakan Sunting di daftar telusuri."])->withInput();
+        }
+        $parent = $this->deriveWilayahParent($code, $level);
+        if (! Wilayah::where('code', $parent)->exists()) {
+            return back()->withErrors(['code' => "Induk '{$parent}' belum ada di sistem — tambahkan itu dulu."])->withInput();
+        }
+
+        Wilayah::create(['code' => $code, 'name' => $name, 'level' => $level, 'parent_code' => $parent]);
+        AuditLog::record('wilayah', $code, 'tambah', $name);
+
+        // arahkan balik dengan pencarian sudah terisi kode baru ini, supaya langsung
+        // kelihatan di daftar Telusuri — bukan cuma pesan sukses tanpa bukti di layar.
+        return redirect()->route('admin.impor.wilayah', ['q' => $code])
+            ->with('ok', "Wilayah {$code} — {$name} ditambahkan.");
+    }
+
+    public function wilayahDestroy(Wilayah $wilayah)
+    {
+        if (Wilayah::where('parent_code', $wilayah->code)->exists()) {
+            return back()->withErrors(['hapus' => "Tidak bisa dihapus — {$wilayah->code} masih punya wilayah anak di bawahnya."]);
+        }
+        if (SampleHousehold::where('wilayah_code', $wilayah->code)->exists()) {
+            return back()->withErrors(['hapus' => "Tidak bisa dihapus — {$wilayah->code} masih dipakai oleh sampel rumah tangga."]);
+        }
+        [$code, $name] = [$wilayah->code, $wilayah->name];
+        $wilayah->delete();
+        AuditLog::record('wilayah', $code, 'hapus', $name);
+
+        return back()->with('ok', "Wilayah {$code} — {$name} dihapus.");
+    }
 
     public function wilayahImport(Request $request)
     {
@@ -1500,7 +1715,6 @@ class AdminController extends Controller
                 'code' => trim($row['code'] ?? ''),
                 'name' => trim($row['name'] ?? ''),
                 'level' => strtolower(trim($row['level'] ?? '')),
-                'parent_code' => trim($row['parent_code'] ?? ''),
             ]];
         }
         usort($rows, fn ($a, $b) => strlen($a[1]['code']) <=> strlen($b[1]['code']));
@@ -1511,7 +1725,7 @@ class AdminController extends Controller
 
         DB::beginTransaction();
         foreach ($rows as [$ln, $r]) {
-            [$code, $name, $level, $parent] = [$r['code'], $r['name'], $r['level'], $r['parent_code']];
+            [$code, $name, $level] = [$r['code'], $r['name'], $r['level']];
             if (! $code || ! $name) {
                 $dilewati[] = "baris {$ln}: code/name kosong";
                 continue;
@@ -1524,15 +1738,10 @@ class AdminController extends Controller
                 $dilewati[] = "baris {$ln}: panjang kode '{$code}' tidak sesuai jenjang {$level} (butuh ".self::WIL_LEN[$level]." digit)";
                 continue;
             }
-            if ($level !== 'provinsi') {
-                if ($parent === '' || ! str_starts_with($code, $parent)) {
-                    $dilewati[] = "baris {$ln}: parent_code '{$parent}' bukan awalan dari '{$code}'";
-                    continue;
-                }
-                if (! isset($ada[$parent])) {
-                    $dilewati[] = "baris {$ln}: induk '{$parent}' belum ada (di sistem maupun di berkas ini)";
-                    continue;
-                }
+            $parent = $this->deriveWilayahParent($code, $level);
+            if ($level !== 'kabupaten' && ! isset($ada[$parent])) {
+                $dilewati[] = "baris {$ln}: induk '{$parent}' belum ada (di sistem maupun di berkas ini)";
+                continue;
             }
             if (isset($ada[$code])) {
                 Wilayah::where('code', $code)->update(['name' => $name, 'level' => $level, 'parent_code' => $parent]);
@@ -1554,7 +1763,8 @@ class AdminController extends Controller
         return view('admin.import_wilayah', [
             'n' => Wilayah::count(),
             'byLevel' => Wilayah::selectRaw('level, count(*) as n')->groupBy('level')->pluck('n', 'level'),
-            'fQ' => '', 'list' => collect(),
+            ...$this->wilayahGroups(''),
+            'fQ' => '',
             'hasil' => ['baru' => $baru, 'diperbarui' => $diperbarui, 'dilewati' => $dilewati,
                 'preview' => $preview, 'data' => $d['data']],
         ]);
@@ -1562,12 +1772,68 @@ class AdminController extends Controller
 
     // -------------------------------------------------------- Impor sampel
 
+    /**
+     * Data dropdown form tambah-satu-sampel (dipakai sampelForm & sampelImport).
+     * `operators` dikirim lengkap dgn `scope` (bukan cuma id=>name) supaya JS di
+     * halaman bisa menyaring pilihan Petugas begitu Kode desa dipilih — operator
+     * dgn wilayah_scope kosong dianggap "bisa kemana saja", muncul di semua kecamatan.
+     */
+    private function sampelFormExtras(): array
+    {
+        return [
+            'cycles' => SurveyCycle::orderByDesc('id')->get(),
+            'operators' => User::where('role', 'operator')->where('active', true)->orderBy('name')
+                ->get(['id', 'name', 'wilayah_scope'])
+                ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'scope' => $u->wilayah_scope ?: null])
+                ->values(),
+            'pmls' => User::whereIn('role', ['pml', 'pj'])->where('active', true)->orderBy('name')->pluck('name', 'id'),
+            'kecGroups' => $this->wilayahGroups('')['groups'],
+        ];
+    }
+
     public function sampelForm()
     {
-        return view('admin.import_sampel', [
-            'cycles' => SurveyCycle::orderByDesc('id')->get(),
-            'hasil' => null,
+        return view('admin.import_sampel', [...$this->sampelFormExtras(), 'hasil' => null]);
+    }
+
+    /** Tambah satu sampel langsung lewat form — CSV di bawah tetap ada utk banyak sekaligus. */
+    public function sampelStore(Request $request)
+    {
+        $d = $request->validate([
+            'cycle_id' => 'required|integer|exists:survey_cycles,id',
+            'wilayah_code' => 'required|string|max:10',
+            'no_bs' => 'required|string|max:20',
+            'no_ruta' => 'required|string|max:12',
+            'krt_name' => 'nullable|string|max:120',
+            'petugas_id' => 'nullable|integer|exists:users,id',
+            'pml_id' => 'nullable|integer|exists:users,id',
         ]);
+        $wc = trim($d['wilayah_code']);
+        $desa = Wilayah::where('code', $wc)->where('level', 'desa')->first();
+        if (! $desa) {
+            return back()->withErrors(['wilayah_code' => "Kode desa '{$wc}' tidak ada di master wilayah."])->withInput();
+        }
+        if (SampleHousehold::where('cycle_id', $d['cycle_id'])->where('wilayah_code', $wc)
+            ->where('no_bs', $d['no_bs'])->where('no_ruta', $d['no_ruta'])->exists()) {
+            return back()->withErrors(['no_ruta' => 'Sampel dengan wilayah/BS/ruta ini sudah ada.'])->withInput();
+        }
+        // pertahanan di balik penyaringan JS (dropdown Petugas) — operator dgn wilayah_scope
+        // terisi tidak boleh ditugaskan ke desa di luar kecamatannya, meski request dipaksa manual.
+        if (! empty($d['petugas_id'])) {
+            $scope = User::find($d['petugas_id'])->wilayah_scope ?: null;
+            if ($scope && $scope !== $desa->parent_code) {
+                return back()->withErrors(['petugas_id' => "Petugas ini terbatas ke kecamatan {$scope}, tidak cocok dengan kecamatan desa yang dipilih ({$desa->parent_code})."])->withInput();
+            }
+        }
+
+        $sample = SampleHousehold::create([
+            'cycle_id' => $d['cycle_id'], 'wilayah_code' => $wc, 'no_bs' => $d['no_bs'], 'no_ruta' => $d['no_ruta'],
+            'krt_name' => $d['krt_name'] ?? '', 'petugas_id' => $d['petugas_id'] ?? null,
+            'pml_id' => $d['pml_id'] ?? null, 'status' => 'belum',
+        ]);
+        AuditLog::record('sample', (string) $sample->id, 'tambah', "{$wc}/{$d['no_bs']}/{$d['no_ruta']}", $request->user()->id);
+
+        return redirect()->route('monitoring.sample', $sample)->with('ok', 'Sampel ditambahkan.');
     }
 
     public function sampelImport(Request $request)
@@ -1613,7 +1879,7 @@ class AdminController extends Controller
         }
         AuditLog::record('sample', $cycle->period, 'impor', "{$dibuat} sampel");
         return view('admin.import_sampel', [
-            'cycles' => SurveyCycle::orderByDesc('id')->get(),
+            ...$this->sampelFormExtras(),
             'hasil' => ['dibuat' => $dibuat, 'dilewati' => $dilewati, 'cycle' => $cycle],
         ]);
     }
@@ -1624,8 +1890,16 @@ class AdminController extends Controller
 
     public function jadwalForm()
     {
+        // dibungkus per tahun (dari awal `period`, format YYYY-MM) supaya tidak menumpuk jadi
+        // satu daftar panjang begitu siklus makin banyak (mis. 4 triwulan × beberapa instrumen/tahun).
+        $cycles = SurveyCycle::withCount(['samples', 'versions'])->orderByDesc('id')->get();
+        $byYear = $cycles
+            ->groupBy(fn ($c) => $c->period ? substr($c->period, 0, 4) : 'Lainnya')
+            ->sortKeysDesc()
+            ->map(fn ($group) => $group->sortBy('period')->values());
+
         return view('admin.jadwal', [
-            'cycles' => SurveyCycle::withCount(['samples', 'versions'])->orderByDesc('id')->get(),
+            'cyclesByYear' => $byYear,
             'statuses' => self::CYCLE_STATUS,
         ]);
     }
@@ -1702,6 +1976,7 @@ class AdminController extends Controller
             'errDocs' => $errDocs,
             'response' => $response, 'funnel' => $funnel, 'topRules' => $topRules,
             'versions' => $cycle->versions()->pluck('code'),
+            'versionObjs' => $cycle->versions()->orderBy('id')->get(['id', 'code']),
             'ready' => $unresolved === 0 && $notBersih === 0 && $errDocs === 0,
             'statusLabels' => \App\Http\Controllers\MonitoringController::STATUS,
         ]);

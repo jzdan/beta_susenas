@@ -28,7 +28,7 @@ class MonitoringScheduleTest extends TestCase
         // 10 sampel, 1 selesai → riil 10% vs target ~100% → tertinggal
         foreach (range(1, 10) as $i) {
             SampleHousehold::create([
-                'cycle_id' => $cycle->id, 'wilayah_code' => '3526101001',
+                'cycle_id' => $cycle->id, 'wilayah_code' => '3526010001',
                 'no_bs' => '099', 'no_ruta' => str_pad((string) $i, 3, '0', STR_PAD_LEFT),
                 'krt_name' => "Uji {$i}", 'status' => $i === 1 ? 'selesai' : 'belum',
             ]);
