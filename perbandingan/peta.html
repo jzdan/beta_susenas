@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Peta Pengembangan Sistem SUSENAS -yeluruh, mengacu susenas-meta dan lk-susenas-3210</title>
+<style>
+  @page { size: A4; margin: 15mm 13mm 15mm 13mm; }
+  :root{ --ink:#14181d; --muted:#5b6672; --line:#d9dee5; --bg:#f6f7f9;
+    --kritis:#b3261e; --tinggi:#c2680a; --sedang:#7a6a00; --rendah:#3d6b4f; --acc:#1f4e79; --accbg:#eef3f9; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  body{font-family:"Segoe UI",Inter,system-ui,sans-serif; color:var(--ink); font-size:12pt; line-height:1.55; margin:0}
+  h1,h2,h3{line-height:1.25; margin:0 0 .5em}
+  h1{font-size:26pt; letter-spacing:-.3px}
+  h2{font-size:17pt; color:var(--acc); border-bottom:2px solid var(--acc); padding-bottom:4px; margin-top:0}
+  h3{font-size:13.4pt; margin-top:16px}
+  p{margin:0 0 .55em}
+  code{font-family:"Cascadia Mono",Consolas,monospace; font-size:10pt; background:#f0f2f5; padding:1px 4px; border-radius:3px}
+  ul,ol{margin:.3em 0 .7em; padding-left:1.25em}
+  li{margin:.18em 0}
+  table{width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:10pt}
+  th,td{border:1px solid var(--line); padding:6px 7px; text-align:left; vertical-align:top}
+  th{background:var(--accbg); color:#12314d; font-weight:600}
+  tr:nth-child(even) td{background:#fafbfc}
+  .page{page-break-after:always}
+  .page:last-child{page-break-after:auto}
+  .cover{min-height:210mm; display:flex; flex-direction:column; justify-content:center}
+  .cover .kicker{letter-spacing:2.4px; text-transform:uppercase; font-size:10.5pt; color:var(--muted); margin-bottom:9px}
+  .cover .sub{font-size:14.4pt; color:var(--muted); max-width:150mm; margin-top:9px}
+  .badge{display:inline-block; padding:2px 8px; border-radius:10px; color:#fff; font-size:9pt; font-weight:700}
+  .s-kritis{background:var(--kritis)} .s-tinggi{background:var(--tinggi)} .s-sedang{background:var(--sedang)} .s-rendah{background:var(--rendah)}
+  .box{background:var(--bg); border:1px solid var(--line); border-radius:5px; padding:11px 14px; margin:9px 0}
+  .note{background:#fff8e6; border:1px solid #e8d9a8; border-radius:5px; padding:11px 14px; margin:9px 0}
+  .good{background:#eef7f1; border:1px solid #bcdcc8; border-radius:5px; padding:11px 14px; margin:9px 0}
+  .small{font-size:10pt; color:var(--muted)}
+  .lead{font-size:12.6pt; color:#333c47}
+  .foot-note{margin-top:14px; padding-top:8px; border-top:1px solid var(--line); font-size:9.6pt; color:var(--muted)}
+  .num{text-align:right; font-variant-numeric:tabular-nums}
+  .mono{font-family:"Cascadia Mono",Consolas,monospace}
+</style>
+</head>
+<body>
+<section class="page cover">
+  <div class="kicker">Peta Pengembangan</div>
+  <h1>Sistem SUSENAS:<br>yang bisa dikembangkan<br>beracu susenas-meta &amp; lk-susenas-3210</h1>
+  <p class="sub">Delapan ranah pengembangan menyeluruh - dari kuesioner dan mesin aturan sampai
+  UI entri, tabulasi, integrasi, operasional, dan kualitas - disusun berdasarkan apa yang
+  proved ada, apa yang belum ada, dan apa yang terasa ribet di sistem yang sekarang.</p>
+  <table style="margin-top:14mm; max-width:160mm">
+    <tr><th style="width:30mm">Ranah</th><th>Arah utama</th><th style="width:20mm">Jumlah item</th><th style="width:26mm">Nilai ke BPS</th></tr>
+    <tr><td><b>R1</b> Kuesioner &amp; metadata</td><td>Persiapan semester: bandingkan versi, policies, rilis</td><td class="num">6</td><td>Sangat tinggi</td></tr>
+    <tr><td><b>R2</b> Aturan &amp; nilai turunan</td><td>Imputasi, konversi periode, rekap, kualitas data</td><td class="num">8</td><td>Sangat tinggi</td></tr>
+    <tr><td><b>R3</b> Alur kerja, peran, keamanan</td><td>Celah akses, policy, status dokumen, jejak audit</td><td class="num">7</td><td>Tinggi</td></tr>
+    <tr><td><b>R4</b> Entri &amp; antarmuka</td><td>Sistem komponen, tabel 194 baris, mode offline</td><td class="num">9</td><td>Tinggi</td></tr>
+    <tr><td><b>R5</b> Pengolahan &amp; tabulasi</td><td>Lorenz, persentil, dashboard, ekspor</td><td class="num">7</td><td>Tinggi</td></tr>
+    <tr><td><b>R6</b> Integrasi &amp; akses</td><td>SSO BPS, CAPI dua arah, keluaran Sheets</td><td class="num">5</td><td>Sedang</td></tr>
+    <tr><td><b>R7</b> Operasional &amp; infrastruktur</td><td>Backup, restore, penjadwal, performa basis data</td><td class="num">7</td><td>Tinggi</td></tr>
+    <tr><td><b>R8</b> Kualitas, uji, dokumentasi</td><td>Cakupan test, UAT, onboarding</td><td class="num">6</td><td>Sedang</td></tr>
+  </table>
+  <p class="foot-note">Acuan: repo susenas-meta (BPS Sulawesi Utara, Laravel + Inertia + Ant Design),
+  repo lk-susenas-3210 (React + Supabase + Google Sheets), dan audit kode sistem yang sedang berjalan.
+  Delapan puluh dua butir dirinci pada bagian 3 sampai 10. Semua butir ditandai jenisnya:
+  <b>Tanpa kode</b> (cukup diisi lewat menu admin), <b>UI</b>, <b>Logika</b>, atau <b>Operasional</b>.</p>
+</section>
+
+<section class="page">
+  <h2>1. Posisi sistem Anda sekarang</h2>
+  <p class="lead">Sistem Anda sudah menang pada dua hal yang menentukan: definisi kuesioner sebagai
+  data, dan mesin aturan yang aman serta tercatat. Yang belum adalah lapisan keluaran, lapisan
+  mutu, dan ketelitian operasional - dan ketiganya justru bisa diambil dari A dan B.</p>
+
+  <table>
+    <tr><th style="width:30mm">Dimensi</th><th>A - susenas-meta</th><th>B - lk-susenas-3210</th><th>Y - Sistem Anda</th><th style="width:18mm">Arah</th></tr>
+    <tr><td>Definisi kuesioner</td><td>Kode (kolom + React)</td><td>Kode (6 salinan konstanta)</td><td><b>Metadata di database</b></td><td>Unggul</td></tr>
+    <tr><td>Mesin aturan</td><td>Hardcoded di controller</td><td>Hardcoded TS di browser</td><td><b>ExpressionEvaluator + RuleEngine</b></td><td>Unggul</td></tr>
+    <tr><td>Riwayat nilai</td><td>Tidak ada</td><td>Hitung ulang di browser</td><td><b>Snapshot per dokumen</b></td><td>Unggul</td></tr>
+    <tr><td>Jejak audit</td><td>Minim</td><td>Tidak ada</td><td><b>AuditLog + AnswerHistory</b></td><td>Unggul</td></tr>
+    <tr><td>Peran &amp; cakupan</td><td>ADMIN/PML, kabkot + nks</td><td>Penugasan dari sheet</td><td><b>5 peran + cakupan wilayah</b></td><td>Unggul</td></tr>
+    <tr><td>Alur return ke petugas</td><td>Tidak ada</td><td>Tidak ada</td><td><b>Ada (dikembalikan + notifikasi)</b></td><td>Unggul</td></tr>
+    <tr><td>Impor / ekspor</td><td>Export raw (bermasalah)</td><td>Simpan ke Sheets</td><td><b>Impor CAPI + ekspor</b></td><td>Unggul</td></tr>
+    <tr><td>Uji otomatis</td><td>3 feature test</td><td>Nol</td><td><b>48 file test</b></td><td>Unggul</td></tr>
+    <tr><td>Statistik keluaran</td><td><b>Lorenz, persentil, garis kemiskinan</b></td><td>Tidak ada</td><td>Tabulasi + indikator</td><td>Ambil dari A</td></tr>
+    <tr><td>Nilai turunan-domain</td><td>QC, basket, kurva Lorenz</td><td><b>Imputasi pendapatan, konversi periode</b></td><td>Belum ada</td><td>Ambil dari keduanya</td></tr>
+    <tr><td>Antarmuka</td><td><b>Grid padat Ant Design</b></td><td><b>Wizard, tooltip rincian, filter</b></td><td>Blade monolitik, 1 komponen</td><td>Ambil dari keduanya</td></tr>
+    <tr><td>Panel QC per rute</td><td><b>Ada (Periksa)</b></td><td>Tidak ada</td><td>Belum ada</td><td>Ambil dari A</td></tr>
+    <tr><td>Operasional</td><td>Job antrean</td><td>Tidak ada</td><td>Health, backup, revalidate - <b>tapi backup gagal di prod</b></td><td>Tutup celah</td></tr>
+  </table>
+
+  <div class="note">
+    <b>Tujuh hal yang tidak boleh dikorbankan saat mengembangkan</b>
+    <ol>
+      <li>Kuesioner tetap <b>data</b>, tidak pernah jadi kode.</li>
+      <li>Aturan tetap <b>server-side</b> dan tercatat di <code>rule_results</code>.</li>
+      <li>Ekspresi tetap <b>daftar putih tanpa eval</b>.</li>
+      <li>Nilai historis tetap <b>meng kunci di snapshot</b>.</li>
+      <li>Semua perubahan aturan tetap bisa <b>dievaluasi ulang</b> tanpa koding ulang.</li>
+      <li>Setiap perubahan data tetap <b>tercatat di audit log</b>.</li>
+      <li>Tidak menambah <b>ketergantungan berat</b> di server produksi (tetap bisa jalan tanpa Node).</li>
+    </ol>
+  </div>
+</section>
+<section class="page">
+  <h2>2. Ringkasan delapan ranah</h2>
+  <p class="small">Jenis: <b>Tanpa kode</b> = cukup diisi lewat menu admin (metadata atau aturan);
+  <b>UI</b> = perombakan tampilan; <b>Logika</b> = perubahan PHP/JS terarah;
+  <b>Operasional</b> = infrastruktur, jadwal, proses.</p>
+  <table>
+    <tr><th style="width:8mm">ID</th><th style="width:36mm">Item</th><th style="width:16mm">Sumber</th><th style="width:16mm">Jenis</th><th>Hasil akhir</th><th style="width:15mm">Estimasi</th></tr>
+    <tr><td>R1.1</td><td>Halaman Bandingkan Versi</td><td>Audit</td><td>Logika</td><td>Delta antar versi kuesioner dalam satu layar</td><td>1-2 hari</td></tr>
+    <tr><td>R1.2</td><td>Kebijakan kode var permanen</td><td>Audit</td><td>Tanpa kode</td><td>Aturan main + alias antar versi</td><td>0.5 hari</td></tr>
+    <tr><td>R1.3</td><td>duplicateVersion + cek benturan</td><td>Audit</td><td>Logika</td><td>Salin versi aman, rule rusak ditandai</td><td>1 hari</td></tr>
+    <tr><td>R1.4</td><td>Salin baris list satu klik</td><td>Audit</td><td>Logika</td><td>194 komoditas tersalin dari versi lama</td><td>0.5 hari</td></tr>
+    <tr><td>R1.5</td><td>Checklist rilis kuesioner</td><td>Audit</td><td>UI</td><td>Daftar periksa sebelum semester dimulai</td><td>0.5 hari</td></tr>
+    <tr><td>R1.6</td><td>Paket versi & diff arsip</td><td>A</td><td>Tanpa kode</td><td>Ekspor-impor versi + diff JSON</td><td>1 hari</td></tr>
+    <tr><td>R2.1</td><td>Imputasi pendapatan (barang)</td><td>B</td><td>Tanpa kode</td><td>Aggregate + DerivedField per sumber pemberian</td><td>0.5 hari</td></tr>
+    <tr><td>R2.2</td><td>Konversi periode ke tahunan</td><td>B</td><td>Logika</td><td>Fungsi ekspresi + tipe aggregate</td><td>0.5 hari</td></tr>
+    <tr><td>R2.3</td><td>Rekap per ART dan per RT</td><td>A</td><td>UI</td><td>Tampilan di atas Aggregate yang ada</td><td>1 hari</td></tr>
+    <tr><td>R2.4</td><td>Metrik QC per rute</td><td>A</td><td>Tanpa kode</td><td>Kalori per kapita, jumlah komoditas, basket</td><td>0.5 hari</td></tr>
+    <tr><td>R2.5</td><td>Provenance nilai (tooltip)</td><td>B</td><td>UI</td><td>Asal-usul angka turunan dan temuan</td><td>1-2 hari</td></tr>
+    <tr><td>R2.6</td><td>Penegyasan 16 aturan Sidona</td><td>Audit</td><td>Tanpa kode</td><td>Keputusan BPS -&gt; aturan final</td><td>2-3 hari</td></tr>
+    <tr><td>R2.7</td><td>Kalibrasi timbangan</td><td>CLAUDE.md</td><td>Tanpa kode</td><td>Blok penimbang + aturan konsistensi</td><td>1 hari</td></tr>
+    <tr><td>R2.8</td><td>Modul Seruti (lanjutan)</td><td>CLAUDE.md</td><td>Logika</td><td>Blok IV.2.B, IV.2.V, VI</td><td>berkelanjutan</td></tr>
+    <tr><td>R3.1</td><td>Tutup IDOR entri</td><td>Audit</td><td>Logika</td><td>Operator hanya dokumennya</td><td>1-2 jam</td></tr>
+    <tr><td>R3.2</td><td>Policy / Gate</td><td>Audit</td><td>Logika</td><td>Scoping otomatis, bukan manual</td><td>1-2 hari</td></tr>
+    <tr><td>R3.3</td><td>Status dokumen &amp; alur kembali</td><td>Audit</td><td>Logika</td><td>Mesin status eksplisit</td><td>2-3 hari</td></tr>
+    <tr><td>R3.4</td><td>Penampil jejak audit</td><td>Audit</td><td>UI</td><td>Histori perubahan tiap dokumen</td><td>1-2 hari</td></tr>
+    <tr><td>R3.5</td><td>Pertahanan impor</td><td>Audit</td><td>Logika</td><td>Batas ukuran, validasi, batch</td><td>1 hari</td></tr>
+    <tr><td>R3.6</td><td>Peran PJ diuggur</td><td>Audit</td><td>Logika</td><td>Dua PJ per kecamatan, atau PJ + PML</td><td>0.5 hari</td></tr>
+    <tr><td>R3.7</td><td>Soal Uji Coba (mokup)</td><td>Audit</td><td>Logika</td><td>Uji idempoten dan slowing down</td><td>0.5 hari</td></tr>
+    <tr><td>R4.1</td><td>Sistem komponen Blade</td><td>A + B</td><td>UI</td><td>30 komponen, bukan tulis ulang per view</td><td>3-5 hari</td></tr>
+    <tr><td>R4.2</td><td>Tabel 194 komoditas: filter, header lengket, navigasi keyboard</td><td>A + B</td><td>UI</td><td>Entri jauh lebih cepat</td><td>2-3 hari</td></tr>
+    <tr><td>R4.3</td><td>Mode wizard bertahap</td><td>B</td><td>UI</td><td>Blok padat dipecah langkah</td><td>2-3 hari</td></tr>
+    <tr><td>R4.4</td><td>Antrean simpan saat offline</td><td>A</td><td>Logika</td><td>Isian petugas tidak hilang sinyal buruk</td><td>2-3 hari</td></tr>
+    <tr><td>R4.5</td><td>Cetak sama dengan layar</td><td>Audit</td><td>UI</td><td>Berbagi partial render</td><td>1-2 hari</td></tr>
+    <tr><td>R4.6</td><td>Papan temuan yang bisa diklik</td><td>A</td><td>UI</td><td>Lompat ke sel bermasalah</td><td>1 hari</td></tr>
+    <tr><td>R4.7</td><td>Peta wilayah interaktif</td><td>A</td><td>UI</td><td>Wilayah + blok + status</td><td>2-3 hari</td></tr>
+    <tr><td>R4.8</td><td>Aksesibilitas &amp; layar kecil</td><td>Audit</td><td>UI</td><td>Kontras, fokus, tabel padat di ponsel</td><td>1-2 hari</td></tr>
+    <tr><td>R4.9</td><td>Panel konteks dokumen</td><td>B</td><td>UI</td><td>Identitas, status, progres dalam satu panel</td><td>1 hari</td></tr>
+  </table>
+</section>
+<section class="page">
+  <h2>3. R1 Kuesioner &amp; metadata - R2 Aturan dan nilai turunan</h2>
+
+  <h3>R1 - Persiapan semester berikutnya</h3>
+  <p class="small">Ini ranah paling menentukan masa depan, karena setiap semester BPS mengubah
+  kuesioner. Repo A dan B harus <b>mengubah kode</b> setiap kali; sistem Anda cukup menambah baris.
+  Yang belum ada adalah alat bantu untuk mengelola proses itu.</p>
+  <table>
+    <tr><th style="width:13mm">Item</th><th>Detail</th><th style="width:22mm">Jadi apa</th></tr>
+    <tr><td><b>R1.1</b> Bandingkan Versi</td><td>Rute <code>/admin/versi/bandingkan?dari=&amp;ke=</code> menghasilkan tabel delta: blok, pertanyaan, opsi, baris list, aturan, agregat, nilai turunan yang tambah-hapus-ubah. Dulu ini dikerjakan manual dengan membaca dua paket versi berdampingan.</td><td>Tab delta di menu Metadata</td></tr>
+    <tr><td><b>R1.2</b> Kode var permanen</td><td>Tetapkan aturan main: label dan opsi boleh berubah, kode <code>var</code> tidak. Bila BPS mengganti nama kode, buat kode baru dan simpan yang lama sebagai alias, jangan mengganti. Ini menjaga impor CAPI, ekspor, dan tabulasi antar semester tetap sebanding.</td><td>Aturan main + tabel alias per versi</td></tr>
+    <tr><td><b>R1.3</b> duplicateVersion aman</td><td>Saat menyalin versi untuk semester baru, jalankan cek: kode var duplikat, aturan yang menunjuk blok atau pertanyaan tak ada, agregat tanpa sumber, baris list tak sinkron. Aturan bermasalah ditandai <b>broken</b> dan tidak ikut aktif.</td><td>Laporan benturan saat duplikasi</td></tr>
+    <tr><td><b>R1.4</b> Salin baris list</td><td>194 baris komoditas disalin dari versi lama dengan satu tombol, memakai <code>importRows</code> yang sudah ada.</td><td>Tombol salin dari versi lain</td></tr>
+    <tr><td><b>R1.5</b> Checklist rilis</td><td>Sebelum semester dimulai: pertanyaan baru sudah punya aturan wajib; pertanyaan yang dihapus tidak meninggalkan aturan menggantung; NERACA masih balance setelah baris list berubah; kode var tidak berubah; paket versi sudah diekspor.</td><td>Checklist di halaman siklus</td></tr>
+    <tr><td><b>R1.6</b> Paket versi + diff arsip</td><td><code>susenas:qversion:export</code> sudah ada; tambahkanTambahkan diff JSON antar dua paket untuk review versi tanpa sistem.</td><td>Perintah diff versi</td></tr>
+  </table>
+
+  <h3>R2 - Nilai turunan yang belum ada</h3>
+  <p class="small">Semua item R2.1 sampai R2.5 dan R2.7 bisa dikerjakan <b>tanpa menulis PHP</b>,
+  karena mesin aturan dan agregat sudah membaca metadata. Ini keunggulan yang belum dipakai.</p>
+  <table>
+    <tr><th style="width:13mm">Item</th><th>Detail</th><th style="width:22mm">Jadi apa</th></tr>
+    <tr><td><b>R2.1</b> Imputasi pendapatan</td><td>Ambil konsep dari B, tulis ulang sendiri sebagai metadata. <code>Aggregate</code> dengan <code>filter_var</code> = jenis pemberian dan <code>filter_val</code> = sumber pemberian; <code>DerivedField</code> menjumlahkan dan membagi per kapita. <code>Parameter</code> menyimpan ambang. Perhatikan B memakai kunci data berupa nama item sehingga mudah orphan - di sini kuncinya nama variabel, jadi aman.</td><td>Aggregate + DerivedField siap isi</td></tr>
+    <tr><td><b>R2.2</b> Konversi periode</td><td>B memakai periode (minggu, bulan, tahun) di dalam entri dan mengonversinya ke tahunan. Di sistem ini cukup satu fungsi ekspresi <code>period_to_annual(nilai, faktor)</code> plus <code>Parameter</code> per versi, menggantikan konstanta kali 30 dan kali 7 yang tersebar di aturan.</td><td>Fungsi ekspresi + parameter</td></tr>
+    <tr><td><b>R2.3</b> Rekap per ART dan per RT</td><td>A punya tampilan rekap per ART dan per RT. Di sini cukup lapisan tampilan di atas <code>Aggregate</code> yang sudah ada - tidak mengubah perhitungan.</td><td>Dua tampilan rekap</td></tr>
+    <tr><td><b>R2.4</b> Metrik QC per rute</td><td>A punya papan QC: kalori per kapita per hari, jumlah komoditas makanan, jumlahkomoditasはdir smoked, basket. Semua bisa jadi <code>DerivedField</code> + aturan rentang + satu halaman rekap per sampel.</td><td>Papan QC per sampel</td></tr>
+    <tr><td><b>R2.5</b> Provenance nilai</td><td>B punya tooltip yang menjelaskan asal-usul angka imputasi. Di sini, ketika petugas atau pemeriksa melihat angka turunan atau temuan, tampilkan: aturan mana yang menyalakan, nilai,nilai yang dipakai, dan baris mana. Sumber data sudah tersedia di <code>rule_results</code> dan konteks <code>RuleEngine</code>.</td><td>Tooltip + panel rincian</td></tr>
+    <tr><td><b>R2.6</b> 16 aturan Sidona</td><td><code>docs/pemetaan-aturan-sidona.md</code> memetakan 92 dari 108 aturan. Sisanya butuh keputusan BPS. Setelah diputuskan, cukup dituangkan sebagai <code>ValidationRule</code> dan divalidasi ulang massal dengan <code>susenas:revalidate</code>.</td><td>16 aturan final</td></tr>
+    <tr><td><b>R2.7</b> Kalibrasi timbangan</td><td>Blok penimbang + aturan konsistensi (timbangan digital versus daftar, batas toleransi). Semua metadata.</td><td>Blok + aturan kalibrasi</td></tr>
+    <tr><td><b>R2.8</b> Modul Seruti</td><td>Blok IV.2.B, IV.2.V, dan VI masih kosong (lihat <code>docs/modul-seruti.md</code>). Perlu dari BPS: naskah kuesioner, daftar rincian, dan aturan anomali.</td><td>Modul lengkap</td></tr>
+  </table>
+
+  <div class="box">
+    <b>Kalau hanya satu ranah yang dikerjakan bulan ini: R2.</b> Seluruh isinya bernilai tinggi untuk
+    BPS, sebagian besar tanpa satu baris PHP, dan langsung menguji bahwa mesin aturan Anda memang
+    mampumenanggung domain yang serius domain yang serius - bukan hanya pemeriksaan masuk.
+  </div>
+</section>
+<section class="page">
+  <h2>4. R3 Alur kerja, peran, keamanan - R4 Entri dan antarmuka</h2>
+
+  <h3>R3 - alur, peran, keamanan</h3>
+  <table>
+    <tr><th style="width:13mm">Item</th><th>Detail</th><th style="width:20mm">Estimasi</th></tr>
+    <tr><td><b>R3.1</b> Tutup IDOR entri</td><td>Ubah <code>assertActiveCycle</code> menjadi <code>assertDocumentAccess</code>: operator hanya dokumen dengan <code>petugas_id</code> miliknya, PJ hanya yang <code>wilayah_scope</code>-nya cocok, PML dan admin bebas. Terapkan juga di VisitPhoto dan DocumentNote.</td><td>1-2 jam</td></tr>
+    <tr><td><b>R3.2</b> Policy / Gate</td><td>Buat <code>DocumentPolicy</code> dan <code>SamplePolicy</code>, panggil di controller. Kontrol akses berhenti tersebar di tiap controller dan menjadi default otomatis.</td><td>1-2 hari</td></tr>
+    <tr><td><b>R3.3</b> Mesin status dokumen</td><td>Status sekarang (draf, dikirim, dikembalikan, selesai, bersih) tersebar di beberapa tempat. Jadikan satu mesin status dengan transisi yang sah, sehingga tombol yang salah tidak mungkin terjadi.</td><td>2-3 hari</td></tr>
+    <tr><td><b>R3.4</b> Penampil jejak audit</td><td>AuditLog sudah merekam aksi, tapi belum ada layar yang-premaya. Satu halaman per dokumen: siapa mengubah apa, kapan, dari nilai apa ke nilai apa.</td><td>1-2 hari</td></tr>
+    <tr><td><b>R3.5</b> Pertahanan impor</td><td>Batas ukuran berkas, validasi kolom, batch, dan batas waktu pada impor CAPI dan impor versi. <code>DB::beginTransaction</code> sudah ada, yang belum adalah batas sumber daya.</td><td>1 hari</td></tr>
+    <tr><td><b>R3.6</b> Peran PJ</td><td>Saat ini satu PJ per kecamatan. Bila BPS butuh dua (misalnya PJ pengawas dan PJ pemeriksa), longgarkan aturan dan bebaskan penugasan.</td><td>0.5 hari</td></tr>
+    <tr><td><b>R3.7</b> Uji idempoten</td><td>Impor dan revalidasi harus aman dijalankan dua kali tanpa menggandakan data. Ini yang diuji di repo lain sebagai "fix double count" - lebih baik dicegah sejak desain.</td><td>0.5 hari</td></tr>
+  </table>
+
+  <h3>R4 - antarmuka: ini yang paling terasa ribet</h3>
+  <p class="small">Bukti dari kode: <b>47 berkas view, 4.044 baris Blade, tetapi hanya 1 komponen
+  Blade</b>. Primitif UI ditulis ulang di tiap halaman - <code>panel</code> muncul di 24 berkas,
+  <code>tbl</code> di 23, tombol di 27, <code>tablewrap</code> di 12. Akibatnya satu perubahan gaya
+  harus disalin ke banyak tempat, dan tampilan antar halaman tidak konsisten.</p>
+  <table>
+    <tr><th style="width:13mm">Item</th><th>Detail</th><th style="width:20mm">Estimasi</th></tr>
+    <tr><td><b>R4.1</b> Sistem komponen Blade</td><td>Ekstrak 30 komponen ke <code>resources/views/components/</code>: <code>x-panel</code>, <code>x-panel-head</code>, <code>x-toolbar</code>, <code>x-table</code>, <code>x-table-wrap</code>, <code>x-btn</code>, <code>x-chip</code>, <code>x-flag</code>, <code>x-field</code>, <code>x-input</code>, <code>x-select</code>, <code>x-badge</code>, <code>x-empty</code>, <code>x-stat</code>, <code>x-steps</code>, <code>x-modal</code>, <code>x-toast</code>, <code>x-kv</code>, <code>x-progress</code>, <code>x-tabs</code>, <code>x-pagination</code>, dan seterusnya. Semuanya memakai token CSS yang sudah ada, sehingga mode gelap tetap jalan.</td><td>3-5 hari</td></tr>
+    <tr><td><b>R4.2</b> Tabel 194 komoditas</td><td>Blok <code>list</code> punya 194 baris. Tambahkan kotak cari komoditas, header lengket, navigasi keyboard (Enter ke sel berikutnya), input angka dengan format ribuan, dan sorotan baris bermasalah. B memakai tab per kelompok A-N; A memakai grid Ant Design dengan kolom lengket - dua ide yang bisa digabung di sini.</td><td>2-3 hari</td></tr>
+    <tr><td><b>R4.3</b> Mode wizard</td><td>B memecah kuesioner jadi 7 halaman berurutan dengan indikator langkah. Karena blok sudah metadata, pemetaan blok ke langkah cukup satu tabel kecil, dan renderer generik tetap dipakai.</td><td>2-3 hari</td></tr>
+    <tr><td><b>R4.4</b> Antrean simpan offline</td><td>Sekarang satu POST per isian, tanpa retry, tanpa antrean, dan CSRF diambil sekali - begitu sesi habis (419) seluruh isian berikutnya gagal. Di lapangan sinyal sering buruk. Tambahkan antrean di localStorage, retry, dan penanda "belum tersimpan" per sel.</td><td>2-3 hari</td></tr>
+    <tr><td><b>R4.5</b> Cetak = layar</td><td><code>entri/print.blade.php</code> merender ulang isi kuesioner secara terpisah dari <code>document.blade.php</code>, sehingga tampilan cetak bisa melenceng dari layar. Berbagi satu partial render.</td><td>1-2 hari</td></tr>
+    <tr><td><b>R4.6</b> Papan temuan klikabel</td><td>Semua temuan validasi kini tampil sebagai bendera kecil. Buat panel rekap temuan yang bisa diklik untuk melompat ke sel bermasalah, persis seperti papan Periksa di A.</td><td>1 hari</td></tr>
+    <tr><td><b>R4.7</b> Peta wilayah</td><td>Sekarang "Peta Progres" adalah skema kotak, bukan peta geografis. Bila BPS butuh peta wilayah, pakai peta statis SVG per kabupaten agar tidak menambah pustaka berat; kalau tidak perlu, ubah saja namanya jadi Progres per Wilayah.</td><td>2-3 hari</td></tr>
+    <tr><td><b>R4.8</b> Aksesibilitas dan layar kecil</td><td>Periksa kontras mode gelap, fokus keyboard, dan tabel padat di ponsel. Petugas lapangan banyak memakai ponsel.</td><td>1-2 hari</td></tr>
+    <tr><td><b>R4.9</b> Panel konteks dokumen</td><td>Identitas, status, progres, dan tombol aksi_nowdalam satu panel yang menempel, supaya tidak perlu menggulir panjang untuk melihat posisi kerja.</td><td>1 hari</td></tr>
+  </table>
+
+  <div class="note">
+    <b>Yang paling terasa petugas lapangan - urutan prioritas di R4</b>
+    <ol>
+      <li><b>R4.4 antrean offline</b> - paling kritis, mencegah isian hilang.</li>
+      <li><b>R4.2 tabel 194 baris</b> - menentukan kecepatan mengetik isian.</li>
+      <li><b>R4.9 panel konteks</b> - mengurangi salah fokus.</li>
+      <li><b>R4.6 papan temuan klikabel</b> -mempercepat waktu memperbaiki temuan.</li>
+      <li><b>R4.1 sistem komponen</b> - fondasi, dikerjakan lebih dulu bila ada banyak waktu luang.</li>
+    </ol>
+  </div>
+</section>
+<section class="page">
+  <h2>5. R5 Pengolahan dan tabulasi - R6 Integrasi dan akses</h2>
+
+  <h3>R5 - keluaran yang dipakai BPS</h3>
+  <table>
+    <tr><th style="width:13mm">Item</th><th>Detail</th><th style="width:20mm">Estimasi</th></tr>
+    <tr><td><b>R5.1</b> Kurva Lorenz + tabel persentil</td><td>A punya keduanya; sistem Anda belum. Data konsumsi sudah ada di <code>document_snapshots</code>, termasuk <code>garis_kemiskinan_kab</code>, jadi ini murni lapisan tampilan di atas <code>TabulationController</code>.</td><td>1-2 hari</td></tr>
+    <tr><td><b>R5.2</b> Kurva garis kemiskinan</td><td>Sama dengan R5.1, ditambahkan grafik perbandingan antar daerah dengan garis kemiskinan kabupaten.</td><td>0.5-1 hari</td></tr>
+    <tr><td><b>R5.3</b> Angka Konsumsi per kapita per bulan</td><td>Indikator Kesejahteraan sudah ada; lengkapi dengan angka konsumsi per kapita per bulan yang siap diunduh, plus penjelasannya.</td><td>1 hari</td></tr>
+    <tr><td><b>R5.4</b> Dashboard terperinci</td><td>A punya dashboard richly: respons dan disposisi, kecepatan, alur pengolahan. Sistem Anda punya fondasinya - lengkapi denganvizualisasi yang lebih jelas dan filter per borough.</td><td>2 hari</td></tr>
+    <tr><td><b>R5.5</b> Ekspor CAPI dua arah</td><td>Impor CAPI sudah ada dengan dry-run dan alias kolom. Tambahkan ekspor dengan format lebar yang sama agar bolak-balik bisa dipertanggungjawabkan.</td><td>1 hari</td></tr>
+    <tr><td><b>R5.6</b> Ekspor bulk multi-siklus</td><td>Saat ini ekspor per siklus. Untuk analisis tahunan perlu satu ekspor yang menggabungkan beberapa siklus dengan kolom siklus.</td><td>1-2 hari</td></tr>
+    <tr><td><b>R5.7</b> Keluaran Google Sheets</td><td>B menyimpan data ke Sheets; di sini Sheets dipakai sebagai <b>keluaran</b> saja (laporan per siklus), memakai service account read-write pada satu spreadsheet tujuan. Jangan tiru Sheets sebagai basis data.</td><td>1-2 hari</td></tr>
+  </table>
+
+  <h3>R6 - integrasi dan akses</h3>
+  <table>
+    <tr><th style="width:13mm">Item</th><th>Detail</th><th style="width:20mm">Estimasi</th></tr>
+    <tr><td><b>R6.1</b> SSO BPS</td><td>Sudah tercatat sebagai kebutuhan BPS.dalam hal ini ini: tentukan apakah memakai SAML/OIDC internal BPS atau hanya sekali masuk lewat reverse proxy, lalu buat lapisan autentikasi yang bisa ditukar tanpa mengubah controller.</td><td>3-5 hari</td></tr>
+    <tr><td><b>R6.2</b> API untukformerlyadalah partner</td><td>Beberapa dipakai secara intensif data SUSENAS dari luar. Beri akses terstruktur: token per partner, hanya endpoint baca, dan catatan akses di audit log.</td><td>2-3 hari</td></tr>
+    <tr><td><b>R6.3</b> Format CAPI dari BPS</td><td>Perlu konfirmasi format resmi dari BPS. Sudah ada alias kolom sebagai jaring pengaman; tambahkan peta kolom yang di-hardcode dari format final.</td><td>1 hari</td></tr>
+    <tr><td><b>R6.4</b> Data referensi wilayah, sampel, harga</td><td>Wilayah, sampel, dan harga acuan masih memerlukan masukan BPS. Jadikan tabel referensi dengan tanggal berlaku dan sumber, supaya bisa diperbarui tanpa menyentuh kode.</td><td>2 hari</td></tr>
+    <tr><td><b>R6.5</b> Notifikasi_channels</td><td>Notifikasi sudah ada di dalam aplikasi. Bila perlu kanal lain (email atau pesan singkat), buat antrean pesan agar pengiriman tidak memblokir request.</td><td>1-2 hari</td></tr>
+  </table>
+
+  <h2>6. R7 Operasional - R8 Kualitas, uji, dokumentasi</h2>
+  <table>
+    <tr><th style="width:13mm">Item</th><th>Detail</th><th style="width:20mm">Estimasi</th></tr>
+    <tr><td><b>R7.1</b> Backup PostgreSQL</td><td><code>susenas:backup</code> hanya mendukung SQLite, sedangkan produksi memakai PostgreSQL - backup harian gagal diam-diam. Tambahkan cabang <code>pg_dump</code>, simpan di bind mount host di luar volume Docker, dan letakkan di luar repo.</td><td>3-4 jam</td></tr>
+    <tr><td><b>R7.2</b> Restore + uji pemulihan</td><td>Perintah <code>susenas:restore</code> plus jadwal uji pemulihan berkala. Backup yang tak pernah dipulihkan belum tentu backup.</td><td>2 jam</td></tr>
+    <tr><td><b>R7.3</b> Pemeriksaan backup di health</td><td><code>susenas:health</code> sudah memeriksa banyak hal; tambahkan "backup terakhir lebih dari 24 jam" sebagai peringatan keras.</td><td>30 menit</td></tr>
+    <tr><td><b>R7.4</b> Worker + penjadwal di compose</td><td>Compose hanya punya app, web, dan db. Tambahkan service <code>queue:work</code> dan penjadwal <code>schedule:run</code> agar jadwal benar-benar jalan.</td><td>1-2 jam</td></tr>
+    <tr><td><b>R7.5</b> Retensi snapshot</td><td><code>document_snapshots</code> tumbuh terus. Tetapkan retensi (simpan N revisi terakhir per dokumen) dan indeks komposit.</td><td>1 hari</td></tr>
+    <tr><td><b>R7.6</b> Batch revalidasi dan impor</td><td>Tambahkan <code>--chunk</code>, laporan progres, batas ukuran berkas, dan jalankan lewat antrean.</td><td>1 hari</td></tr>
+    <tr><td><b>R7.7</b> Syarat jalan produksi</td><td>Periksa awal di <code>entrypoint.sh</code>: tolak mulai bila password database masih nilai bawaan, dan ensure APP_KEY selalu ada.</td><td>30 menit</td></tr>
+    <tr><td><b>R8.1</b> Cakupan test</td><td>48 file test sudah ada; tambahkan test untuk ExpressionEvaluator (batas ekspresi), RuleEngine (per-baris), Policy, dan impor.</td><td>2-3 hari</td></tr>
+    <tr><td><b>R8.2</b> UAT skenario</td><td><code>docs/skenario-uat.md</code> sudah ada; jalankan bersama BPS per semester sebagai syarat rilis.</td><td>2 hari per semester</td></tr>
+    <tr><td><b>R8.3</b> CATATAN sebagai sumber konteks</td><td>2.178 baris log increment sudah sangat baik. Tambahkan satu baris per butir peta ini setiap selesai, supaya konteks tidak hilang.</td><td>terus</td></tr>
+    <tr><td><b>R8.4</b> Panduan admin interaktif</td><td><code>docs/panduan-admin.html</code> sudah ada. Bangun halaman yang menjelaskan alur setup siklus (R1.5) dan peran tiap orang.</td><td>1-2 hari</td></tr>
+    <tr><td><b>R8.5</b> Onboarding developer</td><td><code>CLAUDE.md</code> sudah kuat. Tambahkan peta kode: berkas mana untuk tugas apa - terutama untuk Metadata dan Aturan yang tersebar di banyak controller.</td><td>0.5 hari</td></tr>
+    <tr><td><b>R8.6</b> Seragamkan penamaan</td><td>Ada <code>admin.rules</code>, <code>admin.metadata</code>, dan <code>admin.siklus</code> yangberbeda dalam menangani hal mirip. Konsolidasikan agar model mental pengguna dan developer sama.</td><td>1 hari</td></tr>
+  </table>
+</section>
+<section class="page">
+  <h2>7. Peta gelombang - 12 minggu</h2>
+  <p>Urutan ini sengaja menempatkan dua hal termurah yang paling besar dampaknya lebih dulu,
+  lalu hal yang gratis (metadata) yang paling tinggi nilainya, baru perombakan besar.</p>
+
+  <table>
+    <tr><th style="width:22mm">Gelombang</th><th style="width:30mm">Fokus</th><th>Butir</th><th style="width:22mm">Hasil akhir</th></tr>
+    <tr><td><b>0</b> (2 hari)</td><td>Tutup celah</td><td>R3.1 IDOR entri, R7.1 backup PostgreSQL, R7.4 worker dan penjadwal, R7.3 pemeriksaan backup, R7.7 syarat produksi, R1.2 kebijakan var</td><td>Data aman, backup jalan, jadwal jalan</td></tr>
+    <tr><td><b>1</b> (minggu 2-3)</td><td>Nilai turunan tanpa koding</td><td>R2.1 imputasi, R2.2 konversi periode, R2.4 metrik QC, R2.3 rekap ART dan RT, R5.1 dan R5.2 Lorenz persentil garis kemiskinan, R1.3 cek benturan</td><td>Keluaran BPS naik kelas, mesin aturan teruji</td></tr>
+    <tr><td><b>2</b> (minggu 4-6)</td><td>Antarmuka</td><td>R4.1 sistem komponen, R4.2 tabel 194 baris, R4.4 antrean offline, R4.9 panel konteks, R4.6 papan temuan, R4.5 cetak sama dengan layar</td><td>Entri jauh lebih cepat dan aman</td></tr>
+    <tr><td><b>3</b> (minggu 7-9)</td><td>Proses dan kualitas</td><td>R1.1 Bandingkan Versi, R1.4 salin baris, R1.5 checklist rilis, R3.2 Policy, R3.3 mesin status, R3.4 penampil audit, R3.5 pertahanan impor</td><td>Semester berikutnya jauh lebih murah</td></tr>
+    <tr><td><b>4</b> (minggu 10-12)</td><td>Integrasi dan pemolesan</td><td>R2.5 provenance, R4.3 wizard, R4.7 peta, R4.8 aksesibilitas, R5.4 dashboard, R5.5 ekspor CAPI, R5.6 ekspor multi-siklus, R5.7 Sheets, R7.5 retensi, R7.6 batch</td><td>Siap UAT semester berikutnya</td></tr>
+  </table>
+
+  <h3>Checklist gelombang 0 - dua hari pertama</h3>
+  <table class="chk">
+    <tr><th style="width:10mm">&#9744;</th><th style="width:14mm">Item</th><th>Yang dikerjakan</th><th style="width:18mm">Selesai</th></tr>
+    <tr><td>&#9744;</td><td>R3.1</td><td><code>assertDocumentAccess()</code> di EntryController, VisitPhoto, DocumentNote</td><td></td></tr>
+    <tr><td>&#9744;</td><td>R7.1</td><td>Cabang <code>pg_dump</code> di perintah backup, simpan di luar volume Docker</td><td></td></tr>
+    <tr><td>&#9744;</td><td>R7.4</td><td>Service <code>worker</code> dan penjadwal di <code>docker-compose.yml</code></td><td></td></tr>
+    <tr><td>&#9744;</td><td>R7.3</td><td>Peringatan "backup terakhir lebih dari 24 jam" di <code>susenas:health</code></td><td></td></tr>
+    <tr><td>&#9744;</td><td>R7.7</td><td>Tolak mulai bila password DB masih nilai bawaan</td><td></td></tr>
+    <tr><td>&#9744;</td><td>R1.2</td><td>Tulis aturan kode var permanen di <code>CLAUDE.md</code> dan <code>docs/SRS-ringkas.md</code></td><td></td></tr>
+  </table>
+
+  <div class="box">
+    <b>Definisi selesai untuk setiap butir</b>
+    <ol>
+      <li>Ada test otomatis yang gagal sebelum dan lulus sesudahnya.</li>
+      <li>Catatan di <code>CATATAN-SUSENAS.md</code> bertambah satu entri.</li>
+      <li>Kalau menyentuh aturan: <code>susenas:revalidate</code> dijalankan dan <code>susenas:health</code> bersih.</li>
+      <li>Kalau menyentuh UI: diperiksa pada mode terang dan gelap, serta di layar ponsel.</li>
+      <li>Kalau menyentuh deploy: dicoba di lingkungan uji dengan basis data kosong dan berisi.</li>
+      <li>Tidak ada perubahan yang melanggar tujuh guardrail di bagian 1.</li>
+    </ol>
+  </div>
+
+  <h3>Manakah yang paling bernilai untuk BPS?</h3>
+  <table>
+    <tr><th style="width:26mm">Hasil akhir</th><th>Ragam</th><th style="width:44mm">Mengapa penting bagi BPS</th></tr>
+    <tr><td>Imputasi pendapatan</td><td>R2.1</td><td>Perhitungan pendapatan rumah tangga jadi lengkap dan bisa dipertanggungjawabkan</td></tr>
+    <tr><td>Lorenz dan persentil</td><td>R5.1, R5.2</td><td>Kalaman keluaran standar BPS yang belum ada di sistem Anda</td></tr>
+    <tr><td>Backup yang benar-benar jalan</td><td>R7.1, R7.2</td><td>Menjaga satu semester kerja lapangan</td></tr>
+    <tr><td>Entri cepat dan aman offline</td><td>R4.2, R4.4</td><td>Menentukan ketepatan dan kecepatan pengumpulan data</td></tr>
+    <tr><td>Bandingkan Versi</td><td>R1.1</td><td>Menjaga dua semester berjalan berdampingan tanpa keribuan</td></tr>
+    <tr><td>Impor CAPI dua arah</td><td>R5.5</td><td>Menjaga format CAPI tetap yang disepakati BPS</td></tr>
+  </table>
+
+  <p class="foot-note">Disusun dari pembacaan kode ketiga repositori dan audit internal sistem yang
+  sedang berjalan. Seluruh butir di sini dapat dikerjakan tanpa mengorbankan arsitektur metadata
+  yang menjadi kekuatan utama sistem ini. Titik kembali untuk dokumen audit sebelumnya ada di
+  commit <code>audit-baseline</code>.</p>
+</section>
+</body>
+</html>
