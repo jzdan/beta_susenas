@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Audit Risiko - susenas-meta, lk-susenas-3210, dan Sistem SUSENAS</title>
+<style>
+  @page { size: A4; margin: 15mm 13mm 15mm 13mm; }
+  :root{ --ink:#14181d; --muted:#5b6672; --line:#d9dee5; --bg:#f6f7f9;
+    --kritis:#b3261e; --tinggi:#c2680a; --sedang:#7a6a00; --rendah:#3d6b4f; --acc:#1f4e79; --accbg:#eef3f9; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  body{font-family:"Segoe UI",Inter,system-ui,sans-serif; color:var(--ink); font-size:12pt; line-height:1.55; margin:0}
+  h1,h2,h3,h4{line-height:1.25; margin:0 0 .5em}
+  h1{font-size:26pt; letter-spacing:-.3px}
+  h2{font-size:17pt; color:var(--acc); border-bottom:2px solid var(--acc); padding-bottom:4px; margin-top:0}
+  h3{font-size:13.4pt; margin-top:14px}
+  p{margin:0 0 .55em}
+  code,.mono{font-family:"Cascadia Mono",Consolas,monospace; font-size:10pt; background:#f0f2f5; padding:1px 4px; border-radius:3px}
+  pre{background:#1c2230; color:#e8edf5; padding:10px 12px; border-radius:5px; overflow-x:auto; font-size:9.6pt; line-height:1.45; margin:6px 0 9px}
+  pre code{background:none; color:inherit; padding:0; font-size:9.6pt}
+  ul,ol{margin:.3em 0 .7em; padding-left:1.25em}
+  li{margin:.16em 0}
+  table{width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:10pt}
+  th,td{border:1px solid var(--line); padding:6px 7px; text-align:left; vertical-align:top}
+  th{background:var(--accbg); color:#12314d; font-weight:600}
+  tr:nth-child(even) td{background:#fafbfc}
+  .page{page-break-after:always}
+  .page:last-child{page-break-after:auto}
+  .cover{min-height:210mm; display:flex; flex-direction:column; justify-content:center}
+  .cover .kicker{letter-spacing:2.4px; text-transform:uppercase; font-size:10.5pt; color:var(--muted); margin-bottom:9px}
+  .cover .sub{font-size:14.4pt; color:var(--muted); max-width:150mm; margin-top:9px}
+  .badge{display:inline-block; padding:2px 8px; border-radius:10px; color:#fff; font-size:9pt; font-weight:700; letter-spacing:.3px; vertical-align:middle}
+  .s-kritis{background:var(--kritis)} .s-tinggi{background:var(--tinggi)}
+  .s-sedang{background:var(--sedang)} .s-rendah{background:var(--rendah)}
+  .card{border:1px solid var(--line); border-left:5px solid var(--acc); border-radius:5px; padding:11px 13px; margin:0 0 12px; break-inside:avoid}
+  .card.k{border-left-color:var(--kritis)} .card.t{border-left-color:var(--tinggi)}
+  .card.s{border-left-color:var(--sedang)} .card.r{border-left-color:var(--rendah)}
+  .card h3{margin:0 0 6px; font-size:13.4pt}
+  .card .id{font-weight:700; color:var(--acc); font-size:11.4pt; margin-right:6px}
+  .kv{display:grid; grid-template-columns:27mm 1fr; gap:4px 9px; font-size:11pt; margin-top:7px}
+  .kv b{color:var(--muted); font-weight:600}
+  .box{background:var(--bg); border:1px solid var(--line); border-radius:5px; padding:11px 14px; margin:9px 0}
+  .note{background:#fff8e6; border:1px solid #e8d9a8; border-radius:5px; padding:11px 14px; margin:9px 0}
+  .good{background:#eef7f1; border:1px solid #bcdcc8; border-radius:5px; padding:11px 14px; margin:9px 0}
+  .fill{border-bottom:1px dotted #888; display:inline-block; min-width:38mm}
+  .small{font-size:10pt; color:var(--muted)}
+  .toc td:first-child{width:14mm; font-weight:700; color:var(--acc)}
+  .lead{font-size:12.6pt; color:#333c47}
+  .foot-note{margin-top:14px; padding-top:8px; border-top:1px solid var(--line); font-size:9.6pt; color:var(--muted)}
+  .chk{font-size:10pt}
+  .chk td:first-child{width:11mm; text-align:center; font-size:15pt}
+</style>
+</head>
+<body>
+<section class="page cover">
+  <div class="kicker">Audit Risiko Lintas Proyek</div>
+  <h1>Meta SUSENAS, LK SUSENAS 3210,<br>dan Sistem SUSENAS (lokal)</h1>
+  <p class="sub">Tiga sistem SUSENAS dibandingkan dari sisi risiko: keamanan, integritas data,
+  kesiapan operasional, ketahanan terhadap perubahan kuesioner, serta kelayakan untuk dipakai
+  di lingkungan BPS. Dokumen ini disusun agar dapat dibaca lalu diurutkan ulang oleh Anda
+  sendiri - lihat bagian <b>2. Empat cara mengurutkan</b>.</p>
+  <table style="margin-top:16mm; max-width:150mm">
+    <tr><th style="width:34mm">Sistem</th><th>Peran &amp; stack</th><th style="width:22mm">Risiko kritis</th></tr>
+    <tr><td><b>A</b> - susenas-meta<br><span class="small">BPS Sulawesi Utara</span></td>
+        <td>Laravel 10 + Inertia + React/AntD. Pemeriksaan data &amp; monitoring lapangan.</td><td>3</td></tr>
+    <tr><td><b>B</b> - lk-susenas-3210<br><span class="small">Lovable + Supabase + Google Sheets</span></td>
+        <td>SPA React. Lembar kerja consumption-expenditure satu kabupaten.</td><td>4</td></tr>
+    <tr><td><b>Y</b> - Sistem SUSENAS<br><span class="small">proyek Anda sendiri</span></td>
+        <td>Laravel 13 + Blade. Metadata-driven, mesin aturan server-side, RBAC, 48 file test.</td><td>2</td></tr>
+  </table>
+  <p class="foot-note">Disusun dari pembacaan kode sumber ketiga repositori (branch main, dizzy/disi 2026).
+  Setiap temuan disertai bukti berkas dan nomor baris sehingga dapat diverifikasi langsung.
+  ID risiko stabil (A-1, B-1, Y-1) agar bisa diurutkan ulang tanpa kehilangan rujukan.</p>
+</section>
+
+<section class="page">
+  <h2>1. Ringkasan eksekutif</h2>
+  <p class="lead">Ketiganya adalah sistem yang bekerja, tetapi kedalaman risikonya sangat berbeda.
+  Yang paling membedarkan: A dan B memakai <b>kode</b> sebagai definisi kuesioner sehingga tiap
+  revisi BPS memaksa perubahan kode; sistem Anda memakai <b>baris database</b> sehingga revisi
+  cukup berupa operasi data. Sebaliknya, sistem Anda justru punya dua celah operasional yang
+  belum terlihat dari luar: backup produksi yang gagal diam-diam, dan celah akses antar-petiugas.</p>
+
+  <table>
+    <tr><th style="width:7mm">#</th><th style="width:40mm">Area risiko</th><th style="width:30mm">A</th><th style="width:30mm">B</th><th style="width:34mm">Y (Anda)</th><th>Catatan ringkas</th></tr>
+    <tr><td>1</td><td>Otorisasi tidak berfungsi</td><td><span class="badge s-kritis">KRITIS</span></td><td><span class="badge s-kritis">KRITIS</span></td><td><span class="badge s-tinggi">TINGGI</span></td><td>A: cek role diabaikan. B: edge function tanpa verifikasi memanggil. Y: IDOR antar-petiugas.</td></tr>
+    <tr><td>2</td><td>Data bisa diakses/diubah pihak tak berhak</td><td><span class="badge s-kritis">KRITIS</span></td><td><span class="badge s-kritis">KRITIS</span></td><td><span class="badge s-rendah">RENDAH</span></td><td>A: ekspor tabel arbitrer &amp; scope dari request. B: kunci Sheets bocor, CORS wildcard.</td></tr>
+    <tr><td>3</td><td>Password lemah / plaintext</td><td><span class="badge s-tinggi">TINGGI</span></td><td><span class="badge s-kritis">KRITIS</span></td><td><span class="badge s-rendah">RENDAH</span></td><td>A: .env.testing bocor. B: password plaintext di Sheet, tanpa rate limit. Y: seed prod pakai sandi acak.</td></tr>
+    <tr><td>4</td><td>Backup tidak berjalan di produksi</td><td><span class="badge s-sedang">SEDANG</span></td><td><span class="badge s-kritis">KRITIS</span></td><td><span class="badge s-kritis">KRITIS</span></td><td>Y: perintah backup hanya SQLite, sedangkan prod PostgreSQL.</td></tr>
+    <tr><td>5</td><td>Rantai pasok / higiene repo</td><td><span class="badge s-kritis">KRITIS</span></td><td><span class="badge s-tinggi">TINGGI</span></td><td><span class="badge s-rendah">RENDAH</span></td><td>A: venv Python, build, app.zip dikomit. B: folder duplikat &amp; tanpa lisensi.</td></tr>
+    <tr><td>6</td><td>Perubahan kuesioner merusak data</td><td><span class="badge s-kritis">KRITIS</span></td><td><span class="badge s-kritis">KRITIS</span></td><td><span class="badge s-rendah">RENDAH</span></td><td>A: kolom tabel baru tiap semester. B: nama item jadi kunci data.</td></tr>
+    <tr><td>7</td><td>Nilai historis berubah sendiri</td><td><span class="badge s-tinggi">TINGGI</span></td><td><span class="badge s-kritis">KRITIS</span></td><td><span class="badge s-rendah">RENDAH</span></td><td>Y memakai document_snapshots; A &amp; B menghitung ulang di browser.</td></tr>
+    <tr><td>8</td><td>Tidak ada audit trail</td><td><span class="badge s-tinggi">TINGGI</span></td><td><span class="badge s-kritis">KRITIS</span></td><td><span class="badge s-rendah">RENDAH</span></td><td>Y sudah punya AuditLog + AnswerHistory.</td></tr>
+    <tr><td>9</td><td>Skala &amp; performa</td><td><span class="badge s-tinggi">TINGGI</span></td><td><span class="badge s-sedang">SEDANG</span></td><td><span class="badge s-tinggi">TINGGI</span></td><td>Y: revalidate massal &amp; impor besar belum dipecah jadi batch.</td></tr>
+    <tr><td>10</td><td>Lisensi kode yang mau dipakai ulang</td><td><span class="badge s-rendah">RENDAH</span></td><td><span class="badge s-kritis">KRITIS</span></td><td>-</td><td>A Apache-2.0 (boleh, wajib notisi). B tanpa LICENSE (jangan disalin).</td></tr>
+  </table>
+
+  <div class="box">
+    <b>Tiga kesimpulan yang paling menentukan</b>
+    <ol>
+      <li><b>Jangan menyalin kode B.</b> Repo B tidak punya berkas LICENSE - tanpa lisensi berarti hak cipta dilindungi seluruhnya. Ambil <i>ide</i>-nya (imputasi + tooltip rincian), lalu tulis ulang sendiri sebagai metadata turunan.</li>
+      <li><b>Ambil dari A hanya dua hal:</b> statistik (Lorenz curve, persentil, garis kemiskinan) dan pola rekap per ART/per RT - keduanya belum ada di sistem Anda. Implementasikan ulang di atas mesin aturan yang sudah ada.</li>
+      <li><b>Tutup dua celah di sistem Anda minggu ini:</b> backup PostgreSQL (Y-1) dan IDOR entri (Y-2). Keduanya berbiaya kecil tetapi dampaknya paling besar dan paling sulit dideteksi setelah kejadian.</li>
+    </ol>
+  </div>
+</section>
+<section class="page">
+  <h2>2. Empat cara mengurutkan (Anda yang memilih)</h2>
+  <p>Semua temuan diberi <b>ID stabil</b> (A-1 s.d. A-8, B-1 s.d. B-9, Y-1 s.d. Y-9) supaya urutan
+  bisa diubah-ubah tanpa kehilangan rujukan. Empat skema berikut masing-masing menjawab
+  pertanyaan berbeda - pilih sesuai tujuan Anda.</p>
+  <table>
+    <tr><th style="width:7mm">Skema</th><th style="width:36mm">Mengurutkan berdasarkan</th><th style="width:40mm">Cocok bila Anda</th><th>Urutan hasilnya</th></tr>
+    <tr><td><b>1</b></td><td><b>Severity</b> (Kritis, Tinggi, Sedang, Rendah)</td>
+        <td>ingin gambaran apa yang harus dibenahi paling dulu untuk semua sistem sekaligus</td>
+        <td>Y-1, Y-2, A-1, A-2, A-3, B-1, B-2, B-3, B-4, A-4, B-6, B-7, B-8, A-5, A-6, A-7, A-8, Y-3, Y-4 &hellip;</td></tr>
+    <tr><td><b>2</b></td><td><b>Upaya x Dampak</b> (quick win lebih dulu)</td>
+        <td>ingin langsung dikerjakan dengan sumber daya terbatas minggu ini</td>
+        <td>Y-2 (1-2 jam), Y-4 (30 mnt), Y-1 (3-4 jam), Y-5 (1-2 jam), A-1 (10 mnt), A-4 (10 mnt), lalu sisanya</td></tr>
+    <tr><td><b>3</b></td><td><b>Jenis risiko</b> (Keamanan, Data, Operasional, Kuesioner, Kualitas, Lisensi)</td>
+        <td>ingin memisahkan fmt rapat: satu tim menangani keamanan, tim lain data</td>
+        <td>Keamanan (A-1..A-3, A-6, A-7, B-1, B-2, Y-2, Y-3) - Data (B-3..B-8, A-4, Y-6) - Operasional (Y-1, Y-4..Y-8, A-5) - dst.</td></tr>
+    <tr><td><b>4</b></td><td><b>Per sistem</b> (A, lalu B, lalu Y)</td>
+        <td>ingin menilai tiap repo satu per satu, atau sedang mengaudit repo tertentu saja</td>
+        <td>A-1..A-8, B-1..B-9, Y-1..Y-9</td></tr>
+  </table>
+  <div class="note">
+    <b>Rekomendasi saya: Skema 2 (Upaya x Dampak) untuk sistem Anda, Skema 1 untuk memetik ide dari A dan B.</b>
+    Alasannya: Skema 1 menempatkan banyak temuan kritis yang milik repo yang tidak Anda pegang
+    (A dan B), sementara yang benar-benar bisa Anda tutup hanya 2. Skema 2 menaruh yang murah
+    di atas - daftar aksinya tinggal dipakai sebagai backlog.
+  </div>
+  <h3>Cara praktis mengurutkan dokumen ini</h3>
+  <ol>
+    <li><b>Langsung di PDF</b>: buka di Chrome, Edge, atau Acrobat. Tiap kartu risiko dimulai di
+    halaman baru dengan ID besar di kiri atas - jika mencetak dan memotong, tiap kartu menjadi satu
+    kertas yang bisa ditata ulang di meja.</li>
+    <li><b>Cara paling hemat waktu</b>: salin <b>tabel master di bagian 3</b> ke Excel atau Sheets,
+    tambahkan kolom <code>Urutan</code> dan <code>Keputusan</code>, isi sesuai penilaian Anda,
+    lalu beri tahu saya urutannya - saya generate ulang PDF sesuai urutan itu, plus versi ringkas
+    satu halaman untuk ditempel di rapat.</li>
+    <li><b>Jika tidak ada waktu sama sekali</b>: langsung eksekusi 5 item P0 di bagian 10. Item-item
+    itu sudah diperingkatkan dengan urutan kerjakan dan tidak perlu pengurutan tambahan.</li>
+  </ol>
+  <h3>Konvensi penandaan</h3>
+  <p class="small"><span class="badge s-kritis">KRITIS</span> kebocoran data/kredensial atau sistem tak jalan -
+  <span class="badge s-tinggi">TINGGI</span> kebocoran data bisa dan mahal diperbaiki -
+  <span class="badge s-sedang">SEDANG</span> gesekan/capability gap -
+  <span class="badge s-rendah">RENDAH</span> kerapuhan/ketidakrapian. Kolom Bukti berisi berkas dan
+  nomor baris sehingga dapat diverifikasi langsung.</p>
+</section>
+<section class="page">
+  <h2>3. Tabel master seluruh temuan</h2>
+  <p class="small">Salin tabel ini ke Excel atau Sheets untuk mengurutkan sendiri. Kolom kosong
+  <b>Urutan</b> dan <b>Keputusan</b> sengaja disediakan untuk Anda isi.</p>
+  <table>
+    <tr><th style="width:10mm">ID</th><th style="width:13mm">Sistem</th><th style="width:15mm">Severity</th><th style="width:24mm">Jenis</th><th>Risiko</th><th style="width:16mm">Dampak</th><th style="width:14mm">Perbaikan</th><th style="width:11mm">Urutan</th></tr>
+    <tr><td>Y-1</td><td>Anda</td><td><span class="badge s-kritis">KRITIS</span></td><td>Operasional</td><td>Backup harian gagal diam-diam di produksi (perintah backup hanya SQLite, prod PostgreSQL)</td><td>Data hilang</td><td>3-4 jam</td><td></td></tr>
+    <tr><td>Y-2</td><td>Anda</td><td><span class="badge s-tinggi">TINGGI</span></td><td>Keamanan</td><td>Operator dapat membuka dan mengisi dokumen milik petugas lain (IDOR)</td><td>Data lapangan</td><td>1-2 jam</td><td></td></tr>
+    <tr><td>Y-3</td><td>Anda</td><td><span class="badge s-tinggi">TINGGI</span></td><td>Keamanan</td><td>Tidak ada Policy/Gate sama sekali - scoping ditulis manual di dalam controller</td><td>Regresi</td><td>1-2 hari</td><td></td></tr>
+    <tr><td>Y-4</td><td>Anda</td><td><span class="badge s-tinggi">TINGGI</span></td><td>Operasional</td><td>Admin produksi tidak bisa login - sandi diacak tapi tidak pernah dicetak</td><td>Blokir deploy</td><td>30 menit</td><td></td></tr>
+    <tr><td>Y-5</td><td>Anda</td><td><span class="badge s-tinggi">TINGGI</span></td><td>Operasional</td><td>Compose tidak punya service worker/scheduler sehingga jadwal tidak pernah jalan</td><td>Operasional</td><td>1-2 jam</td><td></td></tr>
+    <tr><td>Y-6</td><td>Anda</td><td><span class="badge s-sedang">SEDANG</span></td><td>Data</td><td>document_snapshots dan rule_results tumbuh tanpa pruning</td><td>Performa/DB</td><td>1 hari</td><td></td></tr>
+    <tr><td>Y-7</td><td>Anda</td><td><span class="badge s-sedang">SEDANG</span></td><td>Performa</td><td>revalidate --all dan impor CAPI belum dipecah batch dan tanpa batas ukuran file</td><td>Timeout</td><td>1 hari</td><td></td></tr>
+    <tr><td>Y-8</td><td>Anda</td><td><span class="badge s-sedang">SEDANG</span></td><td>Keamanan</td><td>Password DB default "susenas" bila env tidak di-override</td><td>Intrusi</td><td>30 menit</td><td></td></tr>
+    <tr><td>Y-9</td><td>Anda</td><td><span class="badge s-sedang">SEDANG</span></td><td>Kualitas</td><td>Belum ada SSO, UAT, dan sekitar 16 aturan Sidona masih ambigu</td><td>Hasil salah</td><td>Berkelanjutan</td><td></td></tr>
+  </table>
+  <table>
+    <tr><th style="width:10mm">ID</th><th style="width:13mm">Sistem</th><th style="width:15mm">Severity</th><th style="width:24mm">Jenis</th><th>Risiko</th><th style="width:16mm">Dampak</th><th style="width:14mm">Perbaikan</th><th style="width:11mm">Urutan</th></tr>
+    <tr><td>A-1</td><td>A</td><td><span class="badge s-kritis">KRITIS</span></td><td>Keamanan</td><td>Otorisasi update dimatikan: return true mendahului pemeriksaan peran</td><td>Data lapangan</td><td>10 menit</td><td></td></tr>
+    <tr><td>A-2</td><td>A</td><td><span class="badge s-kritis">KRITIS</span></td><td>Keamanan</td><td>Ekspor tabel arbitrer - nama tabel dari URL tanpa whitelist, hanya perlu login</td><td>Data pengguna</td><td>30 menit</td><td></td></tr>
+    <tr><td>A-3</td><td>A</td><td><span class="badge s-kritis">KRITIS</span></td><td>Keamanan</td><td>Scope diambil dari request bukan dari user - bisa menyeberang kabupaten</td><td>Data kab/kec</td><td>1 jam</td><td></td></tr>
+    <tr><td>A-4</td><td>A</td><td><span class="badge s-tinggi">TINGGI</span></td><td>Keamanan</td><td>APP_KEY dan kredensial DB root/root dikomit di .env.testing</td><td>Kunci/DB</td><td>10 menit</td><td></td></tr>
+    <tr><td>A-5</td><td>A</td><td><span class="badge s-kritis">KRITIS</span></td><td>Operasional</td><td>venv Python plus public/build dan app.zip dikomit - build PDN akan gagal</td><td>Deploy</td><td>1-2 jam</td><td></td></tr>
+    <tr><td>A-6</td><td>A</td><td><span class="badge s-tinggi">TINGGI</span></td><td>Keamanan</td><td>Objek user penuh (kode_kabkot, kode_nks) dikirim ke semua halaman</td><td>Informasi</td><td>15 menit</td><td></td></tr>
+    <tr><td>A-7</td><td>A</td><td><span class="badge s-tinggi">TINGGI</span></td><td>Keamanan</td><td>Endpoint /api/users terbuka untuk semua user yang login</td><td>Data pengguna</td><td>15 menit</td><td></td></tr>
+    <tr><td>A-8</td><td>A</td><td><span class="badge s-sedang">SEDANG</span></td><td>Kualitas</td><td>Hanya 3 feature test; tabel validasi praktis kosong (1 baris seeder)</td><td>Regresi</td><td>2-3 hari</td><td></td></tr>
+  </table>
+  <table>
+    <tr><th style="width:10mm">ID</th><th style="width:13mm">Sistem</th><th style="width:15mm">Severity</th><th style="width:24mm">Jenis</th><th>Risiko</th><th style="width:16mm">Dampak</th><th style="width:14mm">Perbaikan</th><th style="width:11mm">Urutan</th></tr>
+    <tr><td>B-1</td><td>B</td><td><span class="badge s-kritis">KRITIS</span></td><td>Keamanan</td><td>Edge function tanpa verifikasi memanggil, CORS wildcard, scope tulis Sheets</td><td>Data responden</td><td>1-2 hari</td><td></td></tr>
+    <tr><td>B-2</td><td>B</td><td><span class="badge s-kritis">KRITIS</span></td><td>Keamanan</td><td>Password plaintext di Google Sheet, tanpa hash dan tanpa rate limit</td><td>Akun petugas</td><td>1 hari</td><td></td></tr>
+    <tr><td>B-3</td><td>B</td><td><span class="badge s-kritis">KRITIS</span></td><td>Kuesioner</td><td>Enam salinan daftar komoditas harus disinkronkan manual</td><td>Data hilang</td><td>2-3 hari</td><td></td></tr>
+    <tr><td>B-4</td><td>B</td><td><span class="badge s-kritis">KRITIS</span></td><td>Kuesioner</td><td>Nama item menjadi kunci data - perubahan nama BPS meng-orphan data lama</td><td>Data hilang</td><td>Arsitektural</td><td></td></tr>
+    <tr><td>B-5</td><td>B</td><td><span class="badge s-kritis">KRITIS</span></td><td>Data</td><td>Seluruh perhitungan di browser - angka historis berubah saat reload</td><td>Angka salah</td><td>Arsitektural</td><td></td></tr>
+    <tr><td>B-6</td><td>B</td><td><span class="badge s-kritis">KRITIS</span></td><td>Data</td><td>Tidak ada audit trail - data bisa diganti tanpa jejak</td><td>Akuntabilitas</td><td>1-2 hari</td><td></td></tr>
+    <tr><td>B-7</td><td>B</td><td><span class="badge s-tinggi">TINGGI</span></td><td>Data</td><td>Tidak ada skema DB atau migrasi - struktur spreadsheet diedit manual</td><td>Data rusak</td><td>2-3 hari</td><td></td></tr>
+    <tr><td>B-8</td><td>B</td><td><span class="badge s-kritis">KRITIS</span></td><td>Lisensi</td><td>Repo tanpa LICENSE - menyalin kodenya bermasalah secara hukum</td><td>Hukum</td><td>Hindari</td><td></td></tr>
+    <tr><td>B-9</td><td>B</td><td><span class="badge s-sedang">SEDANG</span></td><td>Operasional</td><td>Folder lk-susenas-3210-main berisi salinan diri sendiri yang berbeda</td><td>Deploy</td><td>30 menit</td><td></td></tr>
+  </table>
+</section>
+<section class="page">
+  <h2>4. Tinjauan tiga sistem</h2>
+  <p>Bagian ini: perbandingan arsitektur dan kapabilitas, sebagai konteks sebelum masuk ke
+  kartu-kartu risiko. Singkat saja - detail teknis ada di lampiran kartu.</p>
+
+  <table>
+    <tr><th style="width:30mm">Aspek</th><th>A - susenas-meta</th><th>B - lk-susenas-3210</th><th>Y - Sistem Anda</th></tr>
+    <tr><td>Peran</td><td>Pemeriksaan data &amp; monitoring lapangan oleh PML, multi-role</td><td>Lembar kerja consumption-expenditure satu kabupaten, satu petugas</td><td>Platform: monitoring, entri, pengolahan, validasi, tabulasi</td></tr>
+    <tr><td>Stack</td><td>Laravel 10, Inertia 0.6, React + Ant Design, maatwebsite/excel</td><td>React 18, Vite, TypeScript, Tailwind, shadcn/ui, Lovable</td><td>Laravel 13, Blade, Vite, tanpa SPA</td></tr>
+    <tr><td>Backend</td><td>Database relasional, 63 migrasi, tabel lebar per blok</td><td>Supabase Edge Functions (Deno); penyimpanan sebenarnya Google Sheets</td><td>Database relasional 28 migrasi, tabel metadata dan operasional terpisah</td></tr>
+    <tr><td>Definisi kuesioner</td><td><b>Kode</b>: kolom tabel + komponen React</td><td><b>Kode</b>: konstanta TS, disalin di 6 berkas</td><td><b>Data</b>: baris di tabel questions, blocks, options</td></tr>
+    <tr><td>Mesin aturan</td><td>Hardcoded di PHP controller; tabel validasi praktis kosong</td><td>Hardcoded TypeScript, berjalan di browser</td><td><b>ExpressionEvaluator + RuleEngine</b> (985 baris), server-side, daftar putih tanpa eval</td></tr>
+    <tr><td>Audit trail</td><td>Minim</td><td>Tidak ada sama sekali</td><td><b>AuditLog + AnswerHistory</b> + snapshot per dokumen</td></tr>
+    <tr><td>Peran &amp; cakupan</td><td>ADMIN, PML, cakupan kode_kabkot dan kode_nks</td><td>Penugasan dari sheet PETUGAS</td><td>admin, pj, pml, operator, viewer + cakupan wilayah (kode BPS 7/10 digit)</td></tr>
+    <tr><td>Alur kerja</td><td>Entri - Periksa - Statistik</td><td>Entri 7 halaman - simpan ke Sheets</td><td>Monitoring - Entri - Finalisasi - Pengolahan - Kembalikan - Bersih - Tabulasi</td></tr>
+    <tr><td>Impor / ekspor</td><td>Export raw, export tabel (bermasalah)</td><td>Simpan ke Google Sheets</td><td>Impor CAPI format lebar, dry-run, alias kolom, ekspor round-trip</td></tr>
+    <tr><td>Fitur yang tidak ada di sistem Anda</td><td>Lorenz curve, tabel persentil, kurva garis kemiskinan, rekap per ART/RT</td><td>Imputasi pendapatan dengan tooltip rincian, konversi periode, wizard 7 halaman</td><td>-</td></tr>
+    <tr><td>Pengujian</td><td>3 feature test</td><td>Nol</td><td><b>48 file test</b>, suite berjalan sekitar 13 detik</td></tr>
+    <tr><td>Dokumentasi</td><td>README tipis</td><td>5 berkas md (setup, troubleshooting, imputasi, analisis)</td><td><b>CATATAN 2178 baris</b> + docs (SRS, RBAC, UAT, pemetaan aturan, deployment)</td></tr>
+    <tr><td>Operasional</td><td>Ada job antrean dashboard</td><td>Tidak ada</td><td>Health check, backup, revalidate, ekspor/impor versi kuesioner, jadwal cron</td></tr>
+    <tr><td>Lisensi</td><td>Apache License 2.0 - boleh dipakai dengan notisi</td><td><b>Tidak ada LICENSE</b> - jangan disalin</td><td>Laravel BSD-3 (proyek internal)</td></tr>
+  </table>
+
+  <div class="box">
+    <b>Risiko yang sama di ketiga sistem - ini yang paling sering terlewat</b>
+    <ul>
+      <li><b>Tidak satu pun punya backup yang terverifikasi.</b> A tidak punya perintah backup sama sekali; B menyimpan datanya di Google Sheets tanpa salinan; sistem Anda punya perintah backup yang gagal di produksi (Y-1).</li>
+      <li><b>Tidak ada uji pemulihan</b> di mana pun - backup yang tak pernah dipulihkan belum tentu backup.</li>
+      <li><b>Akun demo dengan sandi lemah masih hidup di repo</b> (A dan B). Sistem Anda sudah aman di jalur produksi, tapi akun dev <code>admin123</code> dan sejenisnya harus dijaga tidak pernah ikut ke PDN.</li>
+      <li><b>Belum ada SSO di semuanya</b> - semuanya mengandalkan username dan password, menambah beban operasional dan risiko akun dipakai bersama.</li>
+      <li><b>Belum ada UAT bersama BPS</b> - risiko interpretasi kuesioner dan aturan tetap ada di ketiganya.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="page">
+  <h2>5. Kalau kuesioner berubah - biaya dan ketahanan</h2>
+  <p>Pertanyaan paling menentukan untuk sistem SUSENAS: BPS mengubah kuesioner tiap semester.
+  Pada sistem apa yang berubah tiap kali, dan apakah data tahun lalu masih bisa dibuka?</p>
+
+  <table>
+    <tr><th style="width:34mm">Jenis perubahan</th><th>A - susenas-meta</th><th>B - lk-susenas-3210</th><th>Y - Sistem Anda</th></tr>
+    <tr><td>Soal baru dalam blok</td><td>Migrasi tambah kolom + komponen React baru + build ulang</td><td>Edit konstanta + kolom sheet baru</td><td><b>1 baris di tabel questions</b></td></tr>
+    <tr><td>Blok baru</td><td>Kolom tabel baru + form + halaman rekap</td><td>Kolom sheet + halaman + logika</td><td><b>1 baris di tabel blocks</b></td></tr>
+    <tr><td>Opsi jawaban berubah</td><td>Edit komponen React</td><td>Edit konstanta</td><td><b>Baris di response_options</b></td></tr>
+    <tr><td>Daftar komoditas berubah</td><td>Migrasi update + seeder CSV</td><td>Enam berkas harus sinkron</td><td><b>Baris di block_rows</b> per versi</td></tr>
+    <tr><td>Semester baru</td><td>Riliskode baru, kolom <code>semester</code> di tabel</td><td>Kolom sheet baru, tanpa versioning</td><td><b>1 questionnaire_version + 1 survey_cycle</b></td></tr>
+    <tr><td>Data tahun lalu</td><td>Makin sulit dibuka, form berubah</td><td>Makin sulit dibaca, kunci berubah</td><td><b>Tetap terbuka dan bisa ditabulasi</b></td></tr>
+    <tr><td>Dua versi berdampingan</td><td>Tidak bisa tanpa duplikasi aplikasi</td><td>Tidak bisa</td><td><b>Bisa - ini keunggulan utama</b></td></tr>
+  </table>
+
+  <h3>Bukti nyata dari repo A</h3>
+  <p>Commit <code>572088a</code> "update susenas sept 2025 build 1" mengubah 3 migrasi
+  (<code>update_non_makanan_komoditas</code>, <code>update_makanan_komoditas</code>,
+  <code>update_range_harga_beras</code>), model, controller, seeder pengguna, lalu 100+ berkas
+  <code>public/build</code> ikut ter-commit ulang. Commit <code>d680a14</code> menambah satu
+  pertanyaan baru ("blok catatan") dengan cara <b>menambah kolom tabel</b> dan menambah 87 baris
+  kode di <code>Blok1_2.tsx</code> - sekaligus menghapus blok 5, 6, dan 7 dari worksheet.
+  Semester pun ditulis sebagai konstanta kode: <code>MakController.php:24</code>
+  <code>private $semester = '2';</code></p>
+
+  <h3>Bukti nyata dari repo B</h3>
+  <p>Riwayat git menunjukkan <code>src/data/</code> hanya pernah diubah satu kali dalam 60 commit,
+  artinya <b>biaya perubahan kuesioner belum pernah diuji</b> di repo itu. Yang jelas adalah
+  kerentakannya: nama item menjadi kunci data, sehingga ketika BPS mengganti nama item, baris lama
+  tidak lagi cocok. Gejalanya sudah terdokumentasi di <code>BLOK_VE_ANALYSIS.md</code> -
+  <code>pemerintahBantuan</code> turun dari 7.787.714 menjadi 4.084.857 dan
+  <code>rumahTanggaLain</code> dari 4.837.143 menjadi nol. Selain itu definisi commodity ada di
+  enam berkas yang harus dijaga sinkron, dengan komentar di kodenya sendiri: "MUST MATCH
+  save-to-sheets exactly".</p>
+
+  <h3>Enam rekomendasi untuk sistem Anda</h3>
+  <table>
+    <tr><th style="width:8mm">#</th><th style="width:38mm">Rekomendasi</th><th>Isi</th><th style="width:18mm">Estimasi</th></tr>
+    <tr><td>R1</td><td>Halaman <b>Bandingkan Versi</b></td><td>Rute <code>/admin/versi/bandingkan?dari=&amp;ke=</code> yang menghasilkan tabel delta antar dua versi kuesioner: blok, pertanyaan, opsi, baris list, aturan, agregat, dan nilai turunan yang tambah, hilang, atau berubah. Inilah alat yang paling banyak menghemat waktu tiap semester, dan sekarang belum ada.</td><td>1-2 hari</td></tr>
+    <tr><td>R2</td><td>Kebijakan <b>kode var permanen</b></td><td>Tetapkan aturan main: label dan opsi boleh berubah, tetapi kode <code>var</code> tidak boleh diubah antar versi. Bila nama kode BPS berubah, buat kode baru dan simpan kode lama sebagai alias. Ini menjaga kompatibilitas impor CAPI, ekspor, dan tabulasi antar semester.</td><td>0.5 hari</td></tr>
+    <tr><td>R3</td><td><b>duplicateVersion</b> plus cek benturan</td><td>Saat menyalin versi, jalankan validasi: kode var duplikat, aturan yang menunjuk blok atau pertanyaan tak ada, agregat tanpa sumber, baris list yang tidak sinkron. Aturan bermasalah ditandai <b>broken</b> dan tidak ikut aktif.</td><td>1 hari</td></tr>
+    <tr><td>R4</td><td>Salin baris list satu klik</td><td>194 baris komoditas disalin dari versi lama dengan tombol, bukan diimpor ulang satu per satu. Sudah ada <code>importRows</code> - tinggalkan tombol salin-dari-versi.</td><td>0.5 hari</td></tr>
+    <tr><td>R5</td><td>Snapshot tidak ditimpa diam-diam</td><td>Pastikan <code>susenas:revalidate</code> menulis snapshot baru yang ber versi, bukan menimpa nilai historis. Kalau_snapshot ditimpa_, angka tahun lalu bisa berubah diam-diam seperti di B-5.</td><td>0.5 hari</td></tr>
+    <tr><td>R6</td><td>Checklist rilis kuesioner</td><td>Daftar periksa sebelum semester dimulai: pertanyaan baru sudah punya aturan wajib; pertanyaan yang dihapus tidak meninggalkan rule menggantung; NERACA masih balance setelah baris list berubah; kode var tidak berubah; paket versi sudah diekspor.</td><td>0.5 hari</td></tr>
+  </table>
+</section>
+
+<section class="page">
+  <h2>6. Kartu risiko - Sistem A (susenas-meta, BPS Sulut)</h2>
+  <p class="small">Laravel 10 + Inertia + React/AntD. Pemeriksaan data SUSENAS oleh PML plus monitoring
+  progress lapangan. Definisinya kuesioner memakai kode: setiap semester baru berarti riliskode baru.</p>
+
+  <div class="card k">
+    <h3><span class="id">A-1</span> Otorisasi update dimatikan oleh kode yang tidak pernah dieksekusi <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Siapa pun yang login (termasuk akun non-PML) dapat mengubah data MAK, ART, dan konsumsi. Tidak ada jejak bahwa perubahan tidak sah.</span>
+      <b>Bukti</b><span><code>app/Http/Controllers/MakController.php:24-30</code> - <code>return true;</code> mendahului baris pemeriksaan peran. Dipakai sebagai penjaga di 6 titik: baris 242, 356, 449, 527, 603, 1420.</span>
+      <b>Perbaikan</b><span>Hapus baris <code>return true;</code> dan ganti conditions dengan (superadmin = kode_kabkot "00") OR role PML. Bila peran petugas boleh mengedit, tambahkan role itu secara eksplisit.</span>
+      <b>Estimasi</b><span>10 menit</span>
+    </div>
+  </div>
+
+  <div class="card k">
+    <h3><span class="id">A-2</span> Ekspor tabel arbitrer - nama tabel dari URL tanpa whitelist <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>PML atau petugas mana pun dapat mengunduh tabel apa pun, termasuk <code>users</code> yang memuat hash password, serta tabel monitoring dan wilayah.</span>
+      <b>Bukti</b><span><code>app/Http/Controllers/CalculateController.php:19</code> memakai <code>DB::table($table_name)</code> dengan nilai dari URL. Rute <code>/calculate/export/{table_name}</code> berada di group <code>middleware('auth')</code> saja di <code>routes/web.php</code>, bukan group admin.</span>
+      <b>Perbaikan</b><span>Whitelist nama tabel yang boleh diekspor (mis. <code>konsumsi</code>, <code>konsumsi_art</code>) dan pindahkan rute ke group admin. Tambahkan <code>set_time_limit</code>berbatas agar tidak jadi vektor DoS.</span>
+      <b>Estimasi</b><span>30 menit</span>
+    </div>
+  </div>
+
+  <div class="card k">
+    <h3><span class="id">A-3</span> Scope wilayah diambil dari request, bukan dari user <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Pengguna Kabupaten A dapat menambahkan <code>?kode_kabkot=3527</code> lalu membaca dan mengubah data kabupaten lain - termasuk data pribadi KRT.</span>
+      <b>Bukti</b><span><code>MakController.php:79, 189, 207, 284</code> memakai <code>$request->input('kode_kabkot')</code>. Bandingkan <code>MonitoringController.php:36</code> dan <code>PeriksaController.php:15</code> yang memakai <code>auth()->user()-&gt;kode_kabkot</code>.</span>
+      <b>Perbaikan</b><span>Ambil scope dari user, abaikan nilai dari request. Kalau admin perlu melihat semua, gunakan <code>kode_kabkot = "00"</code> sebagai kondisi bypass yang disengaja.</span>
+      <b>Estimasi</b><span>1 jam</span>
+    </div>
+  </div>
+
+  <div class="card t">
+    <h3><span class="id">A-4</span> Kunci aplikasi dan kredensial database bocor ke repository <span class="badge s-tinggi">TINGGI</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>APP_KEY yang bocor memungkinkan penyusunan payload session forged; kredensial root/root membuka database bila port MySQL terjangkau.</span>
+      <b>Bukti</b><span><code>.env.testing</code> dikomit berisi <code>APP_KEY=base64:5T/ZrF...</code> dan <code>DB_USERNAME=root</code> <code>DB_PASSWORD=root</code>. Berkas <code>.env copy.example</code> juga dikomit.</span>
+      <b>Perbaikan</b><span>Rotasi APP_KEY, ganti kredensial, tambahkan <code>.env*</code> ke <code>.gitignore</code> (pakai <code>.env.example</code> sebagai template), dan bersihkan riwayat bila repo pernah publik.</span>
+      <b>Estimasi</b><span>10 menit</span>
+    </div>
+  </div>
+
+  <div class="card k">
+    <h3><span class="id">A-5</span> Virtual environment Python dan aset build dikomit ke repository <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Build di Linux/Alpine gagal karena pustaka biner Windows ikut terbawa; riwayat repo membengkak; versi pip dan cryptography lama membawa kerentanan rantai pasok.</span>
+      <b>Bukti</b><span><code>resources/python/meta_susenas_venv/</code> berisi sekitar 993 berkas .py plus 47 berkas .exe di folder Scripts. <code>public/build/</code> (119 aset) dan <code>public/build (2).zip</code> (640 KB) serta <code>app.zip</code> (snapshot app/ Januari 2024) ikut dikomit.</span>
+      <b>Perbaikan</b><span>Pindahkan venv ke <code>.gitignore</code> dan buat requirement.txt; keluarkan public/build serta zip dari riwayat; jalankan build di dalam pipeline, bukan di dalam repo.</span>
+      <b>Estimasi</b><span>1-2 jam (+ pembersihan riwayat bila perlu)</span>
+    </div>
+  </div>
+
+  <div class="card t">
+    <h3><span class="id">A-6</span> Objek pengguna penuh dikirim ke semua halaman <span class="badge s-tinggi">TINGGI</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Setiap user menerima kode_kabkot dan kode_nks miliknya - peta target untuk mengeksploitasi A-3.</span>
+      <b>Bukti</b><span><code>app/Http/Middleware/HandleInertiaRequests.php</code> - <code>'auth' =&gt; ['user' =&gt; $request->user()]</code> tanpa pembatasan atribut.</span>
+      <b>Perbaikan</b><span>Kirim objek ringkas: id, nama, role, wilayah_scope. Jangan pernah mengirim hash atau token lewat props.</span>
+      <b>Estimasi</b><span>15 menit</span>
+    </div>
+  </div>
+
+  <div class="card t">
+    <h3><span class="id">A-7</span> Endpoint daftar pengguna terbuka untuk semua yang login <span class="badge s-tinggi">TINGGI</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Akun mana pun bisa mengambil daftar pengguna beserta wilayah kerjanya - memudahkan serangan ke akun dengan password lemah.</span>
+      <b>Bukti</b><span><code>routes/fake_api.php</code> - <code>GET /api/users</code> -&gt; <code>RegisteredUserController::fetch_users</code> hanya dilindungi <code>middleware('auth')</code>.</span>
+      <b>Perbaikan</b><span>Pindahkan ke middleware admin atau hapus endpoint ini bila tidak dipakai;frontend dropdown petugas sebaiknya diisi dari endpoint yang sudah ter-scope.</span>
+      <b>Estimasi</b><span>15 menit</span>
+    </div>
+  </div>
+
+  <div class="card s">
+    <h3><span class="id">A-8</span> Jaring pengaman regresi nyaris tidak ada <span class="badge s-sedang">SEDANG</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Perubahan besar pada form tanpa test - regresi QC tidak terdeteksi sebelum dipakai di lapangan.</span>
+      <b>Bukti</b><span>Hanya 3 feature test (<code>EntriIntiTest</code>, <code>EntriTest</code>, <code>LoginTest</code>) dan 1 unit test. Tabel validasi <code>DaftarValidasiModel</code> praktis kosong: <code>DaftarValidasiSeeder</code> hanya menyisipkan 1 baris (blokqc_3 min 1).</span>
+      <b>Perbaikan</b><span>Pindahkan aturan QC dari controller ke tabel validasi yang memang sudah dirancang untuk itu, lalututup setiap aturan dengan test. Tambahkan test untuk hitungan QC, rentang harga, dan monitoring.</span>
+      <b>Estimasi</b><span>2-3 hari</span>
+    </div>
+  </div>
+</section>
+<section class="page">
+  <h2>7. Kartu risiko - Sistem B (lk-susenas-3210, Kabupaten 3210)</h2>
+  <p class="small">SPA React + Vite + shadcn/ui, dibuat dengan Lovable. Backend-nya Supabase Edge Functions
+  (Deno), tetapi penyimpanan sebenarnya adalah Google Sheets. Fokus: lembar kerja consumption-expenditure
+  untuk satu kabupaten, 7 halaman kuesioner.</p>
+
+  <div class="card k">
+    <h3><span class="id">B-1</span> Edge function tanpa verifikasi memanggil, CORS wildcard, dan hak tulis ke Sheets <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Siapa pun di internet dapat membaca seluruh data responden (NKS dan isi kuesioner) dan menulis atau mengubah baris data fieldwork di spreadsheet resmi. Kunci anon Supabase dipublikasikan di repo, sehingga tidak ada secret yang menghalangi.</span>
+      <b>Bukti</b><span><code>supabase/functions/load-survey-data/index.ts:3-5</code> dan <code>save-to-sheets/index.ts:5</code> memakai <code>'Access-Control-Allow-Origin': '*'</code>. Keduanya memakai service account Google, bukan sesi pengguna, dan tidak memverifikasi memanggil. <code>save-to-sheets/index.ts:113</code> meminta scope penuh spreadsheets (baca dan tulis).</span>
+      <b>Perbaikan</b><span>Wajib verifikasi JWT pengguna di setiap function sebelum menyentuh Google. Batasi CORS ke domain aplikasi. Pisahkan service account read-only dan read-write, dan batasi sheet yang boleh ditulis.</span>
+      <b>Estimasi</b><span>1-2 hari</span>
+    </div>
+  </div>
+
+  <div class="card k">
+    <h3><span class="id">B-2</span> Password petugas disimpan plaintext di Google Sheet, tanpa rate limit <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Semua password petugas dapat dibaca siapa pun yang masuk ke sheet, dan dicoba bebas tanpa pembatasan - login bocor dan akun petty bocor dalam hitungan menit.</span>
+      <b>Bukti</b><span><code>supabase/functions/verify-login/index.ts:211-212</code> memakai perbandingan polos <code>u.password === password</code>, tanpa hash. Sheet PETUGAS berisi kolom password dan dibagikan ke service account. Tidak ada throttle di sisi fungsi maupun aplikasi.</span>
+      <b>Perbaikan</b><span>Simpan hash (bcrypt/argon2) di sisi server, jangan pernah di sheet yang dibagikan luas. Tambahkan rate limit per IP dan per nama, plus log percobaan gagal.</span>
+      <b>Estimasi</b><span>1 hari</span>
+    </div>
+  </div>
+
+  <div class="card k">
+    <h3><span class="id">B-3</span> Enam salinan daftar komoditas harus disinkronkan manual <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Setiap revisi BPS mengharuskan enam berkas diubah sinkron. Bila satu terlupa, baris tidak terbaca dan angka imputasi hilang - persis yang sudah terjadi.</span>
+      <b>Bukti</b><span>Definisi commodity ada di <code>src/data/foodCategories.ts</code>, <code>supabase/functions/load-survey-data/index.ts</code> (berkomentar "MUST MATCH save-to-sheets exactly"), <code>supabase/functions/save-to-sheets/index.ts</code>, lalu ketiganya lagi di folder <code>lk-susenas-3210-main/</code>.</span>
+      <b>Perbaikan</b><span>Simpan definisi sekali (JSON tunggal di bucket) dan muat dari semua sisi. Pada sistem Anda hal ini sudah terpecahkan oleh <code>block_rows</code> per versi kuesioner - jangan tiru pola ini.</span>
+      <b>Estimasi</b><span>2-3 hari</span>
+    </div>
+  </div>
+
+  <div class="card k">
+    <h3><span class="id">B-4</span> Nama item menjadi kunci data - perubahan nama BPS meng-orphan data lama <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Data isian lama tidak lagi cocok dengan kunci baru sehingga nilainya hilang tanpa tanda - angka terlihat benar di sheet tapi isian aslinya tidak terbaca.</span>
+      <b>Bukti</b><span>Format kunci: <code>NamaItem_nilai_kategori_jenisDetail</code>. Dinyatakan pada <code>BLOK_VE_ANALYSIS.md</code>: <code>pemerintahBantuan</code> 7.787.714 menjadi 4.084.857 dan <code>rumahTanggaLain</code> 4.837.143 menjadi 0 setelah reload. Status resmi di repo: Under Investigation.</span>
+      <b>Perbaikan</b><span>Gunakan kode stabil (mis. FOOD-C-05) sebagai kunci, nama hanya sebagai label. Pada sistem Anda: jadikan kode <code>var</code> permanen lintas versi - label boleh berubah, kode tidak.</span>
+      <b>Estimasi</b><span>Arsitektural - jangan tiru</span>
+    </div>
+  </div>
+  <div class="card k">
+    <h3><span class="id">B-5</span> Seluruh perhitungan di browser - angka historis berubah sendiri saat reload <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Angka imputasi, subtotal, dan normalisasi dihitung ulang dari data yang dimuat, sehingga nilai yang sudah terisi berubah begitu aplikasi dibuka lagi. Tidak ada snapshot dan tidak ada kunci dokumen.</span>
+      <b>Bukti</b><span><code>src/utils/imputasiCalculations.ts</code> (1.163 baris), <code>consumptionCalculations.ts</code>, <code>expenseNormalizer.ts</code> - semuanya berjalan di sisi klien dan dipanggil ulang saat memuat data.</span>
+      <b>Perbaikan</b><span>Pindahkan perhitungan ke server dan simpan hasilnya (snapshot), seperti <code>document_snapshots</code> di sistem Anda. Aturan yang dihitung di klien dapat dimanipulasi pengguna sebelum disimpan.</span>
+      <b>Estimasi</b><span>Arsitektural - sudah ada solusinya di sistem Anda</span>
+    </div>
+  </div>
+
+  <div class="card k">
+    <h3><span class="id">B-6</span> Tidak ada audit trail sama sekali <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Tidak ada catatan siapa mengisi atau mengubah isian kapan. Digabung dengan B-1, data fieldwork bisa diganti tanpa jejak dan tanpa bisa dipertanggungjawabkan.</span>
+      <b>Bukti</b><span>Tidak ada entri riwayat di src maupun di fungsi; seluruh penulisan ke sheet terjadi tanpa metadata pelaku.</span>
+      <b>Perbaikan</b><span>Catat pelaku, waktu, dan nilai sebelum serta sesudah. Sistem Anda sudah punya <code>AuditLog</code> dan <code>AnswerHistory</code> - pertahankan.</span>
+      <b>Estimasi</b><span>1-2 hari</span>
+    </div>
+  </div>
+
+  <div class="card t">
+    <h3><span class="id">B-7</span> Tidak ada skema basis data - struktur spreadsheet diedit manual <span class="badge s-tinggi">TINGGI</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Tidak ada migrasi, tidak ada versioning, tidak ada transaksi. Menambah kolom baru berarti mengedit sheet dan kode secara bersamaan tanpa alat bantu.</span>
+      <b>Bukti</b><span>Folder <code>supabase/</code> hanya berisi <code>config.toml</code> dan <code>functions/</code> - tidak ada folder migrations. Kunci data diturunkan dari nama kolom sheet.</span>
+      <b>Perbaikan</b><span>Definisikan skema di Postgres dengan migrasi, jadikan sheet hanya laporan keluaran. Sistem Anda sudah DB-first - pertahankan.</span>
+      <b>Estimasi</b><span>2-3 hari</span>
+    </div>
+  </div>
+
+  <div class="card k">
+    <h3><span class="id">B-8</span> Repository tanpa berkas LICENSE <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Tanpa lisensi, secara default hak cipta dilindungi seluruhnya - menyalin kode atau logikanya ke proyek lain bermasalah secara hukum dan etis.</span>
+      <b>Bukti</b><span>Repo <code>ppk321007/lk-susenas-3210</code> tidak punya LICENSE. Sebaliknya repo A memakai Apache License 2.0 - boleh dipakai asal menyertakan notisi lisensi dan mencantumkan perubahan.</span>
+      <b>Perbaikan</b><span>Ambil idenya saja (imputasi dengan tooltip rincian, konversi periode), lalu tulis ulang sendiri sebagai derived_field dan agregat metadata. Jangan menyalin berkas.</span>
+      <b>Estimasi</b><span>Hindari - tulis ulang</span>
+    </div>
+  </div>
+
+  <div class="card s">
+    <h3><span class="id">B-9</span> Repository berisi salinan dirinya sendiri yang berbeda <span class="badge s-sedang">SEDANG</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Perubahan mudah masuk ke folder yang salah, yang ter-deploy berbeda dari yang diuji. Riwayat commit dengan pesan Changes dan nomor saja membuat audit sulit.</span>
+      <b>Bukti</b><span>Folder <code>lk-susenas-3210-main/</code> berisi salinan proyek dengan 13 berkas berbeda dari <code>src/</code> (mis. <code>imputasiCalculations.ts</code>, <code>Page5Income.tsx</code>). <code>.env</code> ikut dikomit. 60 commit dengan pesan seperti Changes dan 38.</span>
+      <b>Perbaikan</b><span>Hapus folder duplikat dari repo dan tambahkan ke .gitignore. Terapkan conventional commit message. Rotasi kredensial bila .env pernah dibagikan.</span>
+      <b>Estimasi</b><span>30 menit</span>
+    </div>
+  </div>
+</section>
+<section class="page">
+  <h2>8. Kartu risiko - Sistem Anda (Sistem SUSENAS, metadata-driven)</h2>
+  <p class="small">Laravel 13 + Blade, SQLite untuk dev dan PostgreSQL untuk produksi. Kuesioner,
+  aturan, agregat, dan nilai turunan semuanya metadata di database. Empat puluh delapan file test,
+  AuditLog, snapshot dokumen, RBAC dengan cakupan wilayah.</p>
+
+  <div class="card k">
+    <h3><span class="id">Y-1</span> Backup harian gagal diam-diam di produksi <span class="badge s-kritis">KRITIS</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Tidak ada backup yang berjalan di PDN. Data lapangan, metadata, dan audit hilang total bila Basis data rusak, tanpa ada indikasi - karena perintah hanya menulis pesan gagal ke log.</span>
+      <b>Bukti</b><span><code>app/Console/Commands/Backup.php:23-30</span> menolak driver selain SQLite dan mengembalikan <code>self::FAILURE</code>. Tapi <code>routes/console.php</code> menjadwalkan <code>Schedule::command('susenas:backup')-&gt;dailyAt('01:30')</code>, sedangkan <code>docker-compose.yml:12</code> menetapkan <code>DB_CONNECTION: pgsql</code>. <code>docs/deployment.md:123</code> hanya menyebut pg_dump manual. Even jika perintah berjalan, hasilnya disimpan di named volume <code>storage</code> yang hilang bila <code>docker compose down -v</code>. Tidak ada uji pemulihan.</span>
+      <b>Perbaikan</b><span>Tambahkan cabang pg_dump atau mysqldump di perintah backup, simpan ke bind mount host di luar volume, tambahkan <code>susenas:restore</code>, dan make <code>susenas:health</code> memeriksa bahwa backup terakhir berumur di bawah 24 jam - dengan peringatan keras bila tidak.</span>
+      <b>Estimasi</b><span>3-4 jam</span>
+    </div>
+  </div>
+
+  <div class="card t">
+    <h3><span class="id">Y-2</span> Operator dapat membuka dan mengisi dokumen milik petugas lain (IDOR) <span class="badge s-tinggi">TINGGI</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Isian fieldwork milik petugas lain bisa diubah dan difinalisasi oleh operator. Daftar sampel sudah disaring, tetapi begitu ID dokumen diketahui, aksesnya terbuka - dan peran pj pun bisa membuka dokumen di luar kecamatan tasked.</span>
+      <b>Bukti</b><span><code>app/Http/Controllers/EntryController.php:39-47</code> - <code>assertActiveCycle()</code> hanya memeriksa siklus, tidak pernah memeriksa <code>sample-&gt;petugas_id == user-&gt;id</code> maupun <code>user-&gt;wilayah_scope</code>. Bandingkan <code>MonitoringController.php:46</code> yang benar memakai <code>where('petugas_id', $user-&gt;id)</code>. Rute <code>/entri/{document}</code> dan <code>/entri/{document}/jawaban</code> di <code>routes/web.php:77-84</code>.</span>
+      <b>Perbaikan</b><span>Ubah menjadi <code>assertDocumentAccess()</code>: operator hanya dokumenwhose petugas_id miliknya; pj hanya yang wilayah_kodenya cocok; pml dan admin bebas. Terapkan juga pada VisitPhoto dan DocumentNote.</span>
+      <b>Estimasi</b><span>1-2 jam</span>
+    </div>
+  </div>
+
+  <div class="card t">
+    <h3><span class="id">Y-3</span> Tidak ada Policy atau Gate - seluruh scoping ditulis manual di dalam controller <span class="badge s-tinggi">TINGGI</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Setiap rute baru adalah peluang lupa scoping - persis kesalahan yang terjadi di A-3 dan B-1. Tidak ada titik kontrol tunggal.</span>
+      <b>Bukti</b><span>Folder <code>app/Policies</code> tidak ada. Pencarian <code>authorize</code>, <code>Gate::</code>, dan <code>can(</code> di seluruh controller menghasilkan nol hasil. Kontrol akses tersebar di MonitoringController, CleaningController, DocumentNoteController, dan EntryController secara terpisah.</span>
+      <b>Perbaikan</b><span>Buat <code>DocumentPolicy</code> dan <code>SamplePolicy</code>, panggil <code>$this-&gt;authorize('view', $document)</code> di controller. Dengan begitu scoping menjadi default otomatis, bukan hal yang harus diingat.</span>
+      <b>Estimasi</b><span>1-2 hari</span>
+    </div>
+  </div>
+
+  <div class="card t">
+    <h3><span class="id">Y-4</span> Admin produksi tidak bisa login - sandi diacak tapi tidak pernah dicetak <span class="badge s-tinggi">TINGGI</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Setelah seeder berjalan, tidak ada kredensial yang diketahui siapa pun - deploy tampak berhasil namun tidak ada yang bisa masuk. Log deploy bisa hilang sebelum dibaca.</span>
+      <b>Bukti</b><span><code>database/seeders/DatabaseSeeder.php:881-889</code> (metode <code>metadataOnly</code>, jalur produksi) membuat admin dengan <code>Hash::make(Str::random(16))</code> lalu hanya menulis peringatan "Sandi admin diacak - atur ulang via php artisan tinker". Password plaintext-nya tidak pernah dicetak. <code>docs/deployment.md:27</code> menyebut "sandi acak di log" - padahal yang muncul hanya peringatannya.</span>
+      <b>Perbaikan</b><span>Cetak password sekali di keluaran seeder, atau sediakan perintah <code>susenas:admin-reset</code>. Tambahkan penanda wajib ganti password saat login pertama.</span>
+      <b>Estimasi</b><span>30 menit</span>
+    </div>
+  </div>
+  <div class="card t">
+    <h3><span class="id">Y-5</span> Compose tidak punya service worker dan penjadwal <span class="badge s-tinggi">TINGGI</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Kalau sistem dijalankan lewat docker compose, tidak ada backup harian, tidak ada memangkasan notifikasi, dan tidak ada pemeriksaan kesehatan mingguan. Jadwal hanya berjalan bila cron host atau Task Scheduler memanggil <code>schedule:run</code>.</span>
+      <b>Bukti</b><span><code>docker-compose.yml</code> hanya memuat service app, web, dan db. <code>docs/deployment.md:39-67</code> menjelaskan setup Supervisor dan cron untuk mesin telanjang, serta menyebut service worker sebagai opsi (baris 112-113) - belum ada di compose.</span>
+      <b>Perbaikan</b><span>Tambahkan service <code>worker</code> (queue:work) dan <code>scheduler</code> (schedule:run tiap menit) ke compose, plus volume terpisah untuk folder backup. Saat ini belum ada dispatch di kode sehingga antrean belum bermasalah - tetapi akan segera menjadi begitu.</span>
+      <b>Estimasi</b><span>1-2 jam</span>
+    </div>
+  </div>
+
+  <div class="card s">
+    <h3><span class="id">Y-6</span> Snapshot dokumen dan hasil aturan tumbuh tanpa memangkasan <span class="badge s-sedang">SEDANG</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Basis data membengkak seiring revalidasi berulang, dan setiap pembukaan dokumen menjalankan mesin aturan lagi sehingga waktu buka memanjang pada siklus yang besar.</span>
+      <b>Bukti</b><span><code>routes/console.php</code> hanya memangkas tabel <code>notifications</code>. Tabel <code>document_snapshots</code> bersifat append-only. <code>EntryController::form</code> memanggil <code>$this-&gt;engine-&gt;run($document)</code> setiap kali dokumen dibuka.</span>
+      <b>Perbaikan</b><span>Tetapkan retensi snapshot (simpan N revisi terakhir per dokumen), tambahkan indeks komposit, dan jalankan mesin aturan hanya bila jawaban berubah.</span>
+      <b>Estimasi</b><span>1 hari</span>
+    </div>
+  </div>
+
+  <div class="card s">
+    <h3><span class="id">Y-7</span> Revalidasi massal dan impor CAPI belum dipecah menjadi batch <span class="badge s-sedang">SEDANG</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Di PDN dengan ribuan dokumen, <code>susenas:revalidate --all</code> berjalan dalam satu proses dan berisiko melewati batas waktu atau kehabisan memori. Impor berkas besar dimuat penuh ke memori.</span>
+      <b>Bukti</b><span><code>app/Console/Commands/Revalidate.php</code> memproses seluruh dokumen dalam satu proses; <code>app/Services/XlsxReader.php</code> (143 baris) memuat berkas ke memori. Belum ada batas ukuran berkas pada rute impor.</span>
+      <b>Perbaikan</b><span>Tambahkan opsi <code>--chunk</code> dengan pagination, batas ukuran berkas, dan laporan progres. Jalankan lewat antrean bila memungkinkan.</span>
+      <b>Estimasi</b><span>1 hari</span>
+    </div>
+  </div>
+
+  <div class="card s">
+    <h3><span class="id">Y-8</span> Password database punya nilai bawaan yang mudah ditebak <span class="badge s-sedang">SEDANG</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Bila berkas .env tidakadjusted, password database adalah susenas - penyebab paling umum container yang terlanjur internet-facing.</span>
+      <b>Bukti</b><span><code>docker-compose.yml</code> memakai <code>DB_PASSWORD: ${DB_PASSWORD:-susenas}</code> untuk app dan <code>POSTGRES_PASSWORD: ${DB_PASSWORD:-susenas}</code> untuk db.</span>
+      <b>Perbaikan</b><span>Tambahkan pemeriksaan awal di <code>docker/entrypoint.sh</code>: jangan mulai bila password masih bernilai bawaan. Beri peringatan pada halaman-panel bila password database kosong.</span>
+      <b>Estimasi</b><span>30 menit</span>
+    </div>
+  </div>
+
+  <div class="card s">
+    <h3><span class="id">Y-9</span> Single sign-on, UAT, dan sekitar 16 aturan Sidona yang masih ambigu <span class="badge s-sedang">SEDANG</span></h3>
+    <div class="kv">
+      <b>Dampak</b><span>Beban pengelolaan akun bertambah, dan kemungkinan salah tafsir aturan tetap ada - hasil tabulasi bisa salah tanpa terdeteksi karena tidak ada pembanding.</span>
+      <b>Bukti</b><span>Tercatat di <code>CLAUDE.md</code> bagian Belum: SSO, format ekspor CAPI dari BPS, deploy PDN, UAT, penimbang kalibrasi, serta wilayah, sampel, dan harga referensi asli. <code>docs/pemetaan-aturan-sidona.md</code> memetakan 92 dari 108 aturan; sisanya belum jelas.</span>
+      <b>Perbaikan</b><span>Gunakan <code>docs/skenario-uat.md</code> yang sudah ada sebagai daftar uji, lalu jalankan <code>susenas:revalidate</code> setelah tiap aturan ambigu diputuskan.</span>
+      <b>Estimasi</b><span>Berkelanjutan</span>
+    </div>
+  </div>
+
+  <div class="good">
+    <b>Yang sudah kokoh di sistem Anda - tidak perlu diubah</b>
+    <ul>
+      <li>Login dibatasi 8 percobaan per menit, plus penguncian akun 5 kali gagal dalam 15 menit, semuanya tercatat di <code>AuditLog</code>.</li>
+      <li><code>ExpressionEvaluator</code> memakai daftar putih fungsi, tanpa <code>eval()</code>, tanpa akses properti atau indeks - aman dari injeksi.</li>
+      <li><code>document_snapshots</code> mengunci nilai saat finalisasi, sehingga angka historis tidak berubah sendiri seperti di B-5.</li>
+      <li>Versioning kuesioner sebagai data: semester baru = baris baru, data lama tetap bisa dibuka dan ditabulasi.</li>
+      <li>Unggah foto kunjungan divalidasi <code>image|mimes|max:8192</code>.</li>
+      <li><code>susenas:health</code> sudah memeriksa aturan dengan ekspresi rusak, aturan yang menunjuk blok hilang, agregat tak valid, dokumen bersih yang masih error, sampel tanpa petugas, dan jawaban yatim.</li>
+      <li>Seeder produksi membuat satu admin dengan sandi acak - akun dummy berpassword lemah hanya ada di jalur dev.</li>
+    </ul>
+  </div>
+</section>
+<section class="page">
+  <h2>9. Yang layak diambil dari A dan B - dan yang tidak</h2>
+  <p>Tujuh ide dari repo A dan repo B layak masuk ke sistem Anda. Semuanya ditulis ulang di atas
+  mesin aturan yang sudah ada, bukan menyalin kode - terutama karena repo B tidak punya lisensi.</p>
+
+  <table>
+    <tr><th style="width:42mm">Ide</th><th style="width:16mm">Sumber</th><th>Cara masuk ke sistem Anda</th><th style="width:14mm">Prioritas</th><th style="width:17mm">Estimasi</th></tr>
+    <tr><td>Kurva Lorenz, tabel persentil, dan grafik garis kemiskinan</td><td>A</td><td>Tambah tab baru di <code>TabulationController</code>. Data sudah tersedia di <code>document_snapshots</code>, jadi tidak menyentuh mesin aturan sama sekali.</td><td>P1</td><td>1-2 hari</td></tr>
+    <tr><td>Rekap per ART dan per RT</td><td>A</td><td>Tampilan di atas model <code>Aggregate</code> yang sudah ada - cukup lapisan tampilan, tanpa mengubah perhitungan.</td><td>P1</td><td>1 hari</td></tr>
+    <tr><td>Imputasi pendapatan dengan tooltip rincian</td><td>B</td><td>Jangan salin <code>imputasiCalculations.ts</code>. Jadikan <b>derived_field</b> metadata: aturan turunan dengan ekspresi, sumber datanya agregat. Rinciannya ditampilkan lewat tooltip di view pengolahan.</td><td>P1</td><td>2-3 hari</td></tr>
+    <tr><td>Konversi periode (minggu, bulan, tahun ke tahunan)</td><td>B</td><td>Tambahkan fungsi <code>period_to_annual(nilai, periode)</code> di <code>ExpressionEvaluator</code>, lalu pakai di agregat. Menghapus konstanta kali 30, kali 7, dan kali 52 yang tersebar di aturan.</td><td>P1</td><td>0.5 hari</td></tr>
+    <tr><td>Navigasi keyboard dan filter komoditas di tabel 194 baris</td><td>A dan B</td><td>Perubahan UI pada <code>entri/document.blade.php</code> dan <code>public/js/app.js</code>: Enter berpindah ke sel berikutnya, kotak cari komoditas, header lengket, input angka dengan format ribuan. Tidak menyentuh model metadata.</td><td>P1</td><td>1-2 hari</td></tr>
+    <tr><td>Mode entri bertahap seperti wizard</td><td>B</td><td>Kelompokkan blok yang ada menjadi langkah-langkah, di atas renderer generik yang sekarang. Karena blok sudah metadata, pemetaan blok ke langkah cukup satu tabel kecil.</td><td>P2</td><td>2-3 hari</td></tr>
+    <tr><td>Ekspor ke Google Sheets sebagai keluaran</td><td>B</td><td>Sebagai <b>output</b>, bukan penyimpanan. Service account hanya untuk menulis laporan per siklus. Jangan tiru Sheets sebagai basis data.</td><td>P2</td><td>1-2 hari</td></tr>
+  </table>
+
+  <div class="note">
+    <b>Yang TIDAK perlu ditiru - daftar pantang</b>
+    <ul>
+      <li><b>Virtual environment Python dan aset build yang dikomit</b> (A) - membuat build di server Linux gagal dan repo membengkak.</li>
+      <li><b>Google Sheets sebagai basis data</b> (B) - tidak ada skema, tidak ada kunci asing, tidak ada transaksi, tidak ada migrasi.</li>
+      <li><b>Aturan yang dihitung di browser</b> (B) - bisa dimanipulasi pengguna sebelum disimpan, dan angka historis berubah sendiri saat reload.</li>
+      <li><b>Definisi kuesioner yang ditulis di dalam kode</b> (A dan B) - persis masalah yang sudah Anda pecahkan dengan metadata.</li>
+      <li><b>Folder duplikat di dalam repository</b> (B) - mudah salah edit dan salah deploy.</li>
+      <li><b>Menyalin kode repo B</b> - tanpa berkas LICENSE, secara default hak cipta dilindungi seluruhnya. Ambil idenya, tulis ulang sendiri.</li>
+    </ul>
+  </div>
+
+  <div class="box">
+    <b>Prioritas yang saya sarankan bila harus memilih satu bulan ke depan</b>
+    <ol>
+      <li><b>Minggu 1</b> - tutup Y-2 (IDOR entri) dan Y-1 (backup PostgreSQL). Dua-duanya murah dan menutup risiko yang paling sulit dideteksi setelah kejadian.</li>
+      <li><b>Minggu 2</b> - R1 (Bandingkan Versi) plus R2 (kebijakan kode var). Ini menyiapkan rilis semester berikutnya jauh lebih murah daripada semester ini.</li>
+      <li><b>Minggu 3-4</b> - Lorenz dan persentil (P1, murah dan terlihat langsung di keluaran), lalu imputasi sebagai derived_field.</li>
+      <li><b>Setelah itu</b> - UX tabel 194 komoditas, cek benturan pada duplicateVersion, dan export Google Sheets sebagai keluaran.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="page">
+  <h2>10. Checklist tindakan - urut dari yang paling murah</h2>
+  <p class="small">Bagian ini bisa langsung dipakai sebagai daftar kerja. Kotak centang sengaja dibiarkan kosong.</p>
+
+  <h3>P0 - kerjakan minggu ini (sistem Anda)</h3>
+  <table class="chk">
+    <tr><th style="width:9mm">&#9744;</th><th style="width:13mm">ID</th><th>Aksi</th><th style="width:18mm">Estimasi</th><th style="width:22mm">Selesai</th></tr>
+    <tr><td>&#9744;</td><td>Y-2</td><td>Tambahkan <code>assertDocumentAccess()</code> di EntryController, VisitPhoto, dan DocumentNote</td><td>1-2 jam</td><td></td></tr>
+    <tr><td>&#9744;</td><td>Y-4</td><td>Cetak password admin sekali di seeder produksi, atau buat perintah <code>susenas:admin-reset</code></td><td>30 menit</td><td></td></tr>
+    <tr><td>&#9744;</td><td>Y-1</td><td>Cabang pg_dump di perintah backup + simpan di luar volume + <code>susenas:restore</code> + pemeriksaan backup di health</td><td>3-4 jam</td><td></td></tr>
+    <tr><td>&#9744;</td><td>Y-5</td><td>Tambah service worker dan scheduler ke docker compose, plus volume backup terpisah</td><td>1-2 jam</td><td></td></tr>
+    <tr><td>&#9744;</td><td>Y-8</td><td>Penolakan mulai di entrypoint bila password database masih nilai bawaan</td><td>30 menit</td><td></td></tr>
+  </table>
+
+  <h3>P1 - dua minggu ke depan</h3>
+  <table class="chk">
+    <tr><th style="width:9mm">&#9744;</th><th style="width:13mm">ID</th><th>Aksi</th><th style="width:18mm">Estimasi</th><th style="width:22mm">Selesai</th></tr>
+    <tr><td>&#9744;</td><td>Y-3</td><td>DocumentPolicy dan SamplePolicy, panggil authorize di controller</td><td>1-2 hari</td><td></td></tr>
+    <tr><td>&#9744;</td><td>Y-6</td><td>Retensi snapshot dan indeks komposit; aturan hanya dijalankan bila jawaban berubah</td><td>1 hari</td><td></td></tr>
+    <tr><td>&#9744;</td><td>Y-7</td><td>Chunking revalidate, batas ukuran berkas impor, laporan progres</td><td>1 hari</td><td></td></tr>
+    <tr><td>&#9744;</td><td>-</td><td>Tambah tabulasi Lorenz, persentil, dan kurva garis kemiskinan (terinspirasi dari A)</td><td>1-2 hari</td><td></td></tr>
+    <tr><td>&#9744;</td><td>-</td><td>Imputasi pendapatan sebagai derived_field metadata, dengan tooltip rincian (terinspirasi dari B, ditulis ulang)</td><td>2-3 hari</td><td></td></tr>
+    <tr><td>&#9744;</td><td>-</td><td>Halaman bandingkan versi kuesioner plus checklist rilis</td><td>1-2 hari</td><td></td></tr>
+  </table>
+
+  <h3>Catatan referensi - bila Andamwaki repo A atau B</h3>
+  <table class="chk">
+    <tr><th style="width:9mm">&#9744;</th><th style="width:13mm">ID</th><th>Aksi</th><th style="width:18mm">Estimasi</th><th style="width:22mm">Selesai</th></tr>
+    <tr><td>&#9744;</td><td>A-1</td><td>Hapus <code>return true;</code> dan kunci hak ubah data</td><td>10 menit</td><td></td></tr>
+    <tr><td>&#9744;</td><td>A-2</td><td>Whitelist tabel ekspor, pindahkan rute ke group admin</td><td>30 menit</td><td></td></tr>
+    <tr><td>&#9744;</td><td>A-3</td><td>Ambil scope dari user, bukan dari request</td><td>1 jam</td><td></td></tr>
+    <tr><td>&#9744;</td><td>A-4</td><td>Rotasi APP_KEY dan kredensial, keluarkan .env dari repo</td><td>10 menit</td><td></td></tr>
+    <tr><td>&#9744;</td><td>A-5</td><td>Keluarkan venv Python, public/build, dan zip dari repo</td><td>1-2 jam</td><td></td></tr>
+    <tr><td>&#9744;</td><td>B-1</td><td>Verifikasi JWT di setiap edge function, batasi CORS, pisahkan hak baca dan tulis</td><td>1-2 hari</td><td></td></tr>
+    <tr><td>&#9744;</td><td>B-2</td><td>Hash password di server, tambahkan rate limit</td><td>1 hari</td><td></td></tr>
+    <tr><td>&#9744;</td><td>B-3, B-7</td><td>Satukan definisi commodity, pindahkan skema ke Postgres</td><td>2-3 hari</td><td></td></tr>
+  </table>
+
+  <div class="box">
+    <b>Kalau hanya satu hal yang bisa dikerjakan</b>
+    <p>Kerjakan <b>Y-1</b>. Semua risiko lain bisa diperbaiki tanpadata pengguna data yang tidak bisa dipulihkan.
+    Kerusahan keamanan (A-1, B-1) berdampak besar tetapi biasanya terdeteksi dan masih bisa dipulihkan;
+    data lapangan yang hilang tidak bisa dihitung ulang karenapengumpulan data lapangan sudah lewat.</p>
+  </div>
+
+  <p class="foot-note">Dokumen ini disusun dari pembacaan kode sumber ketiga repositori pada branch main.
+  Bukti_decayks di setiap kartu dapat diverifikasi langsung pada berkas yang disebut.
+  Dokumen ini dapat dibuat ulang dengan urutan berbeda kapan pun - cukup sampaikan urutan yang diinginkan.</p>
+</section>
+</body>
+</html>
