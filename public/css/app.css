@@ -252,7 +252,41 @@ p .mono, li .mono, .prose .mono { color: var(--accent-2); background: var(--acce
     border-right: 0; border-bottom: 1px solid var(--nav-line); overflow-y: visible;
   }
   .side a.on::before { display: none; }
+  /* mode strip: judul seksi (.nav-sep) jadi label sebaris — sebelumnya teksnya membungkus
+     beberapa baris & lewat align-items:stretch membuat semua tab ikut setinggi itu */
+  .side { align-items: center; }
+  .side .nav-sep {
+    flex: none; white-space: nowrap; align-self: center;
+    border-top: 0; border-left: 1px solid var(--nav-line); margin: 0 0 0 6px; padding: 4px 10px;
+  }
   .content { margin: 0; height: auto; overflow: visible; padding: 20px 16px 48px; }
+}
+
+/* layar HP sempit (mis. 412px) — topbar & nav di atas belum cukup, elemennya
+   tidak menyusut/membungkus sehingga terpotong di tepi layar. */
+@media (max-width: 480px) {
+  .topbar { height: auto; min-height: var(--topbar-h); padding: 8px 12px; flex-wrap: wrap; row-gap: 6px; }
+  .brand { font-size: .95rem; }
+  .brand .ver { display: none; }
+  /* flex-basis:100% memaksa whoami jadi baris sendiri yang lebar penuh, bukan berbagi
+     baris dengan .brand lalu meluber — sebelumnya bisa tetap sebaris & terpotong
+     tergantung total lebar kontennya, bukan cuma soal ukuran font. */
+  .whoami { font-size: .78rem; gap: 6px; flex-wrap: wrap; row-gap: 4px; flex-basis: 100%; justify-content: flex-end; }
+  /* semua dibatasi ke .topbar — tombol tema kedua di halaman login (di luar topbar) jangan ikut */
+  .whoami .role, .topbar .notif-bell .lbl, .topbar [data-theme-label] { display: none; }
+  .topbar .avatar-row .nm { display: none; }
+  .topbar .btn-ghost, .topbar .notif-bell, .topbar .theme-toggle { padding: 5px 8px; }
+  /* label teks disembunyikan di atas — ganti dengan ikon ringkas (tanpa aset gambar) */
+  .topbar .notif-bell::before { content: "🔔"; font-size: .9rem; }
+  /* \FE0F = penanda "tampilkan sebagai emoji" — tanpanya 🖥/☀ bisa dirender kotak/teks polos */
+  html:not([data-theme]) .topbar .theme-toggle::before { content: "\1F5A5\FE0F"; font-size: .9rem; }
+  html[data-theme="light"] .topbar .theme-toggle::before { content: "\2600\FE0F"; font-size: .9rem; }
+  html[data-theme="dark"] .topbar .theme-toggle::before { content: "🌙"; font-size: .9rem; }
+  /* nav jadi strip geser horizontal — bukan wrap (ubin "on" jadi besar sendiri saat wrap) */
+  .side { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .side a { white-space: nowrap; flex: none; font-size: .86rem; padding: 7px 10px; }
+  h1 { font-size: 1.5rem; }
+  .content { padding: 16px 14px 40px; }
 }
 
 /* panels & tables */
@@ -269,12 +303,18 @@ p .mono, li .mono, .prose .mono { color: var(--accent-2); background: var(--acce
   display: flex; align-items: baseline; gap: 10px;
 }
 details.panel > summary { font-family: var(--font-display); font-size: 1.1rem; }
-.grid2 { display: grid; gap: 16px; }
-@media (min-width: 860px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+/* minmax(0, 1fr), bukan kolom implisit/1fr — itu melebar ikut isi terlebar (tabel) dan
+   mendorong halaman lebih lebar dari layar HP. Pola sama dipakai .entry-layout & .fields-grid. */
+.grid2 { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 860px) { .grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* contoh CSV/teks praformat: baris panjang digulir di kotaknya sendiri */
+pre { max-width: 100%; overflow-x: auto; }
 
 /* wadah tabel lebar — scroll horizontal di dalam kontainernya, bukan seluruh halaman */
 .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .tablewrap > .tbl { min-width: 560px; }
+/* tabel sempit (<5 kolom) jangan dipaksa 560px — di HP itu malah bikin harus digeser padahal muat */
+.tablewrap > .tbl:not(:has(tr > :nth-child(5))) { min-width: 0; }
 /* daftar panjang: scroll 2 arah + header lengket DI DALAM wadah (kontainer scroll sendiri) */
 .tablewrap.tall { max-height: 76vh; overflow-y: auto; }
 .tablewrap.tall .tbl thead th {
@@ -374,10 +414,11 @@ form.inline, .doc-row form { display: inline; }
 .mt { margin-top: 16px; }
 
 .kv { margin: 0; display: grid; gap: 8px; }
-.kv > div { display: grid; grid-template-columns: 130px 1fr; gap: 8px; }
+.kv > div { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 8px; }
+.kv dd { overflow-wrap: anywhere; }
 .kv dt { color: var(--muted); font-size: .86rem; }
 .kv dd { margin: 0; }
-.doc-row { display: flex; gap: 10px; align-items: center; padding: 6px 0; }
+.doc-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 6px 0; }
 
 /* alerts */
 .alert { padding: 11px 14px; border-radius: var(--radius); font-size: .91rem; margin: 12px 0; border: 1px solid var(--line-strong); border-left-width: 3px; }
@@ -385,7 +426,7 @@ form.inline, .doc-row form { display: inline; }
 .alert.ok { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
 
 /* login */
-.login-wrap { display: grid; place-items: center; min-height: 100vh; padding: 20px; }
+.login-wrap { display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; min-height: 100vh; padding: 20px; }
 .login-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 30px; width: 372px; max-width: 100%; box-shadow: var(--shadow-md); }
 .login-card form { display: grid; gap: 12px; margin-top: 14px; }
 .login-card label { display: grid; gap: 4px; font-size: .92rem; color: var(--ink-soft); }
@@ -394,8 +435,24 @@ form.inline, .doc-row form { display: inline; }
 .login-card .demo td { padding: 3px 4px; font-family: "IBM Plex Mono", monospace; font-size: .79rem; border-bottom: 1px solid var(--line); }
 
 /* entry */
-.entry-layout { display: grid; gap: 18px; }
-@media (min-width: 940px) { .entry-layout { grid-template-columns: 1fr 320px; align-items: start; } }
+/* minmax(0, 1fr), bukan kolom implisit "auto": kolom auto melebar mengikuti isi terlebar
+   (tabel roster, teks nowrap di Ringkasan) sehingga di HP seluruh form lebih lebar dari layar. */
+.entry-layout { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
+.entry-side { min-width: 0; }
+/* align-items default (stretch) dengan sengaja DIPAKAI (bukan "start") — supaya .entry-side
+   setinggi kolom entri di sebelahnya, panel Ringkasan (.sticky) punya ruang penuh untuk
+   tetap menempel sampai akhir kuesioner, bukan cuma sebentar lalu ikut tergulir habis. */
+/* 940px sebelumnya memaksa 2 kolom walau sisa ruang kolom utama cuma ~340px (mis. lebar
+   955px split-screen) — label panjang jadi membungkus 3 baris, terasa sempit/berdempetan.
+   1100px dipilih supaya kolom utama tetap dapat >=460px (ambang grid 2 kolom di fields-grid)
+   begitu Ringkasan ikut tampil di samping, bukan sekadar muat pas-pasan. */
+@media (min-width: 1100px) { .entry-layout { grid-template-columns: minmax(0, 1fr) 320px; } }
+/* di bawah 1100px Ringkasan ditumpuk di bawah form — sticky + max-height-nya cuma
+   bikin kotak scroll di dalam halaman (scroll bersarang, menyebalkan di HP). */
+@media (max-width: 1099px) { .entry-side .sticky { position: static; max-height: none; overflow: visible; } }
+/* tabel roster yang lebar (mis. banyak kolom ART) tidak boleh mendorong kolom grid ini melebar —
+   tanpa ini, overflow-x:auto pada .roster-scroll tidak pernah terpakai (Inc UI-redesain). */
+.entry-main { min-width: 0; }
 .sticky { position: sticky; top: 6px; max-height: calc(100vh - var(--topbar-h) - 24px); overflow-y: auto; }
 .block { scroll-margin-top: 12px; }
 .block-head { cursor: pointer; user-select: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -416,11 +473,59 @@ form.inline, .doc-row form { display: inline; }
 .field .q-label { font-weight: 500; }
 .field .q-unit { color: var(--muted); font-size: .86rem; margin-left: 6px; }
 .field .answer { width: 220px; max-width: 100%; }
-.field .q-help { font-size: .86rem; color: var(--muted); margin-top: 4px; }
 .field.is-skipped { opacity: .45; }
 .field .q-flags { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
 .field.has-error .answer { border-color: var(--err); }
 .field.has-warning .answer { border-color: var(--warn); }
+
+/* Tahap 1 redesain entri (blok ruta): grid 2 kolom + tooltip rincian — dibangun dari
+   token/komponen yang sama dipakai di seluruh aplikasi (--accent/--line/--surface dst.),
+   supaya tetap serasi dengan halaman lain, bukan sistem visual baru. */
+/* lebar sebenarnya yang tersedia untuk kartu rincian dipotong sidebar (218px) + panel
+   Ringkasan (320px) — breakpoint berdasar lebar viewport nyaris tidak pernah aktif,
+   jadi dihitung dari lebar kontainer sendiri (container query), bukan lebar layar. */
+.block-body { container-type: inline-size; }
+/* minmax(0, 1fr), bukan 1fr: 1fr tidak bisa menyusut di bawah kata terpanjang tanpa spasi
+   (mis. "(Provinsi+Kab/Kota+Kecamatan+Desa/Kel,"), sehingga kartu meluber keluar panel di HP. */
+.fields-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@container (min-width: 460px) { .fields-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.fields-grid .field .q-label { overflow-wrap: anywhere; }
+.fields-grid .field {
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px;
+  background: var(--surface); box-shadow: var(--shadow-sm);
+}
+.fields-grid .field.has-error { border-color: var(--err); background: var(--err-soft); }
+.fields-grid .field.has-warning { border-color: var(--warn); background: var(--warn-soft); }
+.fields-grid .field label { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.fields-grid .field .q-label { flex: 1; }
+
+.q-help { position: relative; display: inline-flex; margin-left: auto; }
+.q-help-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%; background: var(--surface-2);
+  color: var(--muted); font-size: .72rem; font-weight: 700; cursor: help; flex-shrink: 0;
+  border: 1px solid var(--line);
+}
+.q-help-btn:hover, .q-help-btn:focus-visible { border-color: var(--accent); color: var(--accent-ink); }
+.q-help-tip {
+  position: absolute; top: 100%; right: 0; margin-top: 6px; z-index: 5; width: 220px; max-width: 70vw;
+  background: var(--ink); color: var(--surface); font-size: .8rem; line-height: 1.35;
+  padding: 7px 10px; border-radius: var(--radius); box-shadow: var(--shadow-md);
+  opacity: 0; pointer-events: none; transform: translateY(-4px); transition: opacity .12s, transform .12s;
+}
+.q-help-btn:hover + .q-help-tip, .q-help-btn:focus-visible + .q-help-tip { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+/* Tahap 2 redesain entri: navigasi "blok sebelumnya/berikutnya" di bawah tiap blok —
+   dibangun di atas mekanisme lipat/buka (accordion) yang sudah ada, bukan wizard terpisah. */
+.block-stepper { display: flex; justify-content: space-between; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* Tahap 3 redesain entri: filter pencarian + "hanya error/kosong" lintas blok. */
+.entry-filter { display: grid; gap: 6px; margin-top: 10px; }
+.entry-filter input[type="text"] { width: 100%; }
+.entry-filter label { display: flex; align-items: center; gap: 6px; font-size: .86rem; color: var(--ink-soft); font-weight: 400; }
+.is-filtered-out { display: none !important; }
+.block.is-filter-empty .block-body, .block.is-filter-empty .block-stepper { display: none; }
+.block.is-filter-empty .block-head { opacity: .45; }
 
 .flag { font-size: .86rem; padding: 3px 8px; border-radius: var(--radius); display: block; }
 .flag.error { background: var(--err-soft); color: var(--err); }
@@ -481,6 +586,9 @@ form.inline, .doc-row form { display: inline; }
 
 .row-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .row-form input, .row-form select { min-width: 0; }
+/* <select> selebar opsi terpanjangnya; tanpa batas ini form filter meluber di HP */
+.row-form label { min-width: 0; max-width: 100%; }
+.row-form select, .row-form input { max-width: 100%; }
 .stack-form { display: grid; gap: 10px; }
 .stack-form label { display: grid; gap: 3px; font-size: .86rem; color: var(--ink-soft); }
 .stack-form > label > input, .stack-form > label > select { width: 100%; }
@@ -515,7 +623,7 @@ td.right form { display: inline; }
 .tile.lg span { font-family: "IBM Plex Mono", monospace; font-size: .77rem; }
 .tile.lg small { font-size: .73rem; opacity: .8; }
 .tile.lg:hover { outline: 2px solid var(--accent); }
-.desa-row { display: grid; grid-template-columns: 220px 1fr; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); align-items: start; }
+.desa-row { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); align-items: start; }
 .desa-row:first-of-type { border-top: 0; }
 .desa-name { font-size: .91rem; }
 .bs-strip { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -524,15 +632,20 @@ td.right form { display: inline; }
 .rate-badge.b1 { color: var(--err); border-color: var(--err); }
 .rate-badge.b50 { color: var(--warn); border-color: var(--warn); }
 .rate-badge.b90, .rate-badge.b100 { color: var(--ok); border-color: var(--ok); }
-@media (max-width: 620px) { .desa-row { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .desa-row { grid-template-columns: minmax(0, 1fr); } }
 
-/* roster ART */
-.roster-scroll { overflow-x: auto; }
+/* roster ART & daftar komoditas (list) — bisa ratusan baris (IV.1), jadi dikasih
+   tinggi maksimum + scroll 2 arah sendiri (pola sama dgn .tablewrap.tall), supaya
+   header kolom tetap kelihatan & scroll horizontal pasti berfungsi. */
+.roster-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* tinggi maksimum + scroll vertikal sendiri HANYA di layar entri (header .roster lengket di sana);
+   di Tabulasi/Indikator .roster-scroll membungkus .tbl yang header-nya tidak lengket */
+.entry-main .roster-scroll { overflow: auto; max-height: 70vh; }
 .roster { border-collapse: collapse; font-size: .92rem; }
 .roster th, .roster td { border: 1px solid var(--line); padding: 5px 7px; vertical-align: top; }
 .roster thead th {
   background: var(--paper); text-align: left; font-weight: 600; min-width: 130px;
-  position: sticky; top: 0;
+  position: sticky; top: 0; z-index: 4;
 }
 .roster tbody th { background: var(--paper); text-align: center; width: 34px; }
 .roster tbody th.row-label { text-align: left; width: auto; min-width: 150px; font-weight: 500; font-size: .86rem; }
@@ -581,12 +694,17 @@ details.panel > summary:hover { color: var(--accent-ink); }
 
 /* tampilan cetak dokumen */
 .print-block { margin: 14px 0; break-inside: avoid; }
+/* tabel ruta 2 kolom di cetakan: label panjang tanpa spasi (mis. "(Provinsi+Kab/Kota+...")
+   dipenggal, bukan mendorong tabel lebih lebar dari layar */
+.print-block > .tbl td:first-child { overflow-wrap: anywhere; }
 .print-block h2 { font-size: .95rem; border-bottom: 1px solid var(--line-strong); padding-bottom: 3px; }
 @media print {
   .topbar, .side, .no-print, .entry-side { display: none !important; }
   .shell, .content { display: block; margin: 0; padding: 0; max-width: none; }
   body { background: #fff; font-size: 11px; }
   .print-doc { padding: 0; }
+  /* wadah scroll layar (termasuk max-height roster) tidak boleh memotong isi saat dicetak */
+  .tablewrap, .roster-scroll, pre { overflow: visible !important; max-height: none !important; }
   .tbl.mini td, .tbl.mini th { padding: 3px 5px; }
   a { color: #000; text-decoration: none; }
   .print-foot { position: fixed; bottom: 6px; }

@@ -3,9 +3,9 @@
 @section('title', 'Indikator Kesejahteraan · Sistem SUSENAS')
 @section('content')
 <h1>Indikator Kesejahteraan</h1>
-<p class="muted">Rekap <strong>internal untuk QC/pemantauan — BUKAN estimasi resmi</strong>.
+<p class="muted">Rekap <strong>internal untuk pemeriksaan mutu/pemantauan — BUKAN estimasi resmi</strong>.
   Angka tertimbang memakai <em>design weight</em> yang belum dikalibrasi.
-  {{ $total }} dokumen dalam cakupan Anda.</p>
+  {{ $total }} sampel dalam cakupan Anda.</p>
 
 <form method="get" class="row-form">
   <input type="hidden" name="selesai" value="1">
@@ -21,7 +21,7 @@
 </form>
 
 @if(empty($result))
-  <p class="muted">Belum ada dokumen dengan variabel <span class="mono">{{ $var }}</span>.</p>
+  <p class="muted">Belum ada sampel dengan variabel <span class="mono">{{ $var }}</span>.</p>
 @else
 
 @if($hist)
@@ -57,7 +57,7 @@
 <table class="tbl">
   <thead><tr>
     <th>Wilayah</th><th class="num">n</th>
-    <th class="num">P0 (tak tertimbang)</th><th class="num">P0 (tertimbang)</th>
+    <th class="num">Persentase miskin (tak tertimbang)</th><th class="num">Persentase miskin (tertimbang)</th>
     <th class="num">Rata-rata</th><th class="num">Median</th>
     <th class="num">Porsi makanan</th><th class="num">Estimasi populasi</th>
     <th>Sebaran kelas ({{ implode(' / ', $classLabels) }})</th>
@@ -79,7 +79,7 @@
   </tbody>
 </table>
 </div>
-<p class="muted small">P0 = <em>headcount ratio</em>: persentase rumah tangga dengan pengeluaran per kapita
+<p class="muted small">Persentase miskin (<em>headcount ratio</em>): persentase rumah tangga dengan pengeluaran per kapita
   di bawah garis kemiskinan (Rp {{ number_format($gk, 0, ',', '.') }}).
   Baris pertama = seluruh cakupan.</p>
 @endif

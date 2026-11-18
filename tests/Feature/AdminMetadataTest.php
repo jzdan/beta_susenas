@@ -103,12 +103,16 @@ class AdminMetadataTest extends TestCase
         $b = Block::where('qversion_id', $qv->id)->where('code', 'IV.1')->firstOrFail();
         $row = \App\Models\BlockRow::where('block_id', $b->id)->orderBy('row_index')->firstOrFail();
 
-        // editor menampilkan input yg bisa disunting + kolom ref
+        // Inc 141: editor baris (Metadata) tidak lagi menampilkan kolom harga & Calories —
+        // semuanya pindah ke "Aturan Validasi → Harga & Kalori". Kolom lain (mis. max_kons)
+        // tetap di sini.
         $res = $this->actingAs($this->admin())->get("/admin/blok/{$b->id}");
-        $res->assertOk()->assertSee('name="ref[kalori]"', false);
-        $this->assertTrue($res->viewData('refKeys')->contains('kalori'));
+        $res->assertOk()->assertDontSee('name="ref[kalori]"', false);
+        $this->assertFalse($res->viewData('refKeys')->contains('kalori'));
+        $this->assertFalse($res->viewData('refKeys')->contains('harga_min'));
+        $this->assertFalse($res->viewData('refKeys')->contains('harga_max'));
 
-        // ubah kalori & max_kons (kolom baru) pada satu baris
+        // POST ref berisi harga/kalori → diabaikan (satu tempatnya tab Harga & Kalori)
         $this->actingAs($this->admin())->post("/admin/blok/{$b->id}/baris-satu", [
             'row_id' => $row->id, 'row_index' => $row->row_index,
             'code' => $row->code, 'label' => $row->label,
@@ -116,9 +120,103 @@ class AdminMetadataTest extends TestCase
         ])->assertRedirect();
 
         $row->refresh();
-        $this->assertSame('9999', $row->ref['kalori']);
+        $this->assertArrayNotHasKey('kalori', $row->ref);
+        $this->assertArrayNotHasKey('harga_max', $row->ref);
         $this->assertSame('7', $row->ref['max_kons']);
-        $this->assertArrayNotHasKey('harga_min', $row->ref);   // kosong -> dibuang
+    }
+
+    public function test_aturan_tabs_neraca_and_harga_render(): void
+    {
+        $admin = $this->admin();
+        $qv = $this->activeQv();
+
+        // tab Neraca & Turunan: parameter + agregat + turunan pindah ke sini (Inc 141)
+        $res = $this->actingAs($admin)->get("/admin/aturan?qv={$qv->id}&tab=neraca");
+        $res->assertOk()->assertSee('Agregat cek-silang', false);
+        $this->assertSame('neraca', $res->viewData('tab'));
+        $this->assertTrue($res->viewData('aggregates')->isNotEmpty());
+
+        // tab Harga & Kalori
+        $res = $this->actingAs($admin)->get("/admin/aturan?qv={$qv->id}&tab=harga");
+        $res->assertOk();
+        $this->assertSame('harga', $res->viewData('tab'));
+
+        // tab tak dikenal -> kembali ke daftar aturan
+        $res = $this->actingAs($admin)->get("/admin/aturan?qv={$qv->id}&tab=ngawur");
+        $res->assertOk();
+        $this->assertSame('aturan', $res->viewData('tab'));
+    }
+
+    public function test_var_name_harus_valid_dan_unik_per_versi(): void
+    {
+        $admin = $this->admin();
+        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+        $b3 = Block::where('qversion_id', $qv->id)->where('code', 'III')->firstOrFail();
+
+        // nama berspasi ditolak (tidak bisa dirujuk mesin aturan)
+        $this->actingAs($admin)->post("/admin/blok/{$b3->id}/rincian", [
+            'code_rincian' => '399', 'var_name' => 'harga rumah', 'label' => 'x', 'qtype' => 'decimal',
+        ])->assertSessionHasErrors('var_name');
+        $this->assertDatabaseMissing('questions', ['var_name' => 'harga rumah', 'block_id' => $b3->id]);
+
+        // nama yang sudah dipakai blok LAIN di versi yang sama ditolak
+        $this->actingAs($admin)->post("/admin/blok/{$b3->id}/rincian", [
+            'code_rincian' => '399', 'var_name' => 'iv1_nilai_beli', 'label' => 'x', 'qtype' => 'decimal',
+        ])->assertSessionHasErrors('var_name');
+
+        // nama valid diterima; menyunting rincian itu sendiri (nama tetap) tidak dianggap ganda
+        $this->actingAs($admin)->post("/admin/blok/{$b3->id}/rincian", [
+            'code_rincian' => '399', 'var_name' => 'uji_harga_rumah', 'label' => 'Harga rumah', 'qtype' => 'decimal',
+        ])->assertSessionHasNoErrors();
+        $q = Question::where('block_id', $b3->id)->where('var_name', 'uji_harga_rumah')->firstOrFail();
+        $this->actingAs($admin)->post("/admin/rincian/{$q->id}", [
+            'code_rincian' => '399', 'var_name' => 'uji_harga_rumah', 'label' => 'Harga rumah (Rp)', 'qtype' => 'decimal',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('Harga rumah (Rp)', $q->fresh()->label);
+    }
+
+    public function test_pratinjau_entri_menampilkan_tampilan_petugas(): void
+    {
+        $admin = $this->admin();
+        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+
+        $res = $this->actingAs($admin)->get("/admin/pratinjau/{$qv->id}");
+        $res->assertOk();
+        // pakai partial entri yang sama dengan halaman petugas (Inc 143)
+        $res->assertSee('data-can-edit="0"', false);
+        $res->assertSee('Konsumsi &amp; Pengeluaran Makanan', false);
+        // baris komoditas Blok IV.1 tetap tampil utuh
+        $this->assertGreaterThan(190, count($res->viewData('state')['blocks'][3]['rows'] ?? []));
+
+        // tidak ada data yang tersimpan
+        $this->assertDatabaseCount('documents', \App\Models\Document::count());
+
+        // hanya admin yang boleh
+        $this->actingAs(\App\Models\User::where('username', 'ppl_ani')->firstOrFail())
+            ->get("/admin/pratinjau/{$qv->id}")->assertForbidden();
+    }
+
+    public function test_harga_kalori_edited_from_aturan_tab(): void
+    {
+        $qv = QuestionnaireVersion::where('code', 'VSEN26.KP')->firstOrFail();
+        $b = Block::where('qversion_id', $qv->id)->where('code', 'IV.1')->firstOrFail();
+        $row = \App\Models\BlockRow::where('block_id', $b->id)->orderBy('row_index')->firstOrFail();
+
+        // tab Harga & Kalori ada di halaman Aturan Validasi
+        $res = $this->actingAs($this->admin())->get("/admin/aturan?qv={$qv->id}&tab=harga");
+        $res->assertOk()->assertSee('Harga &amp; Kalori Wajar Komoditas', false);
+        $this->assertTrue(collect($res->viewData('komoditas'))->contains('id', $row->id));
+
+        // simpan dari sini: harga + Calories tersimpan ke block_rows.ref
+        $this->actingAs($this->admin())->post('/admin/harga/simpan', [
+            'row_id' => $row->id, 'code' => $row->code, 'label' => $row->label,
+            'harga_min' => '1000', 'harga_max' => '2000', 'kalori' => '1500',
+        ])->assertRedirect();
+
+        $row->refresh();
+        $this->assertSame('1000', $row->ref['harga_min']);
+        $this->assertSame('2000', $row->ref['harga_max']);
+        $this->assertSame('1500', $row->ref['kalori']);
     }
 
     public function test_add_and_delete_a_fixed_row(): void
@@ -505,8 +603,12 @@ class AdminMetadataTest extends TestCase
         $this->assertDatabaseHas('validation_rules', ['qversion_id' => $other->id, 'code' => 'UJI-NONAKTIF-WAJIB']);
         $this->assertDatabaseMissing('validation_rules', ['qversion_id' => $activeBefore->id, 'code' => 'UJI-NONAKTIF-WAJIB']);
 
-        // Harga & Kalori: daftar komoditas scoped ke IV.1 milik versi terpilih (bukan aktif)
+        // Harga & Kalori: URL lama /admin/harga -> tab Harga & Kalori di Aturan Validasi,
+        // dan daftar komoditas scoped ke IV.1 milik versi terpilih (bukan aktif)
         $hres = $this->actingAs($admin)->get("/admin/harga?qv={$other->id}");
+        $hres->assertRedirect(route('admin.aturan', ['qv' => $other->id, 'tab' => 'harga']));
+
+        $hres = $this->actingAs($admin)->get("/admin/aturan?qv={$other->id}&tab=harga");
         $hres->assertOk();
         $this->assertSame($other->id, $hres->viewData('qv')->id);
         $expectedIds = BlockRow::whereIn('block_id',

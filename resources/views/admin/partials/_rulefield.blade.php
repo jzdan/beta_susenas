@@ -10,7 +10,7 @@
         </optgroup>
       @endif
     @endforeach
-    <optgroup label="Metadata sampel (dari daftar sampel/DSRT)">
+    <optgroup label="Metadata sampel (dari Daftar Sampel Rumah Tangga)">
       <option value="sampel_wilayah">sampel_wilayah · kode wilayah (desa)</option>
       <option value="sampel_bs">sampel_bs · nomor blok sensus</option>
       <option value="sampel_ruta">sampel_ruta · nomor urut rumah tangga</option>

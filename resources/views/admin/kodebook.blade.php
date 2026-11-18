@@ -18,6 +18,7 @@
 <section class="print-block">
   <h2>Blok {{ $b->code }} — {{ $b->title }}
     <span class="muted small">({{ $b->repeat }})</span></h2>
+  <div class="tablewrap">
   <table class="tbl mini">
     <thead><tr><th>Rincian</th><th>var_name</th><th>Label</th><th>Tipe</th><th>Unit</th><th>Kode nilai</th><th>Skip bila</th></tr></thead>
     <tbody>
@@ -34,9 +35,11 @@
     @endforeach
     </tbody>
   </table>
+  </div>
   @if($b->repeat === 'list' && $b->rows->count())
   <details class="small">
     <summary>{{ $b->rows->count() }} baris tetap</summary>
+    <div class="tablewrap">
     <table class="tbl mini">
       <thead><tr><th>#</th><th>Kode</th><th>Label</th><th>Ref</th></tr></thead>
       <tbody>
@@ -46,6 +49,7 @@
       @endforeach
       </tbody>
     </table>
+    </div>
   </details>
   @endif
 </section>
@@ -54,40 +58,47 @@
 @if($qv->parameters->count())
 <section class="print-block">
   <h2>Parameter</h2>
+  <div class="tablewrap">
   <table class="tbl mini"><thead><tr><th>Nama</th><th>Nilai</th><th>Catatan</th></tr></thead><tbody>
     @foreach ($qv->parameters->sortBy('name') as $p)
     <tr><td class="mono">{{ $p->name }}</td><td>{{ $p->value }}</td><td class="small">{{ $p->note }}</td></tr>
     @endforeach
   </tbody></table>
+  </div>
 </section>
 @endif
 
 @if($qv->derived->count())
 <section class="print-block">
   <h2>Nilai turunan</h2>
+  <div class="tablewrap">
   <table class="tbl mini"><thead><tr><th>var_name</th><th>Label</th><th>Ekspresi</th></tr></thead><tbody>
     @foreach ($qv->derived->sortBy('order') as $d)
     <tr><td class="mono">{{ $d->var_name }}</td><td>{{ $d->label }}</td><td class="mono small">{{ $d->expr }}</td></tr>
     @endforeach
   </tbody></table>
+  </div>
 </section>
 @endif
 
 @if($qv->aggregates->count())
 <section class="print-block">
   <h2>Agregat</h2>
+  <div class="tablewrap">
   <table class="tbl mini"><thead><tr><th>Nama</th><th>Label</th><th>Blok</th><th>Operasi</th><th>Var nilai</th></tr></thead><tbody>
     @foreach ($qv->aggregates->sortBy('order') as $a)
     <tr><td class="mono">{{ $a->name }}</td><td>{{ $a->label }}</td><td class="mono">{{ $a->block_code }}</td>
       <td>{{ $a->op }}</td><td class="mono small">{{ $a->value_var }}</td></tr>
     @endforeach
   </tbody></table>
+  </div>
 </section>
 @endif
 
 @if($qv->rules->count())
 <section class="print-block">
   <h2>Aturan validasi</h2>
+  <div class="tablewrap">
   <table class="tbl mini"><thead><tr><th>Kode</th><th>Scope</th><th>Sev</th><th>Row block</th><th>Ekspresi (TRUE=masalah)</th><th>Pesan</th><th>Aktif</th></tr></thead><tbody>
     @foreach ($qv->rules->sortBy('code') as $r)
     <tr>
@@ -98,6 +109,7 @@
     </tr>
     @endforeach
   </tbody></table>
+  </div>
 </section>
 @endif
 </div>

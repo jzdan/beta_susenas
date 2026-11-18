@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600;700&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ filemtime(public_path('css/app.css')) }}">
   <script>
     // pra-render: pasang tema tersimpan agar tidak berkedip
     try {
@@ -26,7 +26,7 @@
     <div class="whoami">
       @php($unread = $u->unreadNotifications()->count())
       <a href="{{ route('notifikasi.index') }}" class="notif-bell @if($unread) has-unread @endif" aria-label="Notifikasi">
-        Notifikasi @if($unread)<span class="notif-count">{{ $unread > 9 ? '9+' : $unread }}</span>@endif
+        <span class="lbl">Notifikasi</span> @if($unread)<span class="notif-count">{{ $unread > 9 ? '9+' : $unread }}</span>@endif
       </a>
       <button type="button" class="theme-toggle" data-theme-toggle aria-label="Ganti tema"><span data-theme-label>Tema</span></button>
       <a href="{{ route('akun') }}" class="avatar-row" style="text-decoration:none;color:inherit">
@@ -55,18 +55,17 @@
         <a href="{{ route('monitoring.audit') }}" class="{{ ($nav ?? '')=='audit' ? 'on' : '' }}">Log Audit</a>
       @endif
       @if($u->role === 'admin')
-        <div class="nav-sep">1. Buat siklus</div>
+        <div class="nav-sep">1. Kuesioner (inti)</div>
+        <a href="{{ route('admin.metadata') }}" class="{{ ($nav ?? '')=='meta' ? 'on' : '' }}">Metadata Kuesioner</a>
+        <a href="{{ route('admin.impor') }}" class="{{ ($nav ?? '')=='impor' ? 'on' : '' }}">Impor Rincian</a>
+        <a href="{{ route('admin.aturan') }}" class="{{ ($nav ?? '')=='aturan' ? 'on' : '' }}">Aturan Validasi</a>
+        <div class="nav-sep">2. Siklus lapangan</div>
         <a href="{{ route('admin.jadwal') }}" class="{{ ($nav ?? '')=='jadwal' ? 'on' : '' }}">Jadwal Lapangan</a>
-        <div class="nav-sep">2. Wilayah, PCL &amp; sampel</div>
+        <div class="nav-sep">3. Wilayah, petugas &amp; sampel</div>
         <a href="{{ route('admin.impor.wilayah') }}" class="{{ ($nav ?? '')=='wil' ? 'on' : '' }}">Impor Wilkerstat</a>
         <a href="{{ route('admin.pengguna') }}" class="{{ ($nav ?? '')=='pengguna' ? 'on' : '' }}">Pengguna</a>
         <a href="{{ route('admin.impor.sampel') }}" class="{{ ($nav ?? '')=='imsampel' ? 'on' : '' }}">Impor Sampel</a>
-        <a href="{{ route('admin.impor.dokumen') }}" class="{{ ($nav ?? '')=='imdok' ? 'on' : '' }}">Impor Dokumen</a>
-        <div class="nav-sep">3. Kuesioner &amp; validasi</div>
-        <a href="{{ route('admin.metadata') }}" class="{{ ($nav ?? '')=='meta' ? 'on' : '' }}">Metadata</a>
-        <a href="{{ route('admin.aturan') }}" class="{{ ($nav ?? '')=='aturan' ? 'on' : '' }}">Aturan Validasi</a>
-        <a href="{{ route('admin.impor') }}" class="{{ ($nav ?? '')=='impor' ? 'on' : '' }}">Impor Rincian</a>
-        <a href="{{ route('admin.harga') }}" class="{{ ($nav ?? '')=='harga' ? 'on' : '' }}">Harga &amp; Kalori Komoditas</a>
+        <a href="{{ route('admin.impor.dokumen') }}" class="{{ ($nav ?? '')=='imdok' ? 'on' : '' }}">Impor Isian (CAPI)</a>
       @endif
     </nav>
     <main class="content">
@@ -78,7 +77,7 @@
     style="position:fixed;top:14px;right:14px;z-index:20;background:var(--surface)"><span data-theme-label>Tema</span></button>
   @yield('content')
 @endauth
-<script src="{{ asset('js/app.js') }}"></script>
+<script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}"></script>
 @stack('scripts')
 </body>
 </html>

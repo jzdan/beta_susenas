@@ -84,7 +84,8 @@ class DatabaseSeeder extends Seeder
 
         // Blok IV.1 — konsumsi makanan seminggu (daftar komoditas)
         $b = Block::create(['qversion_id' => $qv->id, 'code' => 'IV.1',
-            'title' => 'Konsumsi & Pengeluaran Makanan Seminggu Terakhir', 'order' => 1, 'repeat' => 'list']);
+            'title' => 'Konsumsi & Pengeluaran Makanan Seminggu Terakhir', 'order' => 1, 'repeat' => 'list',
+            'harga_kalori' => true]);
 
         $fh = fopen($csvPath, 'r');
         $header = array_map('trim', fgetcsv($fh));

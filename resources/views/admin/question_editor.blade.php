@@ -35,6 +35,7 @@
 <section class="panel">
   <h2>Pilihan jawaban</h2>
   @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
+  <div class="tablewrap">
   <table class="tbl">
     <thead><tr><th></th><th>Kode</th><th>Label</th><th></th></tr></thead>
     <tbody>
@@ -54,6 +55,7 @@
     @endforelse
     </tbody>
   </table>
+  </div>
   <form method="post" action="{{ route('admin.opsi.add', $q) }}" class="row-form mt">
     @csrf
     <input name="code" placeholder="Kode (mis. 1)" required style="width:100px">

@@ -4,14 +4,14 @@
 @section('content')
 <h1>Kinerja Tim</h1>
 <p class="muted">Produktivitas entri &amp; pengolahan dalam cakupan wilayah Anda
-  ({{ $totalDocs }} dokumen). Angka indikatif untuk pembinaan, bukan penilaian formal.</p>
+  ({{ $totalDocs }} sampel). Angka indikatif untuk pembinaan, bukan penilaian formal.</p>
 
 <section class="panel">
   <h2>Entri — per petugas</h2>
   <div class="tablewrap">
   <table class="tbl">
     <thead><tr>
-      <th>Petugas</th><th class="num">Dokumen</th><th class="num">Difinalisasi</th>
+      <th>Petugas</th><th class="num">Sampel</th><th class="num">Difinalisasi</th>
       <th class="num">Bersih</th><th class="num">Dikembalikan</th>
       <th class="num">Rata² hari entri</th><th class="num">Rata² warning</th>
     </tr></thead>

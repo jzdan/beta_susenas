@@ -109,7 +109,7 @@ class Susenas2026CycleSeeder extends Seeder
         ]);
         foreach ($src->blocks as $b) {
             $nb = Block::create(['qversion_id' => $dst->id, 'code' => $b->code, 'title' => $b->title,
-                'order' => $b->order, 'repeat' => $b->repeat]);
+                'order' => $b->order, 'repeat' => $b->repeat, 'harga_kalori' => $b->harga_kalori]);
             foreach ($b->questions as $q) {
                 $nq = Question::create([
                     'block_id' => $nb->id, 'code_rincian' => $q->code_rincian, 'var_name' => $q->var_name,

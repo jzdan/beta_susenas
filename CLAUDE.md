@@ -43,7 +43,7 @@ Jawaban di `answers` (raw_value + clean_value; `art_index` = 0 utk ruta, nomor A
 `Block::packRowArt` / `unpackRowArt`).
 
 `questionnaire_version.is_active` **cuma 1 di seluruh sistem**, dan cuma menentukan versi
-yang sedang disunting di menu admin (Metadata/Aturan/Harga) — **bukan** yang dipakai
+yang sedang disunting di menu admin (Metadata/Aturan) — **bukan** yang dipakai
 dokumen (itu ikut `cycle_id` sampelnya, lihat `MonitoringController::createDocument`).
 Role `operator` dikunci ke **periode** (`survey_cycle.period`) milik versi aktif —
 `QuestionnaireVersion::activeCycleIds()` — supaya kuesioner yang dicacah bersamaan dalam
@@ -67,8 +67,28 @@ viewer) tidak dibatasi (Inc 135).
   `row_block` = kode blok utk aturan per-baris (konteks lokal + `_row_index` + `ref_<key>`).
 - `IV1-HARGA-MAHAL`/`IV1-HARGA-MURAH` & `KALORI-*` memakai `block_rows.ref`
   (`harga_min`/`harga_max`/`kalori`/`max_kons` per komoditas Blok IV.1), disunting di
-  menu **Harga & Kalori Komoditas** (`/admin/harga`). Satu rentang per komoditas —
+  tab **Harga & Kalori** di halaman **Aturan Validasi** (`/admin/aturan?tab=harga`;
+  URL lama `/admin/harga` → redirect, Inc 141). Satu rentang per komoditas —
   tidak ada lagi override per wilayah (dihapus Inc 107, aplikasi 1 kabupaten).
+  `max_kons`/`satuan`/`group` tetap disunting di Metadata → Blok (baris tetap);
+  `harga_min`/`harga_max`/`kalori` **hanya** boleh diubah dari tab Harga & Kalori
+  (`AdminController::HARGA_REF_KEYS` — dibuang dari `saveRow()`/`importRows()`).
+  Blok yang tampil di tab itu = blok bertanda **`blocks.harga_kalori`** (Inc 145), **bukan**
+  kode `IV.1` — jangan tulis ulang kode blok di program.
+
+## Jangan ikat program ke kode blok / nama variabel (Inc 145)
+
+- Kode blok boleh diganti admin (Sunting blok); `row_block` aturan & `block_code` agregat
+  ikut diganti otomatis. Fitur yang butuh "blok tertentu" pakai **tanda di tabel `blocks`**
+  (contoh: `harga_kalori`), bukan `where('code', ...)`.
+- Fitur yang butuh "variabel tertentu" pakai **parameter sistem** `Parameter::SYSTEM` +
+  `Parameter::systemVars($qvId, nama)` (bawaan = nama lama), bukan konstanta di controller.
+  Tambah fitur baru → tambah entri di `Parameter::SYSTEM`.
+- `App\Services\VersionChecker` memeriksa rujukan putus; dipakai saat **Jadikan aktif**
+  (error → ditolak, `force=1` = paksa), tombol **Periksa**, dan `susenas:health`. Kalau
+  menambah nama baru ke konteks `RuleEngine::buildContext()`/`rowContexts()`, tambahkan
+  juga ke `VersionChecker::DOC_CTX`/`ROW_CTX` — kalau tidak, aturan yang memakainya
+  dilaporkan "variabel tidak ada" dan versi tidak bisa diaktifkan.
 - Pesan aturan mendukung placeholder (`RuleEngine::interpolate()`): `{nama_var}` →
   nilai konteks, `{=ekspresi}` → hasil hitung; angka diformat gaya Indonesia. Dipakai
   aturan harga IV.1 untuk menampilkan harga satuan terhitung + rentang wajar.
@@ -82,6 +102,17 @@ lebar `var__n`, pratinjau dry-run, alias kolom, ekspor round-trip).
 
 ## Konvensi & jebakan
 
+- **Istilah (Inc 142)**: **sampel** = satu rumah tangga (KRT) dalam kerangka sampel
+  (`sample_households`); **dokumen** = satu *pengisian kuesioner* atas sampel itu
+  (`documents`, 1:1 dengan sampel; dibuat saat petugas membuka sampel, status
+  `draft`→`selesai`→`dikembalikan`→`bersih`). Di **teks antarmuka** pakai
+  "sampel" (bukan "dokumen") — mis. "Total sampel", "Sampel terisi", "Sampel ada
+  error". Nama tabel/model/route (`documents`, `Document`) dan nilai `scope='dokumen'`
+  di DB **tetap** — jangan ikut di-rename.
+- **Jangan pakai singkatan di teks antarmuka (Inc 147)**: tulis "Pencacah Lapangan"
+  (bukan PCL/PPL), "Pengawas Lapangan" (PML), "Penanggung Jawab" (PJ), "Blok Sensus" (BS),
+  "Rumah Tangga" (Ruta), "Kepala Rumah Tangga" (KRT), "anggota rumah tangga" (ART), dst.
+  Pengecualian: nama variabel/kode, format berkas (CSV/JSON), BPS, dan isi kuesioner (data).
 - `$request->validate(['x' => 'nullable|...'])` **tidak** menaruh `x` di hasil bila
   field absen → pakai `($d['x'] ?? null)`, jangan `$d['x'] ?: null`. (Sudah kena 3×.)
 - Blade: jangan `@if...@endif` inline dalam `@foreach` satu baris — pakai `@continue()`.

@@ -29,7 +29,7 @@
     <div class="bs-strip">
       @foreach ($d['bs'] as $b)
       <a class="tile lg {{ $b['bucket'] }}" href="{{ route('monitoring.samples', ['wil' => $d['code']]) }}"
-         title="BS {{ $b['bs'] }} — {{ $b['d'] }}/{{ $b['t'] }} ({{ $b['rate'] }}%)">
+         title="Blok Sensus {{ $b['bs'] }} — {{ $b['d'] }}/{{ $b['t'] }} ({{ $b['rate'] }}%)">
         <span>{{ $b['bs'] }}</span><small>{{ $b['d'] }}/{{ $b['t'] }}</small>
       </a>
       @endforeach

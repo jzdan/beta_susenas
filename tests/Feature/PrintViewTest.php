@@ -75,7 +75,7 @@ class PrintViewTest extends TestCase
             ->assertOk()
             ->assertSee('Jejak koreksi cleaning')
             ->assertSee('Angka tertukar dengan nomor urut')
-            ->assertSee('Catatan dokumen')
+            ->assertSee('Catatan isian')
             ->assertSee('dikonfirmasi via telepon');
     }
 

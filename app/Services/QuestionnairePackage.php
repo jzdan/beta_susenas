@@ -118,6 +118,7 @@ class QuestionnairePackage
             'effective_date' => $qv->effective_date,
             'blocks' => $qv->blocks->map(fn (Block $b) => [
                 'code' => $b->code, 'title' => $b->title, 'order' => $b->order, 'repeat' => $b->repeat,
+                'harga_kalori' => (bool) $b->harga_kalori,
                 'questions' => $b->questions->map(fn (Question $q) => [
                     'code_rincian' => $q->code_rincian, 'var_name' => $q->var_name, 'label' => $q->label,
                     'qtype' => $q->qtype, 'unit' => $q->unit, 'order' => $q->order,
@@ -176,6 +177,8 @@ class QuestionnairePackage
                 $block = Block::create([
                     'qversion_id' => $qv->id, 'code' => $b['code'], 'title' => $b['title'] ?? '',
                     'order' => $b['order'] ?? 0, 'repeat' => $b['repeat'] ?? 'ruta',
+                    // paket lama (sebelum Inc 145) tak punya tanda ini → blok IV.1 dianggap blok harga
+                    'harga_kalori' => (bool) ($b['harga_kalori'] ?? (($b['code'] ?? '') === 'IV.1')),
                 ]);
                 foreach ($b['questions'] ?? [] as $q) {
                     $question = Question::create([

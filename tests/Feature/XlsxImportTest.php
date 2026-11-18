@@ -125,7 +125,11 @@ class XlsxImportTest extends TestCase
 
         $row = BlockRow::where('block_id', $b->id)->where('row_index', $free)->firstOrFail();
         $this->assertSame('Komoditas Uji', $row->label);
-        $this->assertSame('350', $row->ref['kalori'] ?? null);
+        // Inc 141: kolom harga & Calories diabaikan di impor baris — satu tempatnya
+        // tab "Harga & Kalori" (Aturan Validasi). Kolom lain tetap masuk.
+        $this->assertArrayNotHasKey('kalori', $row->ref ?? []);
+        $this->assertArrayNotHasKey('harga_min', $row->ref ?? []);
+        $this->assertArrayNotHasKey('harga_max', $row->ref ?? []);
         $this->assertSame('4', $row->ref['max_kons'] ?? null);
         $this->assertSame('ons', $row->ref['satuan'] ?? null);
         @unlink($path);

@@ -1,6 +1,6 @@
 {{-- $doc, $notes (koleksi DocumentNote+user, urut lama→baru), $from = 'entri'|'pengolahan' --}}
 <div class="catatan" id="catatan">
-  <h3>Catatan dokumen</h3>
+  <h3>Catatan isian</h3>
   <ul class="catatan-list">
     @forelse ($notes as $n)
     <li>

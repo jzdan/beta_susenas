@@ -31,7 +31,7 @@ class PjRoleTest extends TestCase
         $pj = User::where('username', 'pj_kamal')->firstOrFail();
         $this->assertSame('pj', $pj->role);
         $this->assertSame('3526010', $pj->wilayah_scope);
-        $this->assertSame('Penanggung Jawab (PJ) Kecamatan', $pj->roleLabel());
+        $this->assertSame('Penanggung Jawab Kecamatan', $pj->roleLabel());
     }
 
     public function test_admin_rejects_pj_with_non_kecamatan_scope(): void

@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', "Cetak dokumen #{$doc->id} · Sistem SUSENAS")
+@section('title', "Cetak sampel #{$doc->id} · Sistem SUSENAS")
 @section('content')
 <div class="print-doc">
 <div class="no-print" style="margin-bottom:12px">
@@ -12,9 +12,9 @@
   <tr><td>Versi kuesioner</td><td class="mono">{{ $qv->code }}</td></tr>
   <tr><td>Wilayah</td><td>{{ $wil[$sample->wilayah_code] ?? $sample->wilayah_code }}
     <span class="mono muted">{{ $sample->wilayah_code }}</span></td></tr>
-  <tr><td>Blok Sensus / Ruta</td><td class="mono">{{ $sample->no_bs }} / {{ $sample->no_ruta }}</td></tr>
+  <tr><td>Blok Sensus / Rumah Tangga</td><td class="mono">{{ $sample->no_bs }} / {{ $sample->no_ruta }}</td></tr>
   <tr><td>Kepala rumah tangga</td><td>{{ $sample->krt_name }}</td></tr>
-  <tr><td>Dokumen</td><td>#{{ $doc->id }} · status <strong>{{ $doc->status }}</strong>
+  <tr><td>Sampel</td><td>#{{ $doc->id }} · status <strong>{{ $doc->status }}</strong>
     @if($doc->cleaned_at) · dibersihkan {{ $doc->cleaned_at->format('d-m-Y') }}@endif</td></tr>
 </table>
 
@@ -35,8 +35,9 @@
       @endforeach
     </table>
   @else
+    <div class="tablewrap">
     <table class="tbl mini">
-      <thead><tr><th>{{ in_array($b['repeat'], ['list','list_art']) ? 'Rincian' : 'ART' }}</th>
+      <thead><tr><th>{{ in_array($b['repeat'], ['list','list_art']) ? 'Rincian' : 'Anggota rumah tangga' }}</th>
         @foreach ($b['columns'] as $col)<th><span class="mono muted">{{ $col['code'] }}</span> {{ $col['label'] }}</th>@endforeach
       </tr></thead>
       <tbody>
@@ -48,6 +49,7 @@
       @endforeach
       </tbody>
     </table>
+    </div>
   @endif
 </section>
 @endforeach
@@ -79,6 +81,7 @@
 @if(count($corrections))
 <section class="print-block">
   <h2>Jejak koreksi cleaning ({{ count($corrections) }})</h2>
+  <div class="tablewrap">
   <table class="tbl mini">
     <thead><tr><th>Variabel</th><th>Baris</th><th>Semula</th><th>Menjadi</th><th>Alasan</th><th>Oleh / waktu</th></tr></thead>
     <tbody>
@@ -94,12 +97,13 @@
     @endforeach
     </tbody>
   </table>
+  </div>
 </section>
 @endif
 
 @if(count($notes))
 <section class="print-block">
-  <h2>Catatan dokumen ({{ count($notes) }})</h2>
+  <h2>Catatan isian ({{ count($notes) }})</h2>
   @foreach ($notes as $n)
     <p class="small"><strong>{{ $n['by'] }}</strong> <span class="muted">{{ $n['at'] }}</span><br>{{ $n['body'] }}</p>
   @endforeach
@@ -107,6 +111,6 @@
 @endif
 
 <p class="muted small print-foot">Dicetak {{ now()->format('d-m-Y H:i') }} oleh {{ auth()->user()->name }}.
-  Rekap internal untuk arsip/QC — bukan dokumen resmi.</p>
+  Rekap internal untuk arsip/pemeriksaan mutu — bukan laporan resmi.</p>
 </div>
 @endsection

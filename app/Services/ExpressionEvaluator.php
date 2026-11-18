@@ -71,6 +71,71 @@ class ExpressionEvaluator
         }
     }
 
+    /**
+     * Nama variabel yang dirujuk ekspresi — termasuk argumen-nama fungsi roster_*.
+     * Hanya mengurai (tidak mengevaluasi). Dipakai pengecek versi (Inc 145) untuk
+     * menemukan aturan yang merujuk variabel yang tidak ada (aturan seperti itu
+     * diam-diam tidak pernah menyala, karena nama tak dikenal bernilai null).
+     *
+     * @return list<string>
+     *
+     * @throws RuleException bila sintaks rusak
+     */
+    public function referencedNames(string $expr): array
+    {
+        $expr = trim($expr);
+        if ($expr === '') {
+            return [];
+        }
+        $this->toks = $this->tokenize($expr);
+        $this->pos = 0;
+        $node = $this->parseOr();
+        if ($this->peek()['type'] !== 'eof') {
+            throw new RuleException('token berlebih: ' . json_encode($this->peek()['value']));
+        }
+        $out = [];
+        $this->collectNames($node, $out);
+
+        return array_keys($out);
+    }
+
+    /** @param array<string,true> $out */
+    private function collectNames(array $node, array &$out): void
+    {
+        switch ($node['k']) {
+            case 'name':
+                $out[$node['name']] = true;
+                return;
+            case 'list':
+                foreach ($node['items'] as $x) {
+                    $this->collectNames($x, $out);
+                }
+                return;
+            case 'not':
+            case 'neg':
+            case 'pos':
+                $this->collectNames($node['v'], $out);
+                return;
+            case 'and':
+            case 'or':
+            case 'bin':
+                $this->collectNames($node['l'], $out);
+                $this->collectNames($node['r'], $out);
+                return;
+            case 'cmp':
+                $this->collectNames($node['first'], $out);
+                foreach ($node['rest'] as $x) {
+                    $this->collectNames($x, $out);
+                }
+                return;
+            case 'call':
+                foreach ($node['args'] as $x) {
+                    $this->collectNames($x, $out);
+                }
+                return;
+        }
+    }
+
     // -------------------------------------------------------- helper nilai
 
     public static function toNum(mixed $v): ?float

@@ -23,8 +23,11 @@ class EntryController extends Controller
     private const MAX_ART = 30;      // batas baris ART yang ditampilkan
     private const MAX_ROW = 999_999; // batas art_index yang diterima (list_art: baris*1000 + no_art)
 
-    /** var_name yang bisa menjadi "Banyaknya ART" (beda antar-kuesioner). */
-    private const ART_COUNT_VARS = ['banyak_art', 'r301', 'jml_art', 'jumlah_art'];
+    /** var_name yang bisa menjadi "Banyaknya ART" — parameter sistem `var_jumlah_art` per versi (Inc 145). */
+    private function artCountVars(int $qvId): array
+    {
+        return \App\Models\Parameter::systemVars($qvId, 'var_jumlah_art');
+    }
 
     public function __construct(
         private RuleEngine $engine,
@@ -43,7 +46,7 @@ class EntryController extends Controller
             return;
         }
         abort_unless(in_array($document->sample->cycle_id, QuestionnaireVersion::activeCycleIds(), true), 403,
-            'Periode kuesioner siklus dokumen ini sedang tidak aktif — hubungi admin.');
+            'Periode kuesioner siklus sampel ini sedang tidak aktif — hubungi admin.');
     }
 
     public function form(Request $request, Document $document)
@@ -66,6 +69,42 @@ class EntryController extends Controller
                 ? \App\Models\VisitPhoto::with('uploader:id,name')
                     ->where('sample_id', $document->sample_id)->orderBy('id')->get()
                 : collect(),
+        ]);
+    }
+
+    /**
+     * Pratinjau tampilan entri di sisi admin (Inc 143) — TIDAK menyimpan apa pun.
+     *
+     * Memakai renderer yang sama dengan halaman petugas (`formState` + partial
+     * `entri/_form`), jadi yang dilihat admin dijamin identik dengan layar operator.
+     * Dokumen & sampel dibuat di memori (belum disimpan) → isian kosong; kolom
+     * roster/list tetap tampil utuh (mis. 194 baris komoditas Blok IV.1).
+     */
+    public function previewForm(Request $request, QuestionnaireVersion $qv)
+    {
+        $sample = new \App\Models\SampleHousehold([
+            'wilayah_code' => '', 'no_bs' => '—', 'no_ruta' => '—', 'krt_name' => 'KEPALA RUMAH TANGGA CONTOH',
+        ]);
+        $sample->setRelation('cycle', $qv->cycle);
+        $sample->setRelation('documents', collect());
+
+        $doc = new Document(['qversion_id' => $qv->id, 'status' => 'draft']);
+        $doc->setRelation('sample', $sample);
+        $doc->setRelation('qversion', $qv);
+
+        $state = $this->formState($doc);
+
+        return view('admin.pratinjau', [
+            'doc' => $doc,
+            'sample' => $sample,
+            'qv' => $qv,
+            'wil' => Wilayah::pluck('name', 'code'),
+            'state' => $state,
+            'canEdit' => false,
+            'notes' => collect(),
+            'visitPhotos' => collect(),
+            'versions' => QuestionnaireVersion::orderByDesc('id')->get(),
+            'activeId' => QuestionnaireVersion::active()->id,
         ]);
     }
 
@@ -120,7 +159,7 @@ class EntryController extends Controller
                     }
                     if ($isListArt) {
                         [$cr, $an] = \App\Models\Block::unpackRowArt((int) $i);
-                        $lbl = ($labelByIdx[$cr] ?? "baris {$cr}").' · ART '.$an;
+                        $lbl = ($labelByIdx[$cr] ?? "baris {$cr}").' · anggota '.$an;
                     } else {
                         $lbl = $labelByIdx[$i] ?? null;
                     }
@@ -163,7 +202,7 @@ class EntryController extends Controller
     public function saveAnswer(Request $request, Document $document)
     {
         $this->assertActiveCycle($request, $document);
-        abort_if($document->status === 'bersih', 409, 'Dokumen sudah dikunci (bersih)');
+        abort_if($document->status === 'bersih', 409, 'Sampel sudah dikunci (bersih)');
         abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
         $data = $request->validate([
             'question_id' => 'required|integer',
@@ -213,13 +252,15 @@ class EntryController extends Controller
     public function setArtCount(Request $request, Document $document)
     {
         $this->assertActiveCycle($request, $document);
-        abort_if($document->status === 'bersih', 409, 'Dokumen sudah dikunci (bersih)');
+        abort_if($document->status === 'bersih', 409, 'Sampel sudah dikunci (bersih)');
         abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
         $d = $request->validate(['count' => 'required|integer|min:0|max:'.self::MAX_ART]);
         $n = (int) $d['count'];
 
+        $artVars = $this->artCountVars($document->qversion_id);
         $q = Question::whereIn('block_id', Block::where('qversion_id', $document->qversion_id)->pluck('id'))
-            ->whereIn('var_name', self::ART_COUNT_VARS)->first();
+            ->whereIn('var_name', $artVars)->get()
+            ->sortBy(fn ($x) => array_search($x->var_name, $artVars, true))->first();
         if ($q) {
             $a = Answer::firstOrNew(['document_id' => $document->id, 'question_id' => $q->id, 'art_index' => 0]);
             $old = $a->raw_value ?? '';
@@ -229,7 +270,7 @@ class EntryController extends Controller
                 AnswerHistory::create([
                     'document_id' => $document->id, 'question_id' => $q->id, 'art_index' => 0,
                     'old_value' => $old, 'new_value' => (string) $n,
-                    'by_user' => $request->user()->id, 'reason' => 'setel jumlah ART', 'at' => now(),
+                    'by_user' => $request->user()->id, 'reason' => 'setel jumlah anggota rumah tangga', 'at' => now(),
                 ]);
             }
         }
@@ -294,10 +335,10 @@ class EntryController extends Controller
      *
      * @param  array<int,true>  $rosterQids  question_id yang berada di blok repeat='art'
      */
-    private function artCount(array $ctx, array $answersByKey, array $rosterQids): int
+    private function artCount(int $qvId, array $ctx, array $answersByKey, array $rosterQids): int
     {
         $n = 1;
-        foreach (self::ART_COUNT_VARS as $v) {
+        foreach ($this->artCountVars($qvId) as $v) {
             $ba = ExpressionEvaluator::toNum($ctx[$v] ?? null);
             if ($ba !== null) {
                 $n = max($n, (int) $ba);
@@ -330,13 +371,13 @@ class EntryController extends Controller
                 }
             }
         }
-        $nArt = $this->artCount($ctx, $answers, $rosterQids);
+        $nArt = $this->artCount($doc->qversion_id, $ctx, $answers, $rosterQids);
 
         // var_name yang jadi "Banyaknya ART" di kuesioner ini (untuk tombol "Terapkan jumlah ART")
         $qVars = Question::whereIn('block_id', $blocks->pluck('id'))->pluck('var_name')->all();
         $hasRoster = $blocks->contains(fn ($b) => in_array($b->repeat, ['art', 'list_art'], true));
         $artVar = $hasRoster
-            ? (collect(self::ART_COUNT_VARS)->first(fn ($v) => in_array($v, $qVars, true)))
+            ? (collect($this->artCountVars($doc->qversion_id))->first(fn ($v) => in_array($v, $qVars, true)))
             : null;
 
         $byVar = [];       // target_var => [entry, ...]   (row_index 0)
@@ -410,7 +451,7 @@ class EntryController extends Controller
                         for ($a = 1; $a <= max(1, $nArt); $a++) {
                             $rowDefs[] = [
                                 'idx' => \App\Models\Block::packRowArt($r->row_index, $a),
-                                'label' => 'ART '.$a,
+                                'label' => 'Anggota '.$a,
                                 'group' => $a === 1 ? trim(($r->code ? $r->code.' ' : '').$r->label) : null,
                             ];
                         }

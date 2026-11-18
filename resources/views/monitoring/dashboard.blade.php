@@ -6,11 +6,12 @@
 <p class="muted">Cakupan sesuai peran &amp; wilayah Anda.</p>
 
 <div class="kpis">
-  <div class="kpi"><span class="n">{{ $total }}</span><span class="l">Ruta sampel aktif</span></div>
+  <div class="kpi"><span class="n">{{ $total }}</span><span class="l">Total sampel</span></div>
+  <div class="kpi"><span class="n">{{ $nDocs }}</span><span class="l">Sampel terisi</span></div>
   <div class="kpi"><span class="n">{{ $done }}</span><span class="l">Selesai dicacah</span></div>
   <div class="kpi"><span class="n">{{ $response['rate'] }}%</span><span class="l">Response rate (eligible)</span></div>
-  <div class="kpi {{ $nErrDocs ? 'bad' : '' }}"><span class="n">{{ $nErrDocs }}</span><span class="l">Dokumen ada error</span></div>
-  <div class="kpi {{ $nWarnDocs ? 'warn' : '' }}"><span class="n">{{ $nWarnDocs }}</span><span class="l">Dokumen ada warning</span></div>
+  <div class="kpi {{ $nErrDocs ? 'bad' : '' }}"><span class="n">{{ $nErrDocs }}</span><span class="l">Sampel ada error</span></div>
+  <div class="kpi {{ $nWarnDocs ? 'warn' : '' }}"><span class="n">{{ $nWarnDocs }}</span><span class="l">Sampel ada warning</span></div>
 </div>
 
 <section class="panel">
@@ -29,6 +30,7 @@
 @if(!empty($schedule))
 <section class="panel">
   <h2>Jadwal &amp; kecepatan pencacahan</h2>
+  <div class="tablewrap">
   <table class="tbl">
     <thead><tr>
       <th>Siklus</th><th>Periode lapangan</th><th class="num">Hari tersisa</th>
@@ -58,15 +60,17 @@
     @endforeach
     </tbody>
   </table>
+  </div>
   <p class="muted small">Target = proporsi hari lapangan yang sudah berjalan. Tertinggal bila riil &lt; target − 5 poin.</p>
 </section>
 @endif
 
 @if(collect($funnel)->sum('n') > 0)
 <section class="panel">
-  <h2>Alur pengolahan dokumen</h2>
+  <h2>Alur pengolahan sampel</h2>
+  <div class="tablewrap">
   <table class="tbl">
-    <thead><tr><th>Tahap</th><th class="num">Dokumen</th><th></th></tr></thead>
+    <thead><tr><th>Tahap</th><th class="num">Sampel</th><th></th></tr></thead>
     <tbody>
     @php($fTot = max(1, collect($funnel)->sum('n')))
     @foreach ($funnel as $f)
@@ -78,11 +82,13 @@
     @endforeach
     </tbody>
   </table>
+  </div>
 
   @if($topRules->isNotEmpty())
   <h3>Aturan tersering menyala</h3>
+  <div class="tablewrap">
   <table class="tbl">
-    <thead><tr><th>Kode</th><th>Tingkat</th><th class="num">Dokumen</th><th></th></tr></thead>
+    <thead><tr><th>Kode</th><th>Tingkat</th><th class="num">Sampel</th><th></th></tr></thead>
     <tbody>
     @foreach ($topRules as $tr)
       <tr>
@@ -98,6 +104,7 @@
     @endforeach
     </tbody>
   </table>
+  </div>
   @endif
 </section>
 @endif
@@ -105,6 +112,7 @@
 <div class="grid2">
   <section class="panel">
     <h2>Status pencacahan</h2>
+    <div class="tablewrap">
     <table class="tbl">
       <thead><tr><th>Status</th><th class="num">Jumlah</th><th>Proporsi</th></tr></thead>
       <tbody>
@@ -118,10 +126,12 @@
       @endforeach
       </tbody>
     </table>
+    </div>
   </section>
 
   <section class="panel">
     <h2>Progres per petugas</h2>
+    <div class="tablewrap">
     <table class="tbl">
       <thead><tr><th>Petugas</th><th class="num">Sel/Tot</th><th>Progres</th></tr></thead>
       <tbody>
@@ -134,11 +144,13 @@
       @endforeach
       </tbody>
     </table>
+    </div>
   </section>
 </div>
 
 <section class="panel">
   <h2>Progres per desa <small class="muted">(diurutkan dari terendah)</small></h2>
+  <div class="tablewrap">
   <table class="tbl">
     <thead><tr><th>Kecamatan</th><th>Desa</th><th class="num">Sel/Tot</th><th>Progres</th></tr></thead>
     <tbody>
@@ -152,5 +164,6 @@
     @endforeach
     </tbody>
   </table>
+  </div>
 </section>
 @endsection

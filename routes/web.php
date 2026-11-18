@@ -131,11 +131,17 @@ Route::middleware('role')->group(function () {
         Route::post('/versi/duplikat', [AdminController::class, 'duplicateVersion'])->name('versi.duplikat');
         Route::post('/versi/{qv}/simpan', [AdminController::class, 'saveVersion'])->name('versi.simpan');
         Route::post('/versi/{qv}/aktifkan', [AdminController::class, 'activateVersion'])->name('versi.aktifkan');
+        Route::post('/versi/{qv}/periksa', [AdminController::class, 'checkVersion'])->name('versi.periksa');
+        Route::get('/versi/{qv}/sampel', [AdminController::class, 'versionSamples'])->name('versi.sampel');
         Route::post('/versi/{qv}/hapus', [AdminController::class, 'deleteVersion'])->name('versi.hapus');
         Route::get('/versi/{qv}/ekspor', [AdminController::class, 'qversionExport'])->name('versi.export');
         Route::get('/versi/{qv}/kodebook', [AdminController::class, 'codebook'])->name('versi.codebook');
         Route::get('/versi-impor', [AdminController::class, 'qversionImportForm'])->name('versi.import');
         Route::post('/versi-impor', [AdminController::class, 'qversionImportRun'])->name('versi.import.run');
+        // Pratinjau tampilan entri (renderer yang sama dengan halaman petugas) — Inc 143
+        Route::get('/pratinjau/{qv}', [EntryController::class, 'previewForm'])->name('pratinjau');
+        // Demo UI (percobaan): wizard + grid padat + tooltip + filter, data contoh — tidak terhubung ke entri asli
+        Route::get('/demo-ui', fn () => view('admin.demo_ui'))->name('demo-ui');
         Route::get('/impor-wilayah', [AdminController::class, 'wilayahForm'])->name('impor.wilayah');
         Route::post('/impor-wilayah', [AdminController::class, 'wilayahImport'])->name('impor.wilayah.run');
         Route::post('/wilayah', [AdminController::class, 'wilayahStore'])->name('wilayah.simpan');

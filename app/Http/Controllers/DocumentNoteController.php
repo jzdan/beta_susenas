@@ -22,7 +22,7 @@ class DocumentNoteController extends Controller
         // cakupan wilayah
         $scope = $user->wilayah_scope;
         if ($scope && ! str_starts_with((string) $document->sample?->wilayah_code, $scope)) {
-            abort(403, 'Dokumen di luar cakupan wilayah Anda.');
+            abort(403, 'Sampel di luar cakupan wilayah Anda.');
         }
 
         $note = DocumentNote::create([

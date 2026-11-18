@@ -29,6 +29,13 @@ class AdminController extends Controller
 
     public function __construct(private ExpressionEvaluator $ev, private RuleEngine $engine) {}
 
+    /**
+     * Kunci di `block_rows.ref` yang-managed di halaman "Harga & Kalori" (Inc 141).
+     * Nilai ini dirujuk aturan lewat `ref_<kunci>` (ref_harga_min, ref_harga_max, ...),
+     * jadi TIDAK boleh disunting dari editor baris di Metadata — satu angka, satu tempat.
+     */
+    private const HARGA_REF_KEYS = ['harga_min', 'harga_max', 'kalori'];
+
     private function activeQv(): QuestionnaireVersion
     {
         return QuestionnaireVersion::active();
@@ -75,18 +82,92 @@ class AdminController extends Controller
     public function metadata(Request $request)
     {
         $qv = $this->selectedQv($request);
-        $rules = $qv->rules;
+
+        // Inc 141: Metadata = HANYA membuat kuesioner (versi, blok, rincian, opsi, baris).
+        // Parameter, agregat (NERACA), turunan, aturan, harga & kalori pindah ke menu
+        // "Aturan Validasi" — supaya ada satu tempat untuk semua mesin & patokan.
+        // total sampel per siklus (sampel yang sudah digantikan tidak menempati kuota — sama
+        // seperti Dashboard); versi → siklus lewat cycle_id
+        $sampleTotals = SampleHousehold::where('status', '!=', 'ganti_sampel')
+            ->selectRaw('cycle_id, count(*) as n')->groupBy('cycle_id')->pluck('n', 'cycle_id');
+
         return view('admin.metadata', [
             'qv' => $qv,
             'activeId' => $this->activeQv()->id,
             'blocks' => $qv->blocks()->with('questions')->get(),
-            'params' => $qv->parameters,
-            'derived' => $qv->derived,
-            'aggregates' => $qv->aggregates,
-            'repeatBlocks' => $qv->blocks->whereIn('repeat', ['art', 'list', 'list_art']),
-            'rules' => $rules,
-            'ruleErrs' => $rules->mapWithKeys(fn ($r) => [$r->id => $this->ev->checkSyntax($r->expr, RuleEngine::ROSTER_FUNCS)]),
             'versions' => QuestionnaireVersion::withCount('documents')->orderByDesc('id')->get(),
+            'sampleTotals' => $sampleTotals,
+        ]);
+    }
+
+    /**
+     * Rincian sampel satu versi kuesioner: per kecamatan → desa, siapa petugas & PML-nya,
+     * berapa yang sudah diisi. Sampel diambil dari siklus versi itu.
+     */
+    public function versionSamples(QuestionnaireVersion $qv)
+    {
+        $samples = SampleHousehold::where('cycle_id', $qv->cycle_id)
+            ->with(['petugas:id,name', 'pml:id,name', 'documents:id,sample_id,status'])
+            ->orderBy('wilayah_code')->orderBy('no_bs')->orderBy('no_ruta')->get();
+        $wil = Wilayah::pluck('name', 'code');
+        $kecLen = self::WIL_LEN['kecamatan'];
+
+        $kec = [];
+        foreach ($samples as $s) {
+            $k = substr($s->wilayah_code, 0, $kecLen);
+            $kec[$k] ??= ['code' => $k, 'name' => $wil[$k] ?? $k, 'desa' => [],
+                'total' => 0, 'belum' => 0, 'proses' => 0, 'selesai' => 0, 'diganti' => 0, 'petugas' => [], 'pml' => []];
+            $dc = $s->wilayah_code;
+            $kec[$k]['desa'][$dc] ??= ['code' => $dc, 'name' => $wil[$dc] ?? $dc,
+                'rows' => [], 'total' => 0, 'belum' => 0, 'proses' => 0, 'selesai' => 0, 'petugas' => []];
+            $kec[$k]['desa'][$dc]['rows'][] = $s;
+            if ($s->status === 'ganti_sampel') {
+                $kec[$k]['diganti']++;
+            } else {
+                // 3 kategori saling lepas (totalnya selalu pas) — ganti dari "terisi vs selesai" yang
+                // tumpang tindih & ambigu: terisi (ada dokumen, termasuk draft) tidak sama dengan
+                // selesai dicacah (status sampel = 'selesai', cuma berubah saat petugas finalisasi).
+                $selesai = $s->status === 'selesai' ? 1 : 0;
+                $proses = (! $selesai && $s->documents->isNotEmpty()) ? 1 : 0;
+                $belum = (! $selesai && ! $proses) ? 1 : 0;
+                $kec[$k]['total']++;
+                $kec[$k]['belum'] += $belum;
+                $kec[$k]['proses'] += $proses;
+                $kec[$k]['selesai'] += $selesai;
+                $kec[$k]['desa'][$dc]['total']++;
+                $kec[$k]['desa'][$dc]['belum'] += $belum;
+                $kec[$k]['desa'][$dc]['proses'] += $proses;
+                $kec[$k]['desa'][$dc]['selesai'] += $selesai;
+            }
+            if ($s->petugas) {
+                $kec[$k]['petugas'][$s->petugas->id] = $s->petugas->name;
+                $kec[$k]['desa'][$dc]['petugas'][$s->petugas->id] = $s->petugas->name;
+            }
+            if ($s->pml) {
+                $kec[$k]['pml'][$s->pml->id] = $s->pml->name;
+            }
+        }
+        ksort($kec);
+
+        // ringkasan per petugas
+        $perPetugas = $samples->where('status', '!=', 'ganti_sampel')
+            ->groupBy(fn ($s) => $s->petugas_id ?? 0)
+            ->map(fn ($g, $pid) => [
+                'name' => $pid ? ($g->first()->petugas->name ?? '—') : 'Belum ditugaskan',
+                'total' => $g->count(),
+                'proses' => $g->filter(fn ($s) => $s->status !== 'selesai' && $s->documents->isNotEmpty())->count(),
+                'selesai' => $g->where('status', 'selesai')->count(),
+                'desa' => $g->pluck('wilayah_code')->unique()->map(fn ($c) => $wil[$c] ?? $c)->values()->all(),
+            ])->sortBy('name')->values();
+
+        $aktif = $samples->where('status', '!=', 'ganti_sampel');
+
+        return view('admin.versi_sampel', [
+            'qv' => $qv, 'cycle' => $qv->cycle, 'kec' => $kec, 'perPetugas' => $perPetugas,
+            'total' => $aktif->count(),
+            'proses' => $aktif->filter(fn ($s) => $s->status !== 'selesai' && $s->documents->isNotEmpty())->count(),
+            'selesai' => $aktif->where('status', 'selesai')->count(),
+            'statusLabels' => \App\Http\Controllers\MonitoringController::STATUS,
         ]);
     }
 
@@ -170,26 +251,58 @@ class AdminController extends Controller
     public function updateBlock(Request $request, Block $block)
     {
         $d = $request->validate([
+            'code' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9][A-Za-z0-9._-]*$/'],
             'title' => 'required|string|max:200',
             'repeat' => 'required|in:'.implode(',', self::BLOCK_REPEAT),
+            'harga_kalori' => 'nullable|boolean',
+        ], [
+            'code.regex' => 'Kode blok hanya huruf, angka, titik, garis bawah, atau strip — mis. IV.1, V, IV.1M.',
         ]);
         // ubah tipe berulang hanya aman bila belum ada jawaban
         if ($d['repeat'] !== $block->repeat) {
             $hasAns = \App\Models\Answer::whereIn('question_id', $block->questions()->pluck('id'))->exists();
             abort_if($hasAns, 409, 'Blok sudah punya jawaban — tipe berulang tidak bisa diubah.');
         }
-        $block->update(['title' => trim($d['title']), 'repeat' => $d['repeat']]);
-        AuditLog::record('block', $block->id, 'ubah', "{$block->code}: {$d['repeat']}");
+        $oldCode = $block->code;
+        $newCode = trim((string) ($d['code'] ?? '')) ?: $oldCode;
+        if ($newCode !== $oldCode
+            && Block::where('qversion_id', $block->qversion_id)->where('code', $newCode)->exists()) {
+            return back()->withErrors(['code' => "Kode blok \"{$newCode}\" sudah dipakai blok lain di versi ini."]);
+        }
+        // tanda blok Harga & Kalori hanya bermakna untuk blok daftar baris tetap
+        $harga = $request->boolean('harga_kalori') && $d['repeat'] === 'list';
 
-        return redirect()->route('admin.blok', $block);
+        DB::transaction(function () use ($block, $d, $oldCode, $newCode, $harga) {
+            $block->update([
+                'code' => $newCode, 'title' => trim($d['title']), 'repeat' => $d['repeat'], 'harga_kalori' => $harga,
+            ]);
+            // Inc 145: aturan per-baris & agregat merujuk blok lewat KODE (teks) — ikut diganti
+            // supaya tidak diam-diam putus saat kode blok diubah (mis. IV.1 → V).
+            if ($newCode !== $oldCode) {
+                ValidationRule::where('qversion_id', $block->qversion_id)->where('row_block', $oldCode)
+                    ->update(['row_block' => $newCode]);
+                \App\Models\Aggregate::where('qversion_id', $block->qversion_id)->where('block_code', $oldCode)
+                    ->update(['block_code' => $newCode]);
+            }
+        });
+        AuditLog::record('block', $block->id, 'ubah',
+            ($newCode !== $oldCode ? "{$oldCode} → {$newCode}" : $newCode).": {$d['repeat']}".($harga ? ' · harga&kalori' : ''));
+
+        return redirect()->route('admin.blok', $block)
+            ->with('ok', $newCode !== $oldCode
+                ? "Kode blok diganti {$oldCode} → {$newCode}; aturan & agregat yang menunjuk blok ini ikut diperbarui."
+                : 'Blok disimpan.');
     }
 
     public function blockEditor(Request $request, Block $block)
     {
         $rows = $block->rows()->orderBy('row_index')->get();
-        // kolom referensi yang dipakai di blok ini (mis. kalori, harga_min, harga_max)
+        // Kolom referensi yang dipakai di blok ini. Harga & Kalori disunting di
+        // "Aturan Validasi → Harga & Kalori" (Inc 141), jadi dikecualikan di sini —
+        // supaya tiap angka hanya punya satu tempat ubah.
         $refKeys = $rows->flatMap(fn ($r) => array_keys($r->ref ?? []))
-            ->unique()->reject(fn ($k) => $k === 'group')->values();
+            ->unique()->reject(fn ($k) => $k === 'group' || in_array($k, self::HARGA_REF_KEYS, true))
+            ->values();
 
         $fQ = trim((string) $request->query('q', ''));
         if ($fQ !== '') {
@@ -218,7 +331,11 @@ class AdminController extends Controller
             'ref' => 'nullable|array',
         ]);
         $ref = collect($d['ref'] ?? [])->map(fn ($v) => is_string($v) ? trim($v) : $v)
-            ->filter(fn ($v) => $v !== '' && $v !== null)->all();
+            ->filter(fn ($v) => $v !== '' && $v !== null)
+            // Inc 141: harga & Calories hanya boleh diubah lewat tab "Harga & Kalori"
+            // (Aturan Validasi) — bukan dari editor baris di Metadata.
+            ->reject(fn ($v, $k) => in_array($k, self::HARGA_REF_KEYS, true))
+            ->all();
 
         $existing = \App\Models\BlockRow::where('block_id', $block->id)
             ->where('row_index', $d['row_index'])->first();
@@ -266,8 +383,13 @@ class AdminController extends Controller
             return back()->withErrors(['file' => $e->getMessage()]);
         }
         if (! $rows || ! array_key_exists('row_index', $rows[0] ?? []) || ! array_key_exists('label', $rows[0] ?? [])) {
-            return back()->withErrors(['file' => 'Kolom wajib: row_index, label (opsional code, kalori, harga_min, harga_max, satuan, max_kons).']);
+            return back()->withErrors(['file' => 'Kolom wajib: row_index, label (opsional code, max_kons).']);
         }
+        // Inc 141: kolom harga/kalori diabaikan di sini — satu tempatnya tab "Harga & Kalori".
+        $kolomHarga = array_values(array_filter(
+            array_keys($rows[0] ?? []),
+            fn ($k) => in_array($k, self::HARGA_REF_KEYS, true)
+        ));
         if (($d['mode'] ?? '') === 'replace') {
             \App\Models\BlockRow::where('block_id', $block->id)->delete();
         }
@@ -287,9 +409,11 @@ class AdminController extends Controller
                 continue;
             }
             // simpan semua kolom selain row_index/code/label sebagai data referensi
+            // (Inc 141: harga & Calories tidak ikut — impor lewat tab "Harga & Kalori")
             $ref = [];
             foreach ($row as $k => $v) {
-                if (! in_array($k, ['row_index', 'code', 'label'], true) && $v !== '') {
+                if (! in_array($k, ['row_index', 'code', 'label'], true) && $v !== ''
+                    && ! in_array($k, self::HARGA_REF_KEYS, true)) {
                     $ref[$k] = $v;
                 }
             }
@@ -303,6 +427,10 @@ class AdminController extends Controller
             $dibuat++;
         }
         AuditLog::record('block_row', $block->code, 'impor', "{$dibuat} baris");
+        if ($kolomHarga) {
+            $dilewati[] = 'kolom '.implode(', ', $kolomHarga).' diabaikan — impor harga & kalori lewat tab "Harga & Kalori"';
+        }
+
         return back()->with('rowsResult', ['dibuat' => $dibuat, 'dilewati' => $dilewati]);
     }
 
@@ -321,7 +449,7 @@ class AdminController extends Controller
 
     public function addQuestion(Request $request, Block $block)
     {
-        $d = $this->questionData($request);
+        $d = $this->questionData($request, $block);
         $n = Question::where('block_id', $block->id)->count();
         Question::create($d + ['block_id' => $block->id, 'order' => $n + 1]);
         AuditLog::record('question', 'baru', 'tambah', "{$block->code}/{$d['var_name']}");
@@ -339,19 +467,43 @@ class AdminController extends Controller
 
     public function updateQuestion(Request $request, Question $question)
     {
-        $question->update($this->questionData($request));
+        $question->update($this->questionData($request, $question->block, $question->id));
         AuditLog::record('question', $question->id, 'ubah', $question->var_name);
         return redirect()->route('admin.blok', $question->block_id);
     }
 
-    private function questionData(Request $request): array
+    /**
+     * Nama variabel: huruf kecil/angka/underscore, diawali huruf. Dipakai apa adanya di
+     * ekspresi aturan, turunan & kolom ekspor — nama berspasi ("harga rumah") tidak bisa
+     * dirujuk mesin aturan sama sekali.
+     */
+    private const VAR_NAME_RE = '/^[a-z][a-z0-9_]*$/';
+
+    /** var_name sudah dipakai rincian lain di versi yang sama? (semua var satu versi berbagi satu konteks aturan) */
+    private function varNameTaken(int $qversionId, string $var, ?int $exceptId = null): bool
+    {
+        return Question::whereHas('block', fn ($q) => $q->where('qversion_id', $qversionId))
+            ->where('var_name', $var)
+            ->when($exceptId, fn ($q) => $q->where('id', '!=', $exceptId))
+            ->exists();
+    }
+
+    private function questionData(Request $request, Block $block, ?int $exceptId = null): array
     {
         $d = $request->validate([
-            'code_rincian' => 'required|string', 'var_name' => 'required|string',
+            'code_rincian' => 'required|string',
+            'var_name' => ['required', 'string', 'max:64', 'regex:'.self::VAR_NAME_RE],
             'label' => 'required|string', 'qtype' => 'nullable|string',
             'unit' => 'nullable|string', 'skip_expr' => 'nullable|string',
             'help_text' => 'nullable|string',
+        ], [
+            'var_name.regex' => 'Variabel hanya boleh huruf kecil, angka, dan garis bawah (_), diawali huruf — mis. harga_rumah, bukan "harga rumah".',
         ]);
+        if ($this->varNameTaken($block->qversion_id, trim($d['var_name']), $exceptId)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'var_name' => "Variabel \"{$d['var_name']}\" sudah dipakai rincian lain di versi ini — pilih nama lain.",
+            ]);
+        }
         $skip = trim($d['skip_expr'] ?? '');
         if ($skip && ($err = $this->ev->checkSyntax($skip))) {
             abort(400, "Ekspresi skip tidak valid: {$err}");
@@ -482,8 +634,12 @@ class AdminController extends Controller
                 $dilewati[] = "baris {$ln}: kolom wajib kosong";
                 continue;
             }
-            if ($ada->has($var)) {
-                $dilewati[] = "baris {$ln}: var '{$var}' sudah ada";
+            if (! preg_match(self::VAR_NAME_RE, $var)) {
+                $dilewati[] = "baris {$ln}: var '{$var}' tidak valid (huruf kecil/angka/_, diawali huruf)";
+                continue;
+            }
+            if ($ada->has($var) || $this->varNameTaken($b->qversion_id, $var)) {
+                $dilewati[] = "baris {$ln}: var '{$var}' sudah ada di versi ini";
                 continue;
             }
             $skip = $row['skip_expr'] ?? '';
@@ -619,7 +775,7 @@ class AdminController extends Controller
 
         $blockTitles = $qv->blocks->pluck('title', 'code');
         $scopeLabels = [
-            'dokumen' => 'Tingkat dokumen', 'identitas' => 'Identitas & wilayah',
+            'dokumen' => 'Tingkat sampel', 'identitas' => 'Identitas & wilayah',
             'neraca' => 'Neraca rumah tangga', 'kalori' => 'Kalori & gizi',
             'roster' => 'Antar anggota rumah tangga (roster)', 'baris' => 'Per baris',
         ];
@@ -636,6 +792,16 @@ class AdminController extends Controller
             ->flatMap(fn ($bl) => \App\Models\BlockRow::where('block_id', $bl->id)->get()
                 ->flatMap(fn ($r) => array_keys((array) $r->ref)))
             ->unique()->reject(fn ($k) => $k === 'group')->sort()->values();
+
+        // Inc 141: satu halaman "Aturan Validasi" berisi tiga tab —
+        //   aturan  = daftar aturan (seperti sebelumnya)
+        //   neraca  = parameter + agregat cek-silang (NERACA) + variabel turunan
+        //   harga   = patokan harga wajar & Calories per komoditas
+        // Metadata sekarang hanya untuk membuat kuesioner.
+        $tab = (string) ($request?->query('tab', 'aturan') ?? 'aturan');
+        if (! in_array($tab, ['aturan', 'neraca', 'harga'], true)) {
+            $tab = 'aturan';
+        }
 
         return view('admin.rules', [
             'qv' => $qv,
@@ -655,6 +821,15 @@ class AdminController extends Controller
             'edit' => $edit,
             'scopes' => $all->pluck('scope')->unique()->filter()->sort()->values(),
             'filters' => ['sev' => $fSev, 'scope' => $fScope, 'active' => $fActive, 'q' => $fQ],
+            // data untuk tab "neraca" & "harga"
+            'tab' => $tab,
+            'params' => $qv->parameters,
+            'derived' => $qv->derived,
+            'aggregates' => $qv->aggregates,
+            'repeatBlocks' => $qv->blocks->whereIn('repeat', ['art', 'list', 'list_art']),
+            'hargaBlocks' => $hargaBlocks = $this->hargaBlocks($qv),
+            'komoditas' => \App\Models\BlockRow::whereIn('block_id', $hargaBlocks->pluck('id'))
+                ->orderBy('row_index')->get(),
         ]);
     }
 
@@ -885,7 +1060,7 @@ class AdminController extends Controller
         }
         $doc = Document::find($d['document_id']);
         if (! $doc) {
-            return response()->json(['ok' => false, 'error' => 'dokumen tidak ada']);
+            return response()->json(['ok' => false, 'error' => 'sampel tidak ada']);
         }
         $ctx = $this->engine->buildContext($doc);
         try {
@@ -1005,7 +1180,7 @@ class AdminController extends Controller
         ]);
         foreach ($src->blocks as $b) {
             $nb = Block::create(['qversion_id' => $dst->id, 'code' => $b->code, 'title' => $b->title,
-                'order' => $b->order, 'repeat' => $b->repeat]);
+                'order' => $b->order, 'repeat' => $b->repeat, 'harga_kalori' => $b->harga_kalori]);
             foreach ($b->questions as $q) {
                 $nq = Question::create([
                     'block_id' => $nb->id, 'code_rincian' => $q->code_rincian, 'var_name' => $q->var_name,
@@ -1062,19 +1237,45 @@ class AdminController extends Controller
     }
 
     /** Pilih versi kuesioner yang disunting di menu Admin. */
-    public function activateVersion(QuestionnaireVersion $qv)
+    /**
+     * Aktifkan versi. Inc 145: versi diperiksa dulu (VersionChecker) — bila ada rujukan
+     * putus (error), versi TIDAK diaktifkan dan alasannya ditampilkan; admin bisa memaksa
+     * lewat "Aktifkan tetap" (force=1, tercatat di log audit).
+     */
+    public function activateVersion(Request $request, QuestionnaireVersion $qv)
     {
+        $check = app(\App\Services\VersionChecker::class)->check($qv);
+        $force = $request->boolean('force');
+        if ($check['errors'] && ! $force) {
+            return redirect()->route('admin.metadata', ['qv' => $qv->id])
+                ->with('versiCheck', $check + ['qv_id' => $qv->id, 'code' => $qv->code, 'blocked' => true]);
+        }
+
         QuestionnaireVersion::where('is_active', true)->update(['is_active' => false]);
         $qv->update(['is_active' => true]);
-        AuditLog::record('qversion', $qv->id, 'aktifkan', $qv->code);
+        AuditLog::record('qversion', $qv->id, 'aktifkan',
+            $qv->code.($check['errors'] ? ' (DIPAKSA, '.count($check['errors']).' error pengecekan)' : ''));
 
-        return redirect()->route('admin.metadata', ['qv' => $qv->id])->with('ok', "Versi aktif: {$qv->code}.");
+        $redirect = redirect()->route('admin.metadata', ['qv' => $qv->id])->with('ok', "Versi aktif: {$qv->code}.");
+
+        return $check['warnings'] || $check['errors']
+            ? $redirect->with('versiCheck', $check + ['qv_id' => $qv->id, 'code' => $qv->code, 'blocked' => false])
+            : $redirect;
+    }
+
+    /** Periksa keutuhan versi tanpa mengaktifkan (Inc 145). */
+    public function checkVersion(QuestionnaireVersion $qv)
+    {
+        $check = app(\App\Services\VersionChecker::class)->check($qv);
+
+        return redirect()->route('admin.metadata', ['qv' => $qv->id])
+            ->with('versiCheck', $check + ['qv_id' => $qv->id, 'code' => $qv->code, 'blocked' => false]);
     }
 
     public function deleteVersion(QuestionnaireVersion $qv)
     {
         if (Document::where('qversion_id', $qv->id)->exists()) {
-            return back()->withErrors(['versi' => "Versi \"{$qv->code}\" sudah punya dokumen — tidak bisa dihapus."]);
+            return back()->withErrors(['versi' => "Versi \"{$qv->code}\" sudah punya isian — tidak bisa dihapus."]);
         }
         if (QuestionnaireVersion::count() <= 1) {
             return back()->withErrors(['versi' => 'Tidak bisa menghapus versi terakhir.']);
@@ -1125,14 +1326,14 @@ class AdminController extends Controller
         // PJ: satu per kecamatan — scope wajib diisi & belum dipakai PJ aktif lain.
         if ($d['role'] === 'pj') {
             if ($scope === '') {
-                return back()->withErrors(['wilayah_scope' => 'PJ wajib diisi wilayah scope (kecamatan).'])->withInput();
+                return back()->withErrors(['wilayah_scope' => 'Penanggung Jawab wajib diisi wilayah (kecamatan).'])->withInput();
             }
             $dupe = User::where('role', 'pj')->where('wilayah_scope', $scope)->where('active', true);
             if ($id) {
                 $dupe->where('id', '!=', $id);
             }
             if ($dupe->exists()) {
-                return back()->withErrors(['wilayah_scope' => "Sudah ada PJ aktif untuk kecamatan {$scope} — satu kecamatan hanya boleh satu PJ."])->withInput();
+                return back()->withErrors(['wilayah_scope' => "Sudah ada Penanggung Jawab aktif untuk kecamatan {$scope} — satu kecamatan hanya boleh satu Penanggung Jawab."])->withInput();
             }
         }
 
@@ -1274,19 +1475,17 @@ class AdminController extends Controller
 
     private function hargaBlocks(QuestionnaireVersion $qv): \Illuminate\Support\Collection
     {
-        return $qv->blocks()->where('code', 'IV.1')->orderBy('order')->get();
+        // Inc 145: blok bertanda harga_kalori (diatur di Sunting blok), bukan kode 'IV.1'
+        return $qv->blocks()->where('harga_kalori', true)->orderBy('order')->get();
     }
 
     public function hargaForm(Request $request)
     {
+        // Inc 141: menu "Harga & Kalori" tidak lagi terpisah — jadi tab di halaman
+        // Aturan Validasi. URL lama /admin/harga diarahkan ke sana (bookmark lama tetap jalan).
         $qv = $this->selectedQv($request);
-        return view('admin.harga', [
-            'qv' => $qv,
-            'activeId' => $this->activeQv()->id,
-            'versions' => QuestionnaireVersion::orderByDesc('id')->get(),
-            'komoditas' => \App\Models\BlockRow::whereIn('block_id', $this->hargaBlocks($qv)->pluck('id'))
-                ->orderBy('row_index')->get(),
-        ]);
+
+        return redirect()->route('admin.aturan', ['qv' => $qv->id, 'tab' => 'harga']);
     }
 
     /** Simpan satu komoditas (kode, nama, rentang harga, kalori) — merge ke ref. */
@@ -1369,7 +1568,7 @@ class AdminController extends Controller
             $target->update(['ref' => $ref]);
             $n++;
         }
-        AuditLog::record('block_row', 'IV.1', 'impor-harga', "{$n} komoditas");
+        AuditLog::record('block_row', $this->hargaBlocks($qv)->pluck('code')->implode(','), 'impor-harga', "{$n} komoditas");
 
         return redirect()->route('admin.harga', ['qv' => $qv->id])->with('ok', "{$n} komoditas diperbarui."
             .($skip ? ' Dilewati: '.implode('; ', $skip) : ''));
@@ -1431,7 +1630,7 @@ class AdminController extends Controller
             $ex[0] = '3526101001';
             $ex[1] = '001B';
             $ex[2] = '001';
-            $ex[3] = 'Nama KRT';
+            $ex[3] = 'Nama Kepala Rumah Tangga';
             fputcsv($out, $ex);
             fclose($out);
         }, $name, ['Content-Type' => 'text/csv']);
@@ -1815,7 +2014,7 @@ class AdminController extends Controller
         }
         if (SampleHousehold::where('cycle_id', $d['cycle_id'])->where('wilayah_code', $wc)
             ->where('no_bs', $d['no_bs'])->where('no_ruta', $d['no_ruta'])->exists()) {
-            return back()->withErrors(['no_ruta' => 'Sampel dengan wilayah/BS/ruta ini sudah ada.'])->withInput();
+            return back()->withErrors(['no_ruta' => 'Sampel dengan wilayah / blok sensus / nomor rumah tangga ini sudah ada.'])->withInput();
         }
         // pertahanan di balik penyaringan JS (dropdown Petugas) — operator dgn wilayah_scope
         // terisi tidak boleh ditugaskan ke desa di luar kecamatannya, meski request dipaksa manual.
@@ -1989,10 +2188,10 @@ class AdminController extends Controller
         foreach ($docs as $doc) {
             $engine->run($doc);
         }
-        AuditLog::record('cycle', $cycle->id, 'revalidasi', "{$docs->count()} dokumen");
+        AuditLog::record('cycle', $cycle->id, 'revalidasi', "{$docs->count()} sampel");
 
         return redirect()->route('admin.siklus', $cycle)
-            ->with('ok', "{$docs->count()} dokumen direvalidasi (hasil aturan & snapshot diperbarui).");
+            ->with('ok', "{$docs->count()} sampel direvalidasi (hasil aturan & snapshot diperbarui).");
     }
 
     public function cycleLock(Request $request, SurveyCycle $cycle)

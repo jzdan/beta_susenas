@@ -4,14 +4,14 @@
 @section('content')
 <h1>Tabulasi &amp; Ekspor</h1>
 <p><a class="btn-ghost" href="{{ route('tabulasi.indikator') }}">Indikator kesejahteraan →</a></p>
-<p class="muted">Rekap internal untuk pra-pengolahan &amp; QC — <strong>bukan estimasi resmi</strong>.
+<p class="muted">Rekap internal untuk pra-pengolahan &amp; pemeriksaan mutu — <strong>bukan estimasi resmi</strong>.
   Agregasi tertimbang memakai <em>design weight</em> per sampel (belum dikalibrasi/di-<em>raking</em>),
-  jadi hanya untuk pemantauan arah angka. {{ $totalDocs }} dokumen dalam cakupan Anda.</p>
+  jadi hanya untuk pemantauan arah angka. {{ $totalDocs }} sampel dalam cakupan Anda.</p>
 
 <div class="grid2">
   <section class="panel">
     <h2>Ekspor</h2>
-    <p class="muted small">Data datar = satu baris per dokumen, kolom = seluruh variabel snapshot
+    <p class="muted small">Data datar = satu baris per sampel, kolom = seluruh variabel snapshot
       (jawaban + turunan + agregat). Warning = satu baris per temuan aturan.
       Koreksi = jejak setiap perubahan nilai bersih saat cleaning (nilai lama → baru, alasan, petugas).</p>
     <div class="row-form">
@@ -47,7 +47,7 @@
       <input type="hidden" name="group" value="{{ $group }}">
       <input type="hidden" name="agg" value="{{ $agg }}">
       <label><input type="checkbox" name="selesai" value="1" @checked($onlySelesai) onchange="this.form.submit()">
-        hanya dokumen berstatus selesai/bersih</label>
+        hanya sampel berstatus selesai/bersih</label>
     </form>
   </section>
 </div>
@@ -85,7 +85,7 @@
   </form>
 
   @if($weighted && $missingWeight > 0)
-    <p class="alert warn small">{{ $missingWeight }} dokumen dikecualikan dari agregasi tertimbang karena penimbang kosong/0.</p>
+    <p class="alert warn small">{{ $missingWeight }} sampel dikecualikan dari agregasi tertimbang karena penimbang kosong/0.</p>
   @endif
 
   @if(empty($result))
@@ -111,6 +111,7 @@
     </div>
     <p class="muted small">Sel = {{ $aggs[$agg] }} variabel <span class="mono">{{ $var }}</span>. Arahkan kursor untuk melihat n.</p>
   @elseif($agg === 'dist')
+    <div class="tablewrap">
     <table class="tbl">
       <thead><tr><th>Kelompok</th><th class="num">n</th><th>Distribusi nilai</th></tr></thead>
       <tbody>
@@ -127,9 +128,11 @@
       @endforeach
       </tbody>
     </table>
+    </div>
   @else
+    <div class="tablewrap">
     <table class="tbl">
-      <thead><tr><th>Kelompok</th><th class="num">n dokumen</th><th class="num">{{ $aggs[$agg] }}</th></tr></thead>
+      <thead><tr><th>Kelompok</th><th class="num">n sampel</th><th class="num">{{ $aggs[$agg] }}</th></tr></thead>
       <tbody>
       @foreach ($result as $r)
         <tr>
@@ -140,6 +143,7 @@
       @endforeach
       </tbody>
     </table>
+    </div>
   @endif
 </section>
 @endsection

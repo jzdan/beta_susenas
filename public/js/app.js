@@ -42,9 +42,12 @@
     try { localStorage.setItem(KEY, JSON.stringify(collapsed)); } catch (e) {}
   }
 
-  main.querySelectorAll(".block").forEach(function (sec) {
+  main.querySelectorAll(".block").forEach(function (sec, idx) {
     var code = sec.dataset.block;
-    if (collapsed[code]) sec.classList.add("collapsed");
+    // belum pernah disentuh user -> default cuma blok pertama yang terbuka (kesan "satu blok
+    // sekali layar", bukan tumpukan panjang), tapi tetap bentuk accordion lama, bukan wizard kaku.
+    var shouldCollapse = (code in collapsed) ? collapsed[code] : idx !== 0;
+    if (shouldCollapse) sec.classList.add("collapsed");
     var head = sec.querySelector("[data-block-toggle]");
     if (head) head.addEventListener("click", function (e) {
       if (e.target.tagName === "A") return;
@@ -59,6 +62,19 @@
     a.addEventListener("click", function () {
       var sec = main.querySelector('.block[data-block="' + a.dataset.navBlock + '"]');
       if (sec) { sec.classList.remove("collapsed"); collapsed[a.dataset.navBlock] = false; persist(); }
+    });
+  });
+
+  // tombol "blok sebelumnya/berikutnya": tutup blok ini, buka & gulir ke blok tujuan
+  main.querySelectorAll("[data-step-prev], [data-step-next]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var curSec = btn.closest(".block");
+      var targetCode = btn.dataset.stepNext || btn.dataset.stepPrev;
+      var targetSec = main.querySelector('.block[data-block="' + targetCode + '"]');
+      if (curSec) { curSec.classList.add("collapsed"); collapsed[curSec.dataset.block] = true; }
+      if (targetSec) { targetSec.classList.remove("collapsed"); collapsed[targetCode] = false; }
+      persist();
+      if (targetSec) targetSec.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
 
@@ -77,6 +93,57 @@
     }, { rootMargin: "-40% 0px -55% 0px" });
     main.querySelectorAll(".block").forEach(function (s) { obs.observe(s); });
   }
+})();
+
+// Filter pencarian + "hanya error/kosong" lintas blok (berlaku untuk semua peran, termasuk viewer).
+(function () {
+  var main = document.querySelector(".entry-main");
+  var text = document.getElementById("entry-filter-text");
+  var issuesOnly = document.getElementById("entry-filter-issues");
+  if (!main || !text) return;
+
+  function norm(s) { return (s || "").toLowerCase(); }
+  function rowLabel(tr) {
+    var th = tr.querySelector("th");
+    return norm(th ? th.textContent : tr.textContent);
+  }
+  function fieldLabel(f) {
+    var lab = f.querySelector(".q-label");
+    return norm(lab ? lab.textContent : f.textContent);
+  }
+  function isEmptyEl(el) {
+    var inputs = el.querySelectorAll(".answer");
+    if (!inputs.length) return false;
+    return Array.prototype.every.call(inputs, function (i) { return !i.value; });
+  }
+  function hasIssue(el) {
+    return el.classList.contains("has-error") || el.classList.contains("has-warning")
+      || el.classList.contains("row-has-warn") || !!el.querySelector(".has-error, .has-warning");
+  }
+
+  function apply() {
+    var q = norm(text.value).trim();
+    var onlyIssues = !!(issuesOnly && issuesOnly.checked);
+    var active = !!q || onlyIssues;
+    main.querySelectorAll(".block").forEach(function (block) {
+      var anyVisible = false;
+      block.querySelectorAll(".field").forEach(function (f) {
+        var match = (!q || fieldLabel(f).indexOf(q) !== -1) && (!onlyIssues || hasIssue(f) || isEmptyEl(f));
+        f.classList.toggle("is-filtered-out", active && !match);
+        if (match) anyVisible = true;
+      });
+      block.querySelectorAll(".roster tbody tr").forEach(function (tr) {
+        if (tr.classList.contains("group-header") || tr.classList.contains("row-warn")) return;
+        var match = (!q || rowLabel(tr).indexOf(q) !== -1) && (!onlyIssues || hasIssue(tr) || isEmptyEl(tr));
+        tr.classList.toggle("is-filtered-out", active && !match);
+        if (match) anyVisible = true;
+      });
+      block.classList.toggle("is-filter-empty", active && !anyVisible);
+      if (active && anyVisible) block.classList.remove("collapsed");
+    });
+  }
+  text.addEventListener("input", apply);
+  if (issuesOnly) issuesOnly.addEventListener("change", apply);
 })();
 
 // Autosave + validasi langsung untuk layar entri (blok ruta & roster ART).
@@ -379,14 +446,14 @@
     applyArt.addEventListener("click", function () {
       var fld = artField && artField.querySelector(".answer");
       var n = parseInt((fld && fld.value) || "0", 10);
-      if (isNaN(n) || n < 0) { flash("isi Banyaknya ART dulu", false); return; }
+      if (isNaN(n) || n < 0) { flash("isi banyaknya anggota rumah tangga dulu", false); return; }
       var domMax = 0;
       root.querySelectorAll('.block[data-block] .roster tbody tr:not(.group-header) > th').forEach(function (th) {
         var t = th.textContent.trim();
         var m = /(\d+)\s*$/.exec(t);
         if (m) domMax = Math.max(domMax, parseInt(m[1], 10));
       });
-      if (n < domMax && !confirm("Kurangi jumlah ART ke " + n + "? Isian untuk ART " + (n + 1) + "–" + domMax + " akan dihapus dan tidak bisa dikembalikan.")) return;
+      if (n < domMax && !confirm("Kurangi jumlah anggota rumah tangga ke " + n + "? Isian untuk anggota " + (n + 1) + "–" + domMax + " akan dihapus dan tidak bisa dikembalikan.")) return;
       applyArt.disabled = true;
       flash("menyesuaikan…", true);
       fetch("/entri/" + docId + "/jumlah-art", {
@@ -396,7 +463,7 @@
       }).then(function (r) { if (!r.ok) throw new Error("gagal (" + r.status + ")"); return r.json(); })
         .then(function (d) {
           repaint(d.state);
-          flash(d.dropped ? d.dropped + " isian ART dihapus" : "baris disesuaikan", true);
+          flash(d.dropped ? d.dropped + " isian anggota rumah tangga dihapus" : "baris disesuaikan", true);
         })
         .catch(function (e) { flash(e.message, false); })
         .finally(function () { applyArt.disabled = false; });

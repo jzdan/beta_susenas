@@ -125,10 +125,10 @@ class CleaningController extends Controller
             $this->engine->run($doc);
             $n++;
         }
-        AuditLog::record('pengolahan', $request->user()->id, 'revalidasi', "{$n} dokumen", $request->user()->id);
+        AuditLog::record('pengolahan', $request->user()->id, 'revalidasi', "{$n} sampel", $request->user()->id);
 
         return redirect()->route('pengolahan.index', $request->only('status', 'rule', 'q'))
-            ->with('ok', "Aturan validasi dijalankan ulang untuk {$n} dokumen (di luar yang sudah bersih).");
+            ->with('ok', "Aturan validasi dijalankan ulang untuk {$n} sampel (di luar yang sudah bersih).");
     }
 
     /** Dokumen non-bersih berikutnya dalam antrean tercakup (urutan tertua dulu). */
@@ -217,9 +217,9 @@ class CleaningController extends Controller
                     'list' => $rowLabels[$meta['block']->id][$a->art_index] ?? "baris {$a->art_index}",
                     'list_art' => (function () use ($meta, $a, $rowLabels) {
                         [$cr, $an] = \App\Models\Block::unpackRowArt((int) $a->art_index);
-                        return ($rowLabels[$meta['block']->id][$cr] ?? "baris {$cr}")." · ART {$an}";
+                        return ($rowLabels[$meta['block']->id][$cr] ?? "baris {$cr}")." · anggota {$an}";
                     })(),
-                    default => $a->art_index > 0 ? "ART {$a->art_index}" : '',
+                    default => $a->art_index > 0 ? "anggota {$a->art_index}" : '',
                 },
                 'raw' => $a->raw_value, 'clean' => $a->clean_value,
                 'reason' => $lastReason[$a->question_id.':'.$a->art_index] ?? '',
@@ -267,7 +267,7 @@ class CleaningController extends Controller
 
     public function correct(Request $request, Document $document)
     {
-        abort_if($document->status === 'bersih', 409, 'Dokumen sudah bersih (terkunci).');
+        abort_if($document->status === 'bersih', 409, 'Sampel sudah bersih (terkunci).');
         abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
         $d = $request->validate([
             'question_id' => 'required|integer',
@@ -306,7 +306,7 @@ class CleaningController extends Controller
     /** Tandai sebuah peringatan sudah ditinjau (bukan anomali). */
     public function ackWarning(Request $request, Document $document)
     {
-        abort_if($document->status === 'bersih', 409, 'Dokumen sudah bersih (terkunci).');
+        abort_if($document->status === 'bersih', 409, 'Sampel sudah bersih (terkunci).');
         $d = $request->validate([
             'rule_code' => 'required|string|max:40',
             'target_var' => 'nullable|string|max:60',
@@ -338,7 +338,7 @@ class CleaningController extends Controller
     /** Batalkan peninjauan sebuah peringatan. */
     public function unackWarning(Request $request, Document $document)
     {
-        abort_if($document->status === 'bersih', 409, 'Dokumen sudah bersih (terkunci).');
+        abort_if($document->status === 'bersih', 409, 'Sampel sudah bersih (terkunci).');
         $d = $request->validate([
             'rule_code' => 'required|string|max:40',
             'target_var' => 'nullable|string|max:60',
@@ -375,10 +375,10 @@ class CleaningController extends Controller
 
         if ($next) {
             return redirect()->route('pengolahan.show', $next)
-                ->with('ok', "Dokumen #{$document->id} bersih. Lanjut ke #{$next->id}.");
+                ->with('ok', "Sampel #{$document->id} bersih. Lanjut ke #{$next->id}.");
         }
 
-        return redirect()->route('pengolahan.index')->with('ok', "Dokumen #{$document->id} ditandai bersih.");
+        return redirect()->route('pengolahan.index')->with('ok', "Sampel #{$document->id} ditandai bersih.");
     }
 
     /** Tandai bersih beberapa dokumen sekaligus (hanya yang 0 error). */
@@ -413,7 +413,7 @@ class CleaningController extends Controller
             "{$done} bersih, {$skip} dilewati", $request->user()->id);
 
         return redirect()->route('pengolahan.index', $request->only('status', 'rule', 'q'))
-            ->with('ok', "{$done} dokumen ditandai bersih".($skip ? ", {$skip} dilewati (masih ada error / siklus terkunci)." : '.'));
+            ->with('ok', "{$done} sampel ditandai bersih".($skip ? ", {$skip} dilewati (masih ada error / siklus terkunci)." : '.'));
     }
 
     public function reopen(Request $request, Document $document)
@@ -426,7 +426,7 @@ class CleaningController extends Controller
 
     public function returnDoc(Request $request, Document $document)
     {
-        abort_if($document->status === 'bersih', 409, 'Dokumen sudah bersih (terkunci).');
+        abort_if($document->status === 'bersih', 409, 'Sampel sudah bersih (terkunci).');
         $d = $request->validate(['reason' => 'required|string|min:5']);
         $document->update([
             'status' => 'dikembalikan',
@@ -443,6 +443,6 @@ class CleaningController extends Controller
         $petugas = \App\Models\User::find($document->sample->petugas_id ?? $document->created_by);
         $petugas?->notify(new \App\Notifications\DocumentReturned($document, $d['reason'], $request->user()->name));
 
-        return redirect()->route('pengolahan.index')->with('ok', 'Dokumen dikembalikan ke petugas untuk perbaikan.');
+        return redirect()->route('pengolahan.index')->with('ok', 'Sampel dikembalikan ke petugas untuk perbaikan.');
     }
 }

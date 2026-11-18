@@ -2107,6 +2107,175 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   kecamatan sampai admin mengisi scope mereka lewat Manajemen Pengguna
   (dropdown kecamatan, Inc 138).
 
+### Increment 141 — konsolidasi menu admin: Metadata hanya kuesioner
+
+- Permintaan: "di metadata ada neraca dan harga dan kalori ada bagiannya sendiri;
+  saya ingin memindahkan semua itu di aturan validasi — sehingga metadata hanya
+  tempat membuat kuesioner".
+- **Metadata** (`/admin/metadata`) sekarang **hanya** kuesioner: versi (duplikat/aktif/
+  hapus/impor paket), blok, rincian, opsi, dan baris tetap. Section **Parameter**,
+  **Agregat cek-silang (NERACA)**, **Variabel turunan**, dan ringkasan aturan
+  dipindah ke halaman **Aturan Validasi**.
+- **Aturan Validasi** (`/admin/aturan`) jadi 3 tab (`?tab=`):
+  - `aturan` — daftar aturan + mode lanjutan (seperti sebelumnya),
+  - `neraca` — parameter + agregat (NERACA) + variabel turunan (partial
+    `admin/partials/_neraca.blade.php`),
+  - `harga` — patokan harga wajar & Calories per komoditas (partial
+    `admin/partials/_harga.blade.php`).
+- **Menu "Harga & Kalori Komoditas" dihapus** dari sidebar admin. URL lama
+  `/admin/harga` diarahkan ke `/admin/aturan?tab=harga` (bookmark lama tetap jalan);
+  POST `admin.harga.save` / `admin.harga.import` tetap seperti semula.
+- **Satu angka satu tempat** — harga & Calories tidak lagi diedit dari editor baris
+  di Metadata: `AdminController::HARGA_REF_KEYS = ['harga_min','harga_max','kalori']`
+  (1) disembunyikan dari kolom ref di editor baris, (2) dibuang dari `saveRow()` &
+  `importRows()` (impor baris memberi tahu kolom mana yang diabaikan — impor harga
+  lewat tab Harga & Kalori), (3) dipanggil `refKeys` blok di UI Aturan.
+  Kolom ref lain (`max_kons`, `satuan`, `group`) tetap di Metadata.
+  **Penyimpanan tidak berubah** — tetap `block_rows.ref`, dibaca mesin aturan lewat
+  `ref_harga_min`/`ref_harga_max`/`kalori` → tidak ada perubahan hasil/rules.
+- Sidebar admin: "Metadata" → "Metadata Kuesioner", dan **group kuesioner dipindah ke
+  paling atas** (1. Kuesioner (inti): Metadata Kuesioner, Impor Rincian, Aturan Validasi
+  → 2. Siklus lapangan → 3. Wilayah, PCL & sampel) — kuesioner adalah inti sistem.
+- Tes: `test_edit_a_fixed_row_reference_inline` (disesuaikan: editor baris tak
+  menampilkan harga/kalori), `test_harga_kalori_edited_from_aturan_tab` (baru),
+  `test_aturan_tabs_neraca_and_harga_render` (baru),
+  `test_rules_and_harga_pages_scope_to_selected_non_active_version` (URL lama → redirect),
+  `test_admin_imports_block_rows_with_calorie_data_from_xlsx` (kolom harga/kalori
+  diabaikan di impor baris). 238 tes lulus.
+
+### Increment 147 — singkatan ditulis lengkap di antarmuka; PPL/PCL diseragamkan
+
+- Permintaan: seragamkan PPL & PCL, dan singkatan jangan disingkat.
+- Teks antarmuka (view, pesan sistem, label peran, JavaScript) kini ditulis lengkap:
+  PCL/PPL → Pencacah Lapangan; PML → Pengawas Lapangan; PJ → Penanggung Jawab;
+  BS → Blok Sensus; Ruta → Rumah Tangga (kolom nomor: "Nomor Rumah Tangga");
+  KRT → Kepala Rumah Tangga; ART → anggota rumah tangga (label baris roster
+  "Anggota 1, 2, …"; tombol "Terapkan jumlah anggota"); SLS → Satuan Lingkungan
+  Setempat; DSRT → Daftar Sampel Rumah Tangga; IPDS → Seksi Integrasi Pengolahan dan
+  Diseminasi Statistik; QC → pemeriksaan mutu; P0 → Persentase miskin; MBG → Makan
+  Bergizi Gratis; "Kec." → Kecamatan; "dok #" → "isian #".
+- `User::ROLE_LABELS`: "Penanggung Jawab Kecamatan", "Pengawas Lapangan / Pengolah".
+- Kalimat developer "Skip pattern tidak berlaku di blok berulang pada MVP ini" (Sunting
+  blok) diganti "Syarat lompatan (skip) belum berlaku untuk blok berulang — hanya untuk
+  blok per rumah tangga". Bantuan roster di layar entri tak lagi menyebut "R301 / Blok
+  POKOK" secara tetap (bertentangan dengan Inc 145).
+- **Tidak diubah**: nama variabel/kode (`art`, `no_bs`, `IDENT-BS`), nama format berkas
+  (CSV, JSON, PDF), nama lembaga (BPS), singkatan umum ("mis."), dan **isi kuesioner**
+  (judul blok, label rincian, pesan aturan) — itu data yang disunting admin di Metadata/
+  Aturan Validasi.
+- Tes `PjRoleTest` disesuaikan dengan label peran baru. 252 tes lulus.
+
+### Increment 146 — total sampel & rincian sampel per versi kuesioner
+
+- Permintaan: di tabel Versi kuesioner (Metadata), selain "sampel terisi" tampilkan
+  **total sampel**, plus rincian sampel per kecamatan & desa beserta petugasnya.
+- Kolom "Sampel" di Metadata: "**N terisi** dari M" + tautan **Rincian sampel →**.
+  Total = sampel di siklus versi itu (`cycle_id`), tanpa yang berstatus `ganti_sampel`
+  (sama dengan Dashboard). Terisi = jumlah dokumen versi itu (seperti sebelumnya).
+- Halaman baru `/admin/versi/{qv}/sampel` (`AdminController::versionSamples`, view
+  `admin/versi_sampel.blade.php`, admin saja): KPI (total, terisi, belum diisi, jumlah
+  kecamatan & desa); tabel **per kecamatan** (desa, total, terisi, selesai dicacah, PCL,
+  PML); tabel **per petugas** (jumlah sampel, terisi, desa yang dipegang); lalu rincian
+  per kecamatan (dapat dilipat) → per desa → tiap ruta (BS, ruta, KRT, PCL, PML, status
+  sampel, status isian, tautan ke halaman sampel). Kecamatan = 7 digit pertama kode wilayah
+  (`WIL_LEN['kecamatan']`).
+- Tes `test_rincian_sampel_per_versi`. 252 tes lulus.
+
+### Increment 145 — struktur kuesioner tidak terikat kode blok / nama variabel
+
+- Pertanyaan user: "100 tahun ke depan blok komoditas bisa saja pindah jadi Blok V —
+  apakah sistem fleksibel?" Jawaban audit: hampir, tapi 4 titik masih tertulis di program.
+  Keempatnya ditutup:
+- **Tanda blok Harga & Kalori** — kolom baru `blocks.harga_kalori` (migrasi
+  `2026_10_28_090000`; blok `IV.1` lama ditandai otomatis). `AdminController::hargaBlocks()`
+  memakai tanda ini, bukan `code = 'IV.1'`. Dicentang di **Sunting blok** (hanya untuk
+  jenis `list`). Ikut di `duplicateVersion`, `Susenas2026CycleSeeder`, paket JSON
+  (`QuestionnairePackage`; paket lama tanpa tanda → blok `IV.1` dianggap blok harga).
+- **Kode blok bisa diganti** di Sunting blok (`updateBlock`): unik per versi, format
+  huruf/angka/`.`/`_`/`-`. Dalam satu transaksi `validation_rules.row_block` &
+  `aggregates.block_code` yang menunjuk kode lama ikut diganti.
+- **Parameter sistem** (`Parameter::SYSTEM` + `Parameter::systemVars()`): nama variabel
+  kunci jadi parameter per versi, bawaan = perilaku lama. `var_jumlah_art` (dulu
+  `EntryController::ART_COUNT_VARS`), `var_pengeluaran_per_kapita`, `var_makanan_sebulan`,
+  `var_ruta_sebulan` (dulu tertulis di `TabulationController::indicators`; kini per versi
+  baris — `scopedRows` membawa `documents.qversion_id`). Daftarnya tampil di tab
+  Neraca & Turunan → "Parameter sistem".
+- **Pengecek versi** `App\Services\VersionChecker` — error: aturan/agregat menunjuk blok
+  yang tak ada, kolom agregat tak ada di bloknya, ekspresi aturan/turunan merujuk variabel
+  yang tak ada (aturan diam-diam tak pernah menyala), sintaks rusak, parameter sistem
+  menunjuk variabel yang tak ada. Peringatan: `ref_<kunci>` belum diisi di baris mana pun,
+  ref pembobot/penyaring agregat tak ada, skip merujuk variabel tak ada, blok berpatokan
+  harga belum ditandai. Nama yang "tersedia" meniru `RuleEngine::buildContext()` /
+  `rowContexts()`. Dipakai di: **Jadikan aktif** (error → versi ditolak + daftar alasan;
+  "Aktifkan tetap" = `force=1`, tercatat "DIPAKSA" di log audit), tombol **Periksa** per
+  versi, dan `susenas:health` (#11, versi aktif).
+- `ExpressionEvaluator::referencedNames()` — baca-saja: urai ekspresi → daftar nama
+  variabel (termasuk argumen-nama `roster_*`). Tidak mengevaluasi.
+- Metadata: label jenis kini tampil untuk **semua** blok (termasuk "per rumah tangga"),
+  plus label "harga & kalori" pada blok bertanda.
+- Temuan pada data seed: VSEN27.KP aturan `IV1-KUANTITAS-MAX` memakai `ref_max_kons` yang
+  belum diisi di komoditas mana pun → peringatan (bukan error).
+- Tes baru `VersionFlexibilityTest` (10 tes: ganti kode blok + cascade, kode ganda ditolak,
+  tanda harga ikut duplikasi & menentukan isi tab, paket JSON lama/baru, aktivasi ditolak/
+  dipaksa, versi seed lolos, parameter sistem, referencedNames, label jenis). 251 tes lulus.
+
+### Increment 144 — validasi var_name rincian (format + unik per versi)
+
+- Temuan: admin menambah rincian Blok III dengan var_name `harga rumah` (berspasi) dan
+  formulir menerimanya. Nama berspasi tidak bisa dirujuk mesin aturan/turunan/ekspor.
+- `AdminController::VAR_NAME_RE` = `^[a-z][a-z0-9_]*$` ditegakkan di `addQuestion`,
+  `updateQuestion` (lewat `questionData`) dan `importCsv` (baris dilewati + alasan).
+- `varNameTaken()` — var_name wajib unik di **seluruh versi** (bukan cuma per blok):
+  semua var satu versi berbagi satu konteks aturan, nama ganda saling menimpa diam-diam.
+  Menyunting rincian sendiri dengan nama tetap tidak dianggap ganda.
+- Catatan pertanyaan user "kenapa tampilan Blok III beda dengan Blok IV": bentuk layar
+  entri ditentukan **jenis blok** (`ruta` = isian ke bawah; `list` = tabel baris tetap),
+  bukan tipe rincian (`decimal`). Bukan bug.
+- Data lama tidak diubah otomatis: rincian 306 (`harga rumah`, VSEN26.KP) perlu diganti
+  namanya oleh admin lewat Sunting. 241 tes lulus.
+
+### Increment 143 — pratinjau tampilan entri di sisi admin
+
+- Permintaan: "apakah bisa tampil sisi admin tampilan sensus di sisi operator entri?"
+  → **Pratinjau Tampilan Entri** di menu admin: `/admin/pratinjau/{qv}`.
+- **Bukan salinan** — view entri dipecah jadi partial `entri/_form.blade.php` (isi
+  formulir) & `entri/_ringkasan.blade.php` (panel samping), lalu dipakai oleh dua
+  halaman: `entri/document.blade.php` (petugas) & `admin/pratinjau.blade.php` (admin).
+  Pratinjau dirender dengan `EntryController::formState()` yang sama → yang dilihat
+  admin **dijamin identik** dengan layar petugas.
+- Pratinjau **tidak menyimpan apa pun**: `Document` & `SampleHousehold` dibuat di memori
+  (belum disimpan) → isian kosong, tapi baris/baris komoditas tetap tampil utuh
+  (Blok IV.1 = 194 baris × 7 kolom, ±1.670 sel).
+- `EntryController::previewForm()` — read-only (`canEdit=false`): tombol finalisasi,
+  catatan, dan bukti kunjungan disembunyikan; tidak ada POST simpan jawaban.
+- Tautan: di halaman **Metadata** — tombol "Pratinjau" per blok (membuka Blok tsb)
+  dan "Pratinjau entri" per baris versi. Route `admin.pratinjau` (role admin).
+- Tes: `test_pratinjau_entri_menampilkan_tampilan_petugas` (200, `data-can-edit="0"`,
+  baris komoditas utuh, tak ada dokumen tersimpan, operator Forbidden). 240 tes lulus.
+
+### Increment 142 — istilah "dokumen" diselaraskan jadi "sampel" di antarmuka
+
+- Klarifikasi istilah: **sampel** (`sample_households`) = satu rumah tangga (KRT) dalam
+  kerangka sampel; **dokumen** (`documents`) = satu **pengisian kuesioner** atas sampel itu
+  — dibuat saat petugas membuka sampel (`MonitoringController::createDocument`, status
+  `draft`), lalu `selesai` → `dikembalikan` → `bersih`. Jadi 1 sampel = 1 dokumen, dan
+  "dokumen" = "sampel yang sedang/baru diisi".
+- Permintaan: ganti kata "dokumen" dengan "total sampel" & "sampel yang telah diisi".
+  Yang berubah **hanya teks antarmuka** — nama tabel/model/route (`documents`, `Document`,
+  `entri.form`) tidak disentuh, dan nilai `scope` di DB tetap `'dokumen'`.
+- **Dashboard** — KPI: "Ruta sampel aktif" → **Total sampel**; ditambah KPI baru
+  **Sampel terisi** (`$nDocs` = jumlah dokumen dalam cakupan); "Dokumen ada error/warning"
+  → "Sampel ada error/warning"; tabel corong & aturan: kolom "Dokumen" → "Sampel".
+- Halaman lain: Kinerja Tim, Daftar Sampel, Tugas Saya, halaman detail sampel,
+  Pengolan (index & detail), Tabulasi & Indikator, Jadwal Siklus (→ "Sampel terisi"),
+  Metadata (daftar versi → "sampel terisi"), Entri & cetak (→ "Cetak sampel #id",
+  "Catatan isian"), Aturan Validasi (label scope "Tingkat sampel", tester & pratinjau
+  dampak), sidebar **"Impor Dokumen" → "Impor Isian (CAPI)"** (bukan "Impor Sampel" —
+  itu sudah dipakai untuk kerangka sampel).
+- Pesan sistem (flash/abort) ikut: "Sampel sudah bersih (terkunci)", "Sampel #id ditandai
+  bersih", "Dokumen dikembalikan ke petugas" → "Sampel …", "n dokumen" → "n sampel".
+- Tes: `PrintViewTest` disesuaikan ("Catatan isian"). 239 tes lulus.
+
 ### Increment 73 — SERUTI ditunda dari seed default
 
 - Atas permintaan: fokus SUSENAS dulu. `$this->call(SerutiSeeder::class)`

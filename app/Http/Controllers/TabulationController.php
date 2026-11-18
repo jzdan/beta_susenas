@@ -21,7 +21,7 @@ class TabulationController extends Controller
         'status' => 'Per status sampel',
     ];
     private const AGGS = [
-        'count' => 'Jumlah dokumen',
+        'count' => 'Jumlah sampel',
         'mean' => 'Rata-rata',
         'sum' => 'Total',
         'min' => 'Minimum',
@@ -38,7 +38,7 @@ class TabulationController extends Controller
         $q = Document::query()
             ->join('sample_households as s', 's.id', '=', 'documents.sample_id')
             ->join('document_snapshots as snap', 'snap.document_id', '=', 'documents.id')
-            ->select('documents.id', 'documents.status as doc_status', 's.wilayah_code',
+            ->select('documents.id', 'documents.qversion_id', 'documents.status as doc_status', 's.wilayah_code',
                 's.no_bs', 's.no_ruta', 's.krt_name', 's.petugas_id', 's.status as sample_status',
                 's.weight', 'snap.data as snap');
         $user = $request->user();
@@ -223,8 +223,9 @@ class TabulationController extends Controller
     {
         $rows = $this->scopedRows($request, $request->boolean('selesai', true));
 
-        // pilih variabel pengeluaran per kapita
-        $prefer = ['pengeluaran_per_kapita_bulan', 'pengeluaran_per_kapita'];
+        // pilih variabel pengeluaran per kapita — parameter sistem per versi (Inc 145)
+        $prefer = \App\Models\Parameter::systemVars(
+            \App\Models\QuestionnaireVersion::active()->id, 'var_pengeluaran_per_kapita');
         $numVars = [];
         foreach ($rows as $r) {
             foreach ($r->snap as $k => $v) {
@@ -239,8 +240,19 @@ class TabulationController extends Controller
         if (! in_array($var, $numVars, true)) {
             $var = collect($prefer)->first(fn ($p) => in_array($p, $numVars, true)) ?? ($numVars[0] ?? null);
         }
-        $foodVar = 'rekap_makanan_sebulan';
-        $rutaVar = 'rekap_ruta_sebulan';
+        // nama variabel pangsa makanan per versi kuesioner (parameter sistem, Inc 145):
+        // kandidat pertama yang ada di snapshot baris itu yang dipakai
+        $shareVars = [];
+        $pick = function ($r, string $param) use (&$shareVars) {
+            $shareVars[$r->qversion_id][$param] ??= \App\Models\Parameter::systemVars($r->qversion_id, $param);
+            foreach ($shareVars[$r->qversion_id][$param] as $v) {
+                if (array_key_exists($v, $r->snap)) {
+                    return $r->snap[$v];
+                }
+            }
+
+            return null;
+        };
         $gk = (float) ($request->query('gk')
             ?: (collect($rows)->map(fn ($r) => $r->snap['garis_kemiskinan_kab'] ?? null)->first(fn ($v) => is_numeric($v)) ?? 550000));
 
@@ -258,8 +270,9 @@ class TabulationController extends Controller
                 $bucket[$bk]['label'] = $bl;
                 $bucket[$bk]['x'][] = (float) $x;
                 $bucket[$bk]['w'][] = ($r->weight && $r->weight > 0) ? (float) $r->weight : null;
-                $fs = (is_numeric($r->snap[$foodVar] ?? null) && is_numeric($r->snap[$rutaVar] ?? null) && $r->snap[$rutaVar] > 0)
-                    ? $r->snap[$foodVar] / $r->snap[$rutaVar] : null;
+                $food = $pick($r, 'var_makanan_sebulan');
+                $ruta = $pick($r, 'var_ruta_sebulan');
+                $fs = (is_numeric($food) && is_numeric($ruta) && $ruta > 0) ? $food / $ruta : null;
                 $bucket[$bk]['fs'][] = $fs;
             }
         }

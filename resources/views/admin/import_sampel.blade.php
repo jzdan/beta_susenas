@@ -43,15 +43,15 @@
         @endforeach
       </select>
     </label>
-    <label class="small">No. BS <input name="no_bs" value="{{ old('no_bs') }}" class="mono" style="width:90px" placeholder="001B" required></label>
-    <label class="small">No. Ruta <input name="no_ruta" value="{{ old('no_ruta') }}" class="mono" style="width:70px" placeholder="001" required></label>
-    <label class="small">Nama KRT <input name="krt_name" value="{{ old('krt_name') }}" style="min-width:160px"></label>
+    <label class="small">Nomor Blok Sensus <input name="no_bs" value="{{ old('no_bs') }}" class="mono" style="width:90px" placeholder="001B" required></label>
+    <label class="small">Nomor Rumah Tangga <input name="no_ruta" value="{{ old('no_ruta') }}" class="mono" style="width:70px" placeholder="001" required></label>
+    <label class="small">Nama Kepala Rumah Tangga <input name="krt_name" value="{{ old('krt_name') }}" style="min-width:160px"></label>
     <label class="small">Petugas
       <select name="petugas_id" id="petugas_id">
         <option value="">—</option>
       </select>
     </label>
-    <label class="small">PML
+    <label class="small">Pengawas Lapangan
       <select name="pml_id">
         <option value="">—</option>
         @foreach ($pmls as $id => $name)<option value="{{ $id }}" @selected((string) old('pml_id') === (string) $id)>{{ $name }}</option>@endforeach

@@ -8,7 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Block extends Model
 {
-    protected $fillable = ['qversion_id', 'code', 'title', 'order', 'repeat'];
+    protected $fillable = ['qversion_id', 'code', 'title', 'order', 'repeat', 'harga_kalori'];
+
+    protected function casts(): array
+    {
+        return ['harga_kalori' => 'boolean'];
+    }
 
     /** tipe berulang yang didukung */
     public const REPEATS = ['ruta', 'art', 'list', 'list_art'];

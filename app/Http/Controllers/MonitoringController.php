@@ -31,7 +31,7 @@ class MonitoringController extends Controller
         'tidak_ditemukan' => 'Tidak ditemukan / berulang kali tidak di rumah',
         'pindah' => 'Pindah ke luar blok sensus',
         'bangunan_kosong' => 'Bangunan sensus kosong / bukan tempat tinggal',
-        'ruta_ganda' => 'Ruta ganda / tidak memenuhi syarat',
+        'ruta_ganda' => 'Rumah tangga ganda / tidak memenuhi syarat',
         'akses' => 'Tidak dapat dikunjungi (akses/bencana/keamanan)',
         'lainnya' => 'Lainnya (lihat catatan)',
     ];
@@ -99,7 +99,7 @@ class MonitoringController extends Controller
 
             return [
                 'note' => $n, 'doc_id' => $n->document_id,
-                'ruta' => $s ? (($wil[$s->wilayah_code] ?? $s->wilayah_code)." · Ruta {$s->no_ruta}") : '',
+                'ruta' => $s ? (($wil[$s->wilayah_code] ?? $s->wilayah_code)." · Rumah Tangga {$s->no_ruta}") : '',
                 'siklus' => $s ? $siklus($s) : '—',
             ];
         })->values();
@@ -230,7 +230,7 @@ class MonitoringController extends Controller
         return view('monitoring.dashboard', compact(
             'total', 'done', 'rate', 'byStatus', 'perWil', 'perPetugas',
             'nErrDocs', 'nWarnDocs', 'schedule', 'funnel', 'topRules', 'response'
-        ) + ['statusLabels' => self::STATUS]);
+        ) + ['statusLabels' => self::STATUS, 'nDocs' => $docs->count()]);
     }
 
     public function peta(Request $request)

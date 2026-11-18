@@ -1,22 +1,22 @@
 @extends('layouts.app')
 @php($nav = 'imdok')
-@section('title', 'Impor Dokumen Massal · Sistem SUSENAS')
+@section('title', 'Impor Isian Massal · Sistem SUSENAS')
 @section('content')
-<h1>Impor Dokumen Massal (format lebar)</h1>
+<h1>Impor Isian Massal (format lebar)</h1>
 <p class="muted">Satu baris CSV = satu rumah tangga. Kolom kunci wajib:
   <span class="mono">wilayah_code, no_bs, no_ruta</span> (opsional <span class="mono">krt_name</span>).
   Kolom sisanya = <strong>nama variabel</strong>. Untuk blok berulang pakai
-  <span class="mono">var__1</span>, <span class="mono">var__2</span> (angka = nomor ART / baris).
+  <span class="mono">var__1</span>, <span class="mono">var__2</span> (angka = nomor anggota rumah tangga / baris).
   Cocok untuk memuat ekspor CAPI ke sistem ini.</p>
 
 @if($hasil)
 <div class="alert {{ $hasil['dilewati'] && !($hasil['dibuat'] || $hasil['diperbarui']) ? 'err' : '' }}">
   @if($hasil['preview'])
     <strong>PRATINJAU</strong> (belum disimpan) — {{ $hasil['cycle'] }}.
-    Dari {{ $hasil['nRows'] }} baris: <strong>{{ $hasil['dibuat'] }}</strong> akan jadi dokumen baru,
+    Dari {{ $hasil['nRows'] }} baris: <strong>{{ $hasil['dibuat'] }}</strong> akan jadi isian baru,
     <strong>{{ $hasil['diperbarui'] }}</strong> akan diperbarui.
   @else
-    <strong>{{ $hasil['dibuat'] }}</strong> dokumen baru, <strong>{{ $hasil['diperbarui'] }}</strong> diperbarui.
+    <strong>{{ $hasil['dibuat'] }}</strong> isian baru, <strong>{{ $hasil['diperbarui'] }}</strong> diperbarui.
   @endif
   Hasil validasi: {{ $hasil['totErr'] }} error, {{ $hasil['totWarn'] }} warning total.
   @if($hasil['dilewati'])<br>Dilewati {{ count($hasil['dilewati']) }}:
@@ -71,7 +71,8 @@
 <section class="panel">
   <h2>Template &amp; kamus data</h2>
   <p class="muted small">Unduh header CSV yang tepat + kamus variabel untuk tim CAPI/pengolah.
-    <span class="mono">art</span> = jumlah baris ART maksimum pada template.</p>
+    <span class="mono">art</span> = jumlah baris anggota rumah tangga maksimum pada template.</p>
+  <div class="tablewrap">
   <table class="tbl">
     <thead><tr><th>Siklus</th><th>Template kosong</th><th>Kamus data</th><th>Ekspor jawaban</th></tr></thead>
     <tbody>
@@ -91,6 +92,7 @@
     @endforeach
     </tbody>
   </table>
+  </div>
   <p class="muted small">Ekspor jawaban memakai format kolom yang sama dengan impor —
     bisa diunduh, disunting di luar sistem, lalu dimuat ulang (round-trip).</p>
 </section>

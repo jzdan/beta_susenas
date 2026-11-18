@@ -47,7 +47,7 @@
   <thead>
     <tr>
       @if($canAssign)<th style="width:24px"><input type="checkbox" data-check-all></th>@endif
-      <th>Desa / BS / Ruta</th><th>Siklus</th><th>Nama KRT</th><th>Petugas</th><th>Status</th><th>Dokumen</th><th></th>
+      <th>Desa / Blok Sensus / Rumah Tangga</th><th>Siklus</th><th>Nama Kepala Rumah Tangga</th><th>Petugas</th><th>Status</th><th>Sampel</th><th></th>
     </tr>
   </thead>
   <tbody>
@@ -56,7 +56,7 @@
       @if($canAssign)<td><input type="checkbox" name="ids[]" value="{{ $s->id }}"></td>@endif
       <td>
         <div>{{ $wilNames[$s->wilayah_code] ?? $s->wilayah_code }}</div>
-        <span class="mono muted">{{ $s->wilayah_code }} · BS {{ $s->no_bs }} · {{ $s->no_ruta }}</span>
+        <span class="mono muted">{{ $s->wilayah_code }} · Blok Sensus {{ $s->no_bs }} · Rumah Tangga {{ $s->no_ruta }}</span>
       </td>
       <td class="small">{{ $cycleNames[$s->cycle_id] ?? '—' }}</td>
       <td>{{ $s->krt_name ?: '—' }}</td>

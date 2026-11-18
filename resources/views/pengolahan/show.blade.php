@@ -5,8 +5,8 @@
 <p><a class="btn-ghost" href="{{ route('pengolahan.index') }}">← Antrean</a>
   <a class="btn-ghost" href="{{ route('entri.print', $doc) }}">Cetak / arsip</a>
   @if($nextDoc)<a class="btn-ghost" href="{{ route('pengolahan.show', $nextDoc) }}">Lewati ke #{{ $nextDoc->id }} →</a>@endif</p>
-<h1>Pengolahan Dokumen #{{ $doc->id }}</h1>
-<p class="muted mono">{{ $sample->wilayah_code }} · BS {{ $sample->no_bs }} · Ruta {{ $sample->no_ruta }}
+<h1>Pengolahan Sampel #{{ $doc->id }}</h1>
+<p class="muted mono">{{ $sample->wilayah_code }} · Blok Sensus {{ $sample->no_bs }} · Rumah Tangga {{ $sample->no_ruta }}
   · {{ $sample->krt_name }} <span class="chip d-{{ $doc->status }}">{{ $doc->status }}</span>
   @if($doc->waitingDays() !== null)<span class="muted small">· menunggu {{ $doc->waitingDays() }} hari</span>@endif</p>
 
@@ -35,7 +35,7 @@
 
 @if(!in_array($doc->status, ['bersih','dikembalikan']))
 <details class="panel" style="padding:12px 16px">
-  <summary style="cursor:pointer">Kembalikan dokumen ke petugas (butuh kunjungan/perbaikan lapangan)</summary>
+  <summary style="cursor:pointer">Kembalikan sampel ke petugas (butuh kunjungan/perbaikan lapangan)</summary>
   <form method="post" action="{{ route('pengolahan.kembalikan', $doc) }}" class="stack-form mt">
     @csrf
     <label>Alasan &amp; instruksi perbaikan
@@ -43,13 +43,13 @@
         placeholder="mis. Blok IV.1 beras kuantitas tidak wajar — konfirmasi ke responden dan perbaiki"></textarea>
     </label>
     <button type="submit" class="btn-ghost">Kembalikan ke petugas</button>
-    <p class="muted small">Status dokumen menjadi <em>dikembalikan</em> dan keluar dari antrean cleaning sampai petugas mengirim ulang.</p>
+    <p class="muted small">Status sampel menjadi <em>dikembalikan</em> dan keluar dari antrean cleaning sampai petugas mengirim ulang.</p>
   </form>
 </details>
 @endif
 
 @if($docWarn)
-<div class="panel"><h3>Peringatan tingkat dokumen</h3>
+<div class="panel"><h3>Peringatan tingkat sampel</h3>
   <ul class="doc-flags">@foreach ($docWarn as $w)<li>@include('pengolahan._warnflag', ['w' => $w, 'var' => ''])</li>@endforeach</ul>
 </div>
 @endif

@@ -59,8 +59,8 @@
       </label>
     </div>
     <p class="muted small">Wilayah scope membatasi apa yang dilihat pengguna — selalu berupa satu <strong>kecamatan</strong>
-      (bukan desa/kabupaten). <strong>PJ</strong>: wajib diisi — satu PJ per kecamatan.
-      <strong>PML</strong>: pilih kecamatan, atau kosongkan untuk lihat semua.
+      (bukan desa/kabupaten). <strong>Penanggung Jawab</strong>: wajib diisi — satu penanggung jawab per kecamatan.
+      <strong>Pengawas Lapangan</strong>: pilih kecamatan, atau kosongkan untuk lihat semua.
       <strong>Operator/Peninjau</strong>: biasanya dikosongkan (operator dibatasi lewat penugasan sampel, bukan wilayah scope).</p>
     <label>Kata sandi <input type="password" name="password" id="password" placeholder="min. 8 karakter (kosongkan = tidak diubah)"></label>
     <div class="row-form">

@@ -3,16 +3,45 @@
 @section('title', 'Aturan Validasi · Sistem SUSENAS')
 @section('content')
 <h1>Aturan Validasi</h1>
-<p class="muted">Pemeriksaan otomatis yang berjalan tiap dokumen disimpan.
+<p class="muted">Satu tempat untuk seluruh mesin pemeriksaan &amp; patokan: <strong>aturan</strong>,
+  <strong>agregat cek-silang (neraca)</strong>, <strong>variabel turunan</strong>, dan
+  <strong>patokan harga &amp; kalori</strong> per komoditas. (Inc 141 — sebelumnya tersebar di
+  menu Metadata dan menu "Harga &amp; Kalori".)</p>
+
+@if($tab === 'aturan')
+<p class="muted">Pemeriksaan otomatis yang berjalan tiap sampel disimpan.
   <strong>{{ $activeCount }}</strong> dari {{ $total }} aturan aktif.</p>
 <p class="muted">Untuk pemakaian sehari-hari cukup di halaman ini: <strong>nyalakan/matikan</strong> aturan
   dan <strong>ubah angka ambang</strong>. Tulisan kode/ekspresi hanya untuk yang menyusun aturan
-  (Admin/IPDS) — ada di <em>Mode lanjutan</em> paling bawah, tidak perlu dibuka untuk operasional biasa.</p>
+  (Admin / Seksi Integrasi Pengolahan dan Diseminasi Statistik) — ada di <em>Mode lanjutan</em> paling bawah, tidak perlu dibuka untuk operasional biasa.</p>
+@elseif($tab === 'neraca')
+<p class="muted">Agregat &amp; turunan adalah bahan baku aturan: nilai turunan dievaluasi lebih dulu,
+  lalu dipakai aturan (dan tabulasi).</p>
+@else
+<p class="muted">Patokan harga wajar &amp; kalori per komoditas untuk dipakai aturan
+  <span class="mono">IV1-HARGA-MAHAL</span> / <span class="mono">IV1-HARGA-MURAH</span> /
+  <span class="mono">KALORI-*</span>. Satu nilai, satu tempat ubah.</p>
+@endif
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if ($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
 
 @include('admin.partials._qv_switch')
+
+<nav class="row-form" style="margin:0 0 14px;gap:8px">
+  <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'aturan']) }}"
+     style="{{ $tab === 'aturan' ? 'font-weight:700;border-color:var(--acc)' : '' }}">Aturan ({{ $total }})</a>
+  <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'neraca']) }}"
+     style="{{ $tab === 'neraca' ? 'font-weight:700;border-color:var(--acc)' : '' }}">Neraca &amp; Turunan</a>
+  <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'harga']) }}"
+     style="{{ $tab === 'harga' ? 'font-weight:700;border-color:var(--acc)' : '' }}">Harga &amp; Kalori</a>
+</nav>
+
+@if($tab === 'neraca')
+  @include('admin.partials._neraca')
+@elseif($tab === 'harga')
+  @include('admin.partials._harga')
+@else
 
 <section class="panel">
   <form method="get" class="filters">
@@ -106,10 +135,10 @@
 <details class="panel">
   <summary style="cursor:pointer;font-weight:600">Kamus variabel — apa saja yang bisa dipakai di aturan</summary>
   <p class="muted small" style="margin-top:10px">Membuat aturan baru dari nol <strong>jarang</strong> dilakukan di kabupaten —
-    biasanya aturan datang dari paket Sidona BPS atau disiapkan Seksi Sosial/IPDS. Kalau memang perlu,
+    biasanya aturan datang dari paket Sidona BPS atau disiapkan Seksi Statistik Sosial / Seksi Integrasi Pengolahan dan Diseminasi Statistik. Kalau memang perlu,
     ini daftar variabel yang tersedia. Contoh <span class="mono">IDENT-BS</span>
     (<span class="mono">filled(b1_kode_sls) and b1_kode_sls != sampel_bs</span>) = pakai jenis
-    <em>"Dua rincian harus sama / berbeda"</em>, rincian A = Nomor Kode Sampel SLS di Blok I, hubungan = harus SAMA,
+    <em>"Dua rincian harus sama / berbeda"</em>, rincian A = Nomor Kode Sampel Satuan Lingkungan Setempat di Blok I, hubungan = harus SAMA,
     rincian B = <span class="mono">sampel_bs</span>.</p>
 
   <input type="search" id="kamus-cari" placeholder="cari nama variabel / keterangan" style="min-width:260px;margin:6px 0">
@@ -118,7 +147,7 @@
   <table class="tbl" id="kamus-tabel">
     <thead><tr><th style="width:220px">Nama</th><th style="width:170px">Dari</th><th>Keterangan</th></tr></thead>
     <tbody>
-      <tr><td class="mono">sampel_wilayah</td><td>Metadata sampel</td><td>Kode wilayah (desa) di daftar sampel/DSRT</td></tr>
+      <tr><td class="mono">sampel_wilayah</td><td>Metadata sampel</td><td>Kode wilayah (desa) di Daftar Sampel Rumah Tangga</td></tr>
       <tr><td class="mono">sampel_bs</td><td>Metadata sampel</td><td>Nomor blok sensus di daftar sampel</td></tr>
       <tr><td class="mono">sampel_ruta</td><td>Metadata sampel</td><td>Nomor urut rumah tangga sampel</td></tr>
       <tr><td class="mono">sampel_krt</td><td>Metadata sampel</td><td>Nama kepala rumah tangga di daftar sampel</td></tr>
@@ -137,9 +166,9 @@
         <tr><td class="mono">ref_{{ $k }}</td><td>Referensi baris</td><td>Data <span class="mono">{{ $k }}</span> baris komoditas — <strong>hanya di aturan per-baris</strong> (blok tipe daftar)</td></tr>
       @endforeach
       @if($hasRoster)
-        <tr><td class="mono">&lt;var&gt;__n</td><td>Roster (blok per-ART)</td><td>Jumlah ART yang mengisi &lt;var&gt;. Juga: <span class="mono">__sum __count1 __count2 __max __min</span></td></tr>
-        <tr><td class="mono">art_terisi</td><td>Roster</td><td>Jumlah baris ART yang terisi di roster</td></tr>
-        <tr><td class="mono">roster_count(var, kode)</td><td>Fungsi roster</td><td>Berapa ART yang nilai <span class="mono">var</span>-nya = kode. Juga <span class="mono">roster_any / roster_all / roster_max / roster_sum / roster_first</span></td></tr>
+        <tr><td class="mono">&lt;var&gt;__n</td><td>Roster (blok per anggota rumah tangga)</td><td>Jumlah anggota rumah tangga yang mengisi &lt;var&gt;. Juga: <span class="mono">__sum __count1 __count2 __max __min</span></td></tr>
+        <tr><td class="mono">art_terisi</td><td>Roster</td><td>Jumlah baris anggota rumah tangga yang terisi di roster</td></tr>
+        <tr><td class="mono">roster_count(var, kode)</td><td>Fungsi roster</td><td>Berapa anggota rumah tangga yang nilai <span class="mono">var</span>-nya = kode. Juga <span class="mono">roster_any / roster_all / roster_max / roster_sum / roster_first</span></td></tr>
       @endif
     </tbody>
   </table>
@@ -155,7 +184,7 @@
   <p class="muted small" style="margin-top:10px">Pilih dari daftar, isi angka/pesan. Sistem yang menyusun ekspresinya.
     Butuh gabungan beberapa syarat sekaligus (mis. dua sinyal bersamaan)? Pilih jenis
     <em>"Gabungan beberapa syarat (query bebas)"</em>. Sebelum disimpan, klik <em>Uji dulu</em>
-    untuk lihat berapa dokumen yang akan menyala sebelum aturan benar-benar aktif.
+    untuk lihat berapa sampel yang akan menyala sebelum aturan benar-benar aktif.
     Belum tahu nama rincian? Buka <em>Kamus variabel</em> di atas. Untuk pemeriksaan rumit
     (neraca, rekap antar-blok) pakai <em>Mode lanjutan</em>.</p>
   @if($errors->has('wizard'))<div class="alert err">{{ $errors->first('wizard') }}</div>@endif
@@ -173,7 +202,7 @@
       </label>
       <label>Berlaku pada
         <select name="block">
-          <option value="">Seluruh dokumen</option>
+          <option value="">Seluruh sampel</option>
           @foreach ($wizardBlocks as $bl)
             <option value="{{ $bl->code }}" @selected(old('block')===$bl->code)>Blok {{ $bl->code }} — {{ $bl->title }}</option>
           @endforeach
@@ -282,7 +311,7 @@
     </div>
 
     <div class="row-form">
-      <button type="button" class="btn-ghost" id="btn-wiz-test">Uji dulu — berapa dokumen yang akan menyala? (belum disimpan)</button>
+      <button type="button" class="btn-ghost" id="btn-wiz-test">Uji dulu — berapa sampel yang akan menyala? (belum disimpan)</button>
     </div>
     <div id="wiz-test-out" class="test-out muted" hidden></div>
 
@@ -297,7 +326,7 @@
 </details>
 
 <details class="panel" @if($edit) open @endif>
-  <summary style="cursor:pointer;font-weight:600">Mode lanjutan — tulis &amp; uji ekspresi (untuk Admin/IPDS)</summary>
+  <summary style="cursor:pointer;font-weight:600">Mode lanjutan — tulis &amp; uji ekspresi (untuk Admin / Seksi Integrasi Pengolahan dan Diseminasi Statistik)</summary>
 
   <p class="muted small" style="margin-top:10px">Bagian ini untuk orang yang <em>menyusun</em> aturan. Petugas &amp; pemeriksa
     tidak perlu membukanya.</p>
@@ -322,7 +351,7 @@
       </label>
       <label>Scope <input name="scope" value="{{ $edit->scope ?? 'dokumen' }}"></label>
       <label>Target var <input name="target_var" value="{{ $edit->target_var ?? '' }}" class="mono" placeholder="opsional"></label>
-      <label>Row block <input name="row_block" value="{{ $edit->row_block ?? '' }}" class="mono" placeholder="kosong = tingkat dokumen"></label>
+      <label>Row block <input name="row_block" value="{{ $edit->row_block ?? '' }}" class="mono" placeholder="kosong = tingkat sampel"></label>
     </div>
     <label>Ekspresi (TRUE = masalah)
       <input name="expr" id="expr" value="{{ $edit->expr ?? '' }}" class="mono" required>
@@ -341,10 +370,10 @@
     <h3>Uji ekspresi</h3>
     <div class="row-form">
       <select id="test-doc">
-        @foreach ($docs as $d)<option value="{{ $d->id }}">Dokumen #{{ $d->id }} (sampel {{ $d->sample_id }})</option>@endforeach
+        @foreach ($docs as $d)<option value="{{ $d->id }}">Sampel #{{ $d->sample_id }} (isian #{{ $d->id }})</option>@endforeach
       </select>
       <button type="button" class="btn-ghost" id="btn-test">Jalankan</button>
-      <button type="button" class="btn-ghost" id="btn-impact">Pratinjau dampak (semua dokumen)</button>
+      <button type="button" class="btn-ghost" id="btn-impact">Pratinjau dampak (semua sampel)</button>
     </div>
     <div id="test-out" class="test-out muted">Belum diuji.</div>
   </div>
@@ -424,11 +453,11 @@
       out.className = "test-out " + (d.fire_docs ? "flag warning" : "flag");
       var pct = d.docs ? Math.round(100 * d.fire_docs / d.docs) : 0;
       var lines = "Ekspresi: " + d.expr + "\n\n"
-        + "Diuji " + d.docs + " dokumen" + (d.truncated ? " (dibatasi 500)" : "") + "\n"
-        + "MENYALA di " + d.fire_docs + " dokumen (" + pct + "%)"
+        + "Diuji " + d.docs + " sampel" + (d.truncated ? " (dibatasi 500)" : "") + "\n"
+        + "MENYALA di " + d.fire_docs + " sampel (" + pct + "%)"
         + (d.fire_rows !== d.fire_docs ? ", " + d.fire_rows + " baris" : "") + "\n"
-        + (d.eval_errors ? d.eval_errors + " dokumen gagal dievaluasi\n" : "")
-        + "\ncontoh dokumen:\n";
+        + (d.eval_errors ? d.eval_errors + " sampel gagal dievaluasi\n" : "")
+        + "\ncontoh sampel:\n";
       (d.samples || []).forEach(function (s) {
         lines += "  #" + s.doc_id + "  " + (s.wilayah || "") + "  " + s.ruta
           + (s.rows && s.rows.length ? "  baris: " + s.rows.join(", ") : "") + "\n";
@@ -454,7 +483,7 @@
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (!d.ok) { out.className = "test-out flag error"; out.textContent = "Error: " + d.error; return; }
       out.className = "test-out " + (d.fires ? "flag warning" : "flag");
-      var lines = "hasil = " + d.value + "  →  " + (d.fires ? "ATURAN MENYALA (ada masalah)" : "aman") + "\n\nkonteks dokumen:\n";
+      var lines = "hasil = " + d.value + "  →  " + (d.fires ? "ATURAN MENYALA (ada masalah)" : "aman") + "\n\nkonteks sampel:\n";
       Object.keys(d.context).forEach(function (k) { lines += "  " + k + " = " + d.context[k] + "\n"; });
       out.textContent = lines;
     }).catch(function (e) { out.className = "test-out flag error"; out.textContent = e.message; });
@@ -478,11 +507,11 @@
       if (!d.ok) { out.className = "test-out flag error"; out.textContent = "Error: " + d.error; return; }
       out.className = "test-out " + (d.fire_docs ? "flag warning" : "flag");
       var pct = d.docs ? Math.round(100 * d.fire_docs / d.docs) : 0;
-      var lines = "Diuji " + d.docs + " dokumen" + (d.truncated ? " (dibatasi 500)" : "") + "\n"
-        + "MENYALA di " + d.fire_docs + " dokumen (" + pct + "%)"
+      var lines = "Diuji " + d.docs + " sampel" + (d.truncated ? " (dibatasi 500)" : "") + "\n"
+        + "MENYALA di " + d.fire_docs + " sampel (" + pct + "%)"
         + (d.fire_rows !== d.fire_docs ? ", " + d.fire_rows + " baris" : "") + "\n"
-        + (d.eval_errors ? d.eval_errors + " dokumen gagal dievaluasi\n" : "")
-        + "\ncontoh dokumen:\n";
+        + (d.eval_errors ? d.eval_errors + " sampel gagal dievaluasi\n" : "")
+        + "\ncontoh sampel:\n";
       d.samples.forEach(function (s) {
         lines += "  #" + s.doc_id + "  " + (s.wilayah || "") + "  " + s.ruta
           + (s.rows && s.rows.length ? "  baris: " + s.rows.join(", ") : "") + "\n";
@@ -493,4 +522,5 @@
 })();
 </script>
 @endpush
+@endif
 @endsection

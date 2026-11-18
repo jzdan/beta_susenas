@@ -5,11 +5,11 @@
 <p><a class="btn-ghost" href="{{ route('admin.metadata') }}">← Metadata</a></p>
 <h1>Blok {{ $b->code }} — {{ $b->title }}</h1>
 <p class="muted">Tipe:
-  @if($b->repeat === 'art') roster (baris dinamis per ART)
+  @if($b->repeat === 'art') roster (baris dinamis per anggota rumah tangga)
   @elseif($b->repeat === 'list') daftar (baris tetap, mis. komoditas)
-  @elseif($b->repeat === 'list_art') daftar baris tetap × per ART (idx = baris×1000 + no ART)
+  @elseif($b->repeat === 'list_art') daftar baris tetap × per anggota rumah tangga
   @else per rumah tangga @endif.
-  @if($b->repeat !== 'ruta')Skip pattern tidak berlaku di blok berulang pada MVP ini.@endif</p>
+  @if($b->repeat !== 'ruta') Syarat lompatan (skip) belum berlaku untuk blok berulang — hanya untuk blok per rumah tangga. @endif</p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
@@ -18,15 +18,24 @@
   <h2>Ubah blok</h2>
   <form method="post" action="{{ route('admin.blok.update', $b) }}" class="row-form">
     @csrf
-    <input name="title" value="{{ $b->title }}" required style="min-width:280px">
-    <select name="repeat">
-      @foreach (['ruta' => 'per rumah tangga', 'art' => 'roster per ART', 'list' => 'daftar baris tetap', 'list_art' => 'daftar baris tetap × per ART'] as $k => $lbl)
-      <option value="{{ $k }}" @selected($b->repeat === $k)>{{ $lbl }}</option>
-      @endforeach
-    </select>
+    <label class="small">Kode <input name="code" value="{{ $b->code }}" required class="mono" style="width:90px"></label>
+    <label class="small">Judul <input name="title" value="{{ $b->title }}" required style="min-width:280px"></label>
+    <label class="small">Jenis
+      <select name="repeat">
+        @foreach (['ruta' => 'per rumah tangga', 'art' => 'roster per anggota rumah tangga', 'list' => 'daftar baris tetap', 'list_art' => 'daftar baris tetap × per anggota rumah tangga'] as $k => $lbl)
+        <option value="{{ $k }}" @selected($b->repeat === $k)>{{ $lbl }}</option>
+        @endforeach
+      </select>
+    </label>
+    <label class="small" title="Daftar komoditas blok ini muncul di Aturan Validasi → Harga & Kalori">
+      <input type="checkbox" name="harga_kalori" value="1" @checked($b->harga_kalori) @disabled($b->repeat !== 'list')>
+      Blok harga &amp; kalori komoditas
+    </label>
     <button type="submit">Simpan</button>
-    <span class="muted small">Tipe berulang hanya bisa diubah bila blok belum punya jawaban.</span>
   </form>
+  <p class="muted small">Mengganti <strong>kode</strong> ikut memperbarui aturan per-baris &amp; agregat yang menunjuk blok ini.
+    Jenis blok hanya bisa diubah bila belum ada jawaban. Tanda <em>harga &amp; kalori</em> hanya untuk blok
+    <em>daftar baris tetap</em> — daftar komoditasnya muncul di <strong>Aturan Validasi → Harga &amp; Kalori</strong>.</p>
 </section>
 
 @if(session('rowsResult'))
@@ -125,6 +134,7 @@
 
 <section class="panel">
   <h2>Rincian ({{ $questions->count() }})</h2>
+  <div class="tablewrap">
   <table class="tbl">
     <thead><tr><th>#</th><th>Kode</th><th>Variabel</th><th>Label</th><th>Tipe</th><th>Skip bila</th><th></th></tr></thead>
     <tbody>
@@ -147,6 +157,7 @@
     @endforelse
     </tbody>
   </table>
+  </div>
 </section>
 
 <section class="panel">

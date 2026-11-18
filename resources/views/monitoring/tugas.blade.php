@@ -15,7 +15,7 @@
       @foreach ($rows as $r)
         <div class="task-row">
           <div>
-            <a href="{{ route('entri.form', $r['doc']) }}"><strong>#{{ $r['doc']->id }}</strong> · {{ $r['wil'] }} · Ruta {{ $r['sample']->no_ruta }}</a>
+            <a href="{{ route('entri.form', $r['doc']) }}"><strong>#{{ $r['doc']->id }}</strong> · {{ $r['wil'] }} · Rumah Tangga {{ $r['sample']->no_ruta }}</a>
             <span class="muted small">· {{ $r['doc']->returned_at?->format('d M Y') }}</span>
             <div class="small">{{ \Illuminate\Support\Str::limit($r['doc']->return_reason, 160) }}</div>
           </div>
@@ -24,7 +24,7 @@
       @endforeach
     </details>
   @empty
-    <p class="muted">Tidak ada dokumen yang dikembalikan. 👍</p>
+    <p class="muted">Tidak ada sampel yang dikembalikan. 👍</p>
   @endforelse
 </section>
 
@@ -52,11 +52,11 @@
       <summary style="cursor:pointer;font-weight:600">{{ $siklusName }} <span class="muted small">— {{ $rows->count() }} sampel</span></summary>
       <div class="tablewrap">
       <table class="tbl">
-        <thead><tr><th>Wilayah / Ruta</th><th>Status</th><th>Dokumen</th><th></th></tr></thead>
+        <thead><tr><th>Wilayah / Rumah Tangga</th><th>Status</th><th>Sampel</th><th></th></tr></thead>
         <tbody>
         @foreach ($rows as $p)
           <tr>
-            <td>{{ $p['wil'] }} <span class="mono muted">· BS {{ $p['sample']->no_bs }} · {{ $p['sample']->no_ruta }}</span><br>
+            <td>{{ $p['wil'] }} <span class="mono muted">· Blok Sensus {{ $p['sample']->no_bs }} · Rumah Tangga {{ $p['sample']->no_ruta }}</span><br>
               <span class="muted small">{{ $p['sample']->krt_name }}</span></td>
             <td><span class="chip s-{{ $p['sample']->status }}">{{ $p['sample']->status }}</span></td>
             <td>@if($p['doc'])<span class="chip d-{{ $p['doc']->status }}">{{ $p['doc']->status }}</span>@else <span class="muted">belum ada</span>@endif</td>

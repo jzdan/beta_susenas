@@ -33,7 +33,7 @@
       @endif
     </div>
     <div class="panel" style="margin:0">
-      <h2>Sampel &amp; PCL</h2>
+      <h2>Sampel &amp; Pencacah Lapangan</h2>
       <p class="small" style="margin:4px 0">
         <a href="{{ route('monitoring.samples', ['cycle' => $cycle->id]) }}">Daftar Sampel siklus ini →</a></p>
       <p class="small" style="margin:4px 0">
@@ -46,7 +46,7 @@
     </div>
     <div class="panel" style="margin:0">
       <h2>Pengguna</h2>
-      <p class="muted small" style="margin:4px 0 6px">Akun PCL/PML/PJ — dipakai bersama, tidak khusus siklus ini.</p>
+      <p class="muted small" style="margin:4px 0 6px">Akun pencacah lapangan, pengawas lapangan, dan penanggung jawab — dipakai bersama, tidak khusus siklus ini.</p>
       <p class="small" style="margin:4px 0"><a href="{{ route('admin.pengguna') }}">Kelola Pengguna →</a></p>
     </div>
   </div>
@@ -76,7 +76,7 @@
   </section>
 
   <section class="panel">
-    <h2>Dokumen ({{ $dTotal }})</h2>
+    <h2>Sampel terisi ({{ $dTotal }})</h2>
     <table class="tbl mini"><tbody>
       @foreach (['draft','selesai','dikembalikan','bersih'] as $k)
       <tr><td>{{ $k }}</td><td class="num">{{ $dByStatus[$k] ?? 0 }}</td></tr>
@@ -84,7 +84,7 @@
       <tr class="{{ $notBersih ? 'row-has-warn' : '' }}">
         <td><strong>Belum bersih</strong></td><td class="num"><strong>{{ $notBersih }}</strong></td></tr>
       <tr class="{{ $errDocs ? 'row-has-warn' : '' }}">
-        <td>Dokumen masih ada error</td><td class="num">{{ $errDocs }}</td></tr>
+        <td>Sampel masih ada error</td><td class="num">{{ $errDocs }}</td></tr>
     </tbody></table>
   </section>
 </div>
@@ -92,6 +92,7 @@
 <div class="grid2">
   <section class="panel">
     <h2>Alur pengolahan</h2>
+    <div class="tablewrap">
     <table class="tbl mini"><tbody>
       @php($ft = max(1, collect($funnel)->sum('n')))
       @foreach ($funnel as $f)
@@ -99,6 +100,7 @@
         <td><div class="bar"><i style="width: {{ round(100 * $f['n'] / $ft, 1) }}%"></i></div></td></tr>
       @endforeach
     </tbody></table>
+    </div>
   </section>
 
   <section class="panel">
@@ -106,6 +108,7 @@
     @if($topRules->isEmpty())
       <p class="muted">Belum ada temuan.</p>
     @else
+    <div class="tablewrap">
     <table class="tbl mini">
       <thead><tr><th>Kode</th><th>Sev</th><th class="num">Dok</th></tr></thead>
       <tbody>
@@ -116,16 +119,17 @@
       @endforeach
       </tbody>
     </table>
+    </div>
     @endif
   </section>
 </div>
 
 <section class="panel no-print">
   <h2>Revalidasi</h2>
-  <p class="muted small">Jalankan ulang mesin aturan untuk semua {{ $dTotal }} dokumen siklus ini —
+  <p class="muted small">Jalankan ulang mesin aturan untuk semua {{ $dTotal }} sampel terisi siklus ini —
     lakukan setelah menyunting aturan / agregat / nilai turunan.</p>
   <form method="post" action="{{ route('admin.siklus.revalidate', $cycle) }}"
-    onsubmit="return confirm('Revalidasi seluruh dokumen siklus ini?')">
+    onsubmit="return confirm('Revalidasi seluruh sampel siklus ini?')">
     @csrf<button type="submit" class="btn-ghost">↻ Revalidasi seluruh siklus</button>
   </form>
 </section>
@@ -140,13 +144,13 @@
     </form>
   @else
     @if($ready)
-      <p class="muted">Semua sampel tuntas &amp; semua dokumen bersih tanpa error — siap dikunci.</p>
+      <p class="muted">Semua sampel tuntas &amp; semua sampel bersih tanpa error — siap dikunci.</p>
     @else
       <div class="alert err">Belum sepenuhnya siap:
         <ul class="small">
           @if($unresolved)<li>{{ $unresolved }} sampel belum tuntas</li>@endif
-          @if($notBersih)<li>{{ $notBersih }} dokumen belum bersih</li>@endif
-          @if($errDocs)<li>{{ $errDocs }} dokumen masih ada error</li>@endif
+          @if($notBersih)<li>{{ $notBersih }} sampel belum bersih</li>@endif
+          @if($errDocs)<li>{{ $errDocs }} sampel masih ada error</li>@endif
         </ul>
         Mengunci tetap bisa dilakukan (mis. non-respons yang memang final), tapi data tak bisa diubah lagi setelahnya.
       </div>

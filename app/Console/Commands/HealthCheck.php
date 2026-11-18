@@ -143,6 +143,18 @@ class HealthCheck extends Command
             $problems += $dupePj->count();
         }
 
+        // 11. keutuhan versi aktif (Inc 145): aturan/agregat/turunan/parameter yang putus
+        if ($active = QuestionnaireVersion::where('is_active', true)->first()) {
+            $vc = app(\App\Services\VersionChecker::class)->check($active);
+            if ($vc['errors']) {
+                $this->error("• Versi aktif {$active->code} punya rujukan putus:");
+                foreach ($vc['errors'] as $e) {
+                    $this->line("    - {$e}");
+                }
+                $problems += count($vc['errors']);
+            }
+        }
+
         if ($problems === 0) {
             $this->info('OK — tidak ada masalah terdeteksi.');
             return self::SUCCESS;
