@@ -42,14 +42,39 @@ Jawaban di `answers` (raw_value + clean_value; `art_index` = 0 utk ruta, nomor A
 `block_row.row_index` utk list, atau `row*1000 + no_art` utk list_art —
 `Block::packRowArt` / `unpackRowArt`).
 
-`questionnaire_version.is_active` **cuma 1 di seluruh sistem**, dan cuma menentukan versi
-yang sedang disunting di menu admin (Metadata/Aturan) — **bukan** yang dipakai
-dokumen (itu ikut `cycle_id` sampelnya, lihat `MonitoringController::createDocument`).
-Role `operator` dikunci ke **periode** (`survey_cycle.period`) milik versi aktif —
-`QuestionnaireVersion::activeCycleIds()` — supaya kuesioner yang dicacah bersamaan dalam
-satu periode (mis. KOR `VSEN26.K` & KP `VSEN26.KP`, disimpan sbg 2 `survey_cycle` terpisah)
-tetap sama-sama terbuka begitu salah satu versinya diaktifkan; role lain (pml/pj/admin/
-viewer) tidak dibatasi (Inc 135).
+`questionnaire_version.is_active` **cuma 1 di seluruh sistem**, dan **hanya** menentukan versi
+bawaan yang dibuka di menu admin (Metadata/Aturan) — **tidak** memengaruhi petugas maupun
+dokumen (dokumen ikut `cycle_id` sampelnya, lihat `MonitoringController::createDocument`).
+**Akses petugas (`operator`) diatur status siklus**, bukan versi aktif (Inc 148; dulu Inc 135
+mengunci ke periode versi aktif — jebakan: mengaktifkan versi periode berikutnya mengunci
+petugas yang sedang di lapangan):
+- **mengubah** isian: `Document::editableByPetugas()` — siklus `lapangan` (`SurveyCycle::isFieldOpen`),
+  atau isian `dikembalikan` selama siklus belum `selesai`; isian **baru** hanya saat `lapangan`.
+- **melihat**: sampel miliknya (`petugas_id`) di siklus yang sudah lewat `persiapan`; di luar
+  periode lapangan halaman entri tampil hanya-lihat.
+- Kepemilikan & cakupan wilayah dicek di `EntryController::assertCanView` (entri + cetak) dan
+  `MonitoringController::sample` (lewat `visibleSamples`) — sebelum Inc 148 `/entri/{id}` bisa
+  dibuka/diubah petugas mana pun lewat alamat. Role lain (pml/pj/admin/viewer) tidak dibatasi periode.
+- Tes yang butuh petugas mengisi: helper `TestCase::openForPetugas($doc, $user)`.
+- Membuka lapangan (status → `lapangan`) melewati daftar periksa `App\Services\CyclePrep`
+  (halaman **Persiapan periode** `/admin/siklus/{id}/persiapan`, Inc 152): butir wajib = versi ada &
+  utuh (`VersionChecker`), sampel dimuat, semua sampel punya petugas. Form Jadwal ikut ditahan;
+  `force=1` di tombol Buka periode lapangan = paksa (log audit). Di antarmuka `is_active` disebut
+  **versi bawaan** ("Jadikan bawaan"), bukan "aktif".
+
+## Tahap sampel & label antarmuka (Inc 149–150)
+
+- **Satu tahap** per sampel = `App\Support\Tahap::of($sample, $doc)` (gabungan status sampel + isian):
+  belum → diisi → diperiksa → dikembalikan → bersih, plus `non_respons`/`ganti_sampel` (tanda manual,
+  mengalahkan isian). Tampilkan `Tahap::label()` + chip `t-{tahap}` — **jangan** cetak
+  `$doc->status`/`$sample->status` mentah. Pengawas hanya bisa menandai `non_respons` atau `batal`
+  (`MonitoringController::setStatus`); ganti sampel lewat `replace()`; selebihnya otomatis.
+- Nilai kode DB → teks lewat `App\Support\Istilah` (`severity`, `cycleStatus`, `repeat`, `qtype`,
+  `scope`, `audit`, `entity`). Alias Blade `Istilah::` / `Tahap::` (AppServiceProvider).
+  Teks antarmuka: "Kesalahan/Peringatan" (bukan error/warning), "angka respons", "Cakupan wilayah",
+  "Nama pengguna"; tanpa "Inc NNN". Kolom teknis (nama variabel, rumus lewati) diberi `class="tech"`
+  + `@include('admin.partials._tech_toggle')` — tersembunyi kecuali "Tampilkan detail teknis".
+- Huruf: satu keluarga IBM Plex Sans; `.mono` hanya untuk kode. Tanpa label kapital berjarak.
 
 ## Mesin ekspresi & aturan (kritis-keamanan)
 
@@ -63,6 +88,12 @@ viewer) tidak dibatasi (Inc 135).
   (jawaban ruta, parameter, metadata sampel `sampel_wilayah/bs/ruta/krt`, agregat
   roster & NERACA, nilai turunan). `run()` menjalankan aturan tingkat-dokumen &
   per-baris, menulis `rule_results` + `document_snapshots` (dipakai tabulasi/ekspor).
+- Halaman Aturan Validasi (Inc 153): daftar harian di `/admin/aturan`; ubah/buat di halaman sendiri
+  (`admin/rule_form.blade.php`, `/admin/aturan/{rule}`, `/admin/aturan-baru`) dengan periksa langsung
+  (`rulePreview`). Perubahan aturan/parameter/agregat/turunan/patokan harga menandai
+  `questionnaire_versions.rules_changed_at` (trait `MarksRulesChanged`; **update/delete massal lewat query
+  builder tidak memicu event — panggil `QuestionnaireVersion::markRulesChanged()` sendiri**).
+  `staleDocuments()` → kotak "belum diperiksa ulang" + tombol Periksa ulang sekarang.
 - Aturan: `scope` = `dokumen`/`konsistensi`/`neraca`/`kalori`/`anomali`;
   `row_block` = kode blok utk aturan per-baris (konteks lokal + `_row_index` + `ref_<key>`).
 - `IV1-HARGA-MAHAL`/`IV1-HARGA-MURAH` & `KALORI-*` memakai `block_rows.ref`
@@ -84,11 +115,12 @@ viewer) tidak dibatasi (Inc 135).
 - Fitur yang butuh "variabel tertentu" pakai **parameter sistem** `Parameter::SYSTEM` +
   `Parameter::systemVars($qvId, nama)` (bawaan = nama lama), bukan konstanta di controller.
   Tambah fitur baru → tambah entri di `Parameter::SYSTEM`.
-- `App\Services\VersionChecker` memeriksa rujukan putus; dipakai saat **Jadikan aktif**
-  (error → ditolak, `force=1` = paksa), tombol **Periksa**, dan `susenas:health`. Kalau
+- `App\Services\VersionChecker` memeriksa rujukan putus; dipakai saat **membuka lapangan**
+  (`CyclePrep`, error → ditahan, `force=1` = paksa), tombol **Periksa**, "Jadikan bawaan"
+  (hanya informasi, tidak menahan — Inc 152), dan `susenas:health`. Kalau
   menambah nama baru ke konteks `RuleEngine::buildContext()`/`rowContexts()`, tambahkan
   juga ke `VersionChecker::DOC_CTX`/`ROW_CTX` — kalau tidak, aturan yang memakainya
-  dilaporkan "variabel tidak ada" dan versi tidak bisa diaktifkan.
+  dilaporkan "variabel tidak ada" dan lapangan siklusnya tidak bisa dibuka.
 - Pesan aturan mendukung placeholder (`RuleEngine::interpolate()`): `{nama_var}` →
   nilai konteks, `{=ekspresi}` → hasil hitung; angka diformat gaya Indonesia. Dipakai
   aturan harga IV.1 untuk menampilkan harga satuan terhitung + rentang wajar.
@@ -141,3 +173,14 @@ lebar `var__n`, pratinjau dry-run, alias kolom, ekspor round-trip).
 
 ## Belum: modul Seruti, ~16 aturan Sidona ambigu, input sisi BPS (SSO, format ekspor
 CAPI, deploy PDN, UAT, penimbang kalibrasi, wilayah/sampel/harga referensi asli).
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. When the answer is under a Markdown heading, `graphify section "<heading>"` prints that section's text, so the .md need not be opened. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.

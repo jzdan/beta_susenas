@@ -45,16 +45,42 @@ class SampleReplacementTest extends TestCase
         $this->assertSame('Responden menolak dua kali.', $s->status_note);
     }
 
-    public function test_changing_back_to_proses_clears_reason(): void
+    public function test_cancelling_non_response_returns_to_automatic_stage(): void
     {
         $s = $this->sample();
+        $s->documents()->delete();
         $s->update(['status' => 'non_respons', 'nonresponse_reason' => 'akses', 'status_note' => 'banjir']);
 
-        $this->actingAs($this->pml())->post("/monitoring/sampel/{$s->id}/status", ['new_status' => 'proses']);
+        $this->actingAs($this->pml())->post("/monitoring/sampel/{$s->id}/status", ['new_status' => 'batal'])
+            ->assertRedirect();
 
         $s->refresh();
+        $this->assertSame('belum', $s->status);   // tanpa isian → kembali "belum dikunjungi"
         $this->assertNull($s->nonresponse_reason);
         $this->assertNull($s->status_note);
+    }
+
+    public function test_automatic_stages_cannot_be_set_by_hand(): void
+    {
+        $s = $this->sample();
+        foreach (['belum', 'proses', 'selesai', 'ganti_sampel'] as $st) {
+            $this->actingAs($this->pml())->post("/monitoring/sampel/{$s->id}/status", ['new_status' => $st])
+                ->assertStatus(400);
+        }
+        // membatalkan sampel yang tidak bertanda apa pun ditolak
+        $s->update(['status' => 'proses']);
+        $this->actingAs($this->pml())->post("/monitoring/sampel/{$s->id}/status", ['new_status' => 'batal'])
+            ->assertStatus(409);
+    }
+
+    public function test_replaced_sample_mark_cannot_be_cancelled(): void
+    {
+        $s = $this->sample();
+        $this->actingAs($this->pml())->post("/monitoring/sampel/{$s->id}/ganti", ['reason' => 'pindah']);
+        $this->assertSame('ganti_sampel', $s->fresh()->status);
+
+        $this->actingAs($this->pml())->post("/monitoring/sampel/{$s->id}/status", ['new_status' => 'batal'])
+            ->assertStatus(409);
     }
 
     public function test_creating_a_replacement_links_both_samples(): void

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MarksRulesChanged;
 use Illuminate\Database\Eloquent\Model;
 
 class Parameter extends Model
 {
+    use MarksRulesChanged;
+
     public $timestamps = false;
 
     protected $fillable = ['qversion_id', 'name', 'value', 'note'];

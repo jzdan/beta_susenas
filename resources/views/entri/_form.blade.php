@@ -8,11 +8,8 @@
     <h2 class="block-head" data-block-toggle>
       <span class="block-caret" aria-hidden="true">▾</span>
       {{ $b['code'] }} — {{ $b['title'] }}
-      @if($b['repeat'] === 'art')<span class="chip d-draft">roster per anggota rumah tangga</span>@endif
-      @if($b['repeat'] === 'list')<span class="chip d-draft">daftar (baris tetap)</span>@endif
-      @if($b['repeat'] === 'list_art')<span class="chip d-draft">daftar × per anggota rumah tangga</span>@endif
-      @if($b['n_err'])<span class="flag error" style="display:inline-block">{{ $b['n_err'] }} error</span>@endif
-      @if($b['n_warn'])<span class="flag warning" style="display:inline-block">{{ $b['n_warn'] }} warning</span>@endif
+      @if($b['n_err'])<span class="flag error" style="display:inline-block">{{ $b['n_err'] }} kesalahan</span>@endif
+      @if($b['n_warn'])<span class="flag warning" style="display:inline-block">{{ $b['n_warn'] }} peringatan</span>@endif
     </h2>
     <div class="block-body">
 

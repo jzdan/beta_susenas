@@ -8,10 +8,10 @@
 @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
 
 <form class="filters" method="get">
-  <select name="status">
-    <option value="">Semua status</option>
-    @foreach ($statusLabels as $k => $lbl)
-    <option value="{{ $k }}" @selected($fStatus === $k)>{{ $lbl }}</option>
+  <select name="tahap">
+    <option value="">Semua tahap</option>
+    @foreach (Tahap::LABELS as $k => $lbl)
+    <option value="{{ $k }}" @selected($fTahap === $k)>{{ $lbl }}</option>
     @endforeach
   </select>
   <select name="wil">
@@ -47,7 +47,7 @@
   <thead>
     <tr>
       @if($canAssign)<th style="width:24px"><input type="checkbox" data-check-all></th>@endif
-      <th>Desa / Blok Sensus / Rumah Tangga</th><th>Siklus</th><th>Nama Kepala Rumah Tangga</th><th>Petugas</th><th>Status</th><th>Sampel</th><th></th>
+      <th>Desa / Blok Sensus / Rumah Tangga</th><th>Siklus</th><th>Nama Kepala Rumah Tangga</th><th>Petugas</th><th>Tahap</th><th></th>
     </tr>
   </thead>
   <tbody>
@@ -61,15 +61,12 @@
       <td class="small">{{ $cycleNames[$s->cycle_id] ?? '—' }}</td>
       <td>{{ $s->krt_name ?: '—' }}</td>
       <td>{{ $userNames[$s->petugas_id] ?? '—' }}</td>
-      <td><span class="chip s-{{ $s->status }}">{{ $statusLabels[$s->status] ?? $s->status }}</span></td>
-      <td>
-        @php($d = $docBySample[$s->id] ?? null)
-        @if($d)<span class="chip d-{{ $d->status }}">{{ $d->status }}</span>@else<span class="muted">—</span>@endif
-      </td>
+      @php($t = Tahap::of($s, $docBySample[$s->id] ?? null))
+      <td><span class="chip t-{{ $t }}">{{ Tahap::label($t) }}</span></td>
       <td class="right"><a class="btn-ghost" href="{{ route('monitoring.sample', $s) }}">Buka</a></td>
     </tr>
   @empty
-    <tr><td colspan="{{ $canAssign ? 8 : 7 }}" class="muted">Tidak ada sampel yang cocok.</td></tr>
+    <tr><td colspan="{{ $canAssign ? 7 : 6 }}" class="muted">Tidak ada sampel yang cocok.</td></tr>
   @endforelse
   </tbody>
 </table>

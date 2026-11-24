@@ -73,7 +73,7 @@ class PrintViewTest extends TestCase
         $this->actingAs(User::where('username', 'rahmawati')->firstOrFail())
             ->get("/entri/{$doc->id}/cetak")
             ->assertOk()
-            ->assertSee('Jejak koreksi cleaning')
+            ->assertSee('Jejak koreksi pengolahan')
             ->assertSee('Angka tertukar dengan nomor urut')
             ->assertSee('Catatan isian')
             ->assertSee('dikonfirmasi via telepon');

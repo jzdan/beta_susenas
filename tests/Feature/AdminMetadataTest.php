@@ -498,7 +498,7 @@ class AdminMetadataTest extends TestCase
         $this->actingAs($this->admin())->post('/admin/aturan', [
             'code' => 'UJI-RUSAK', 'scope' => 'dokumen',
             'expr' => 'n(a) and and (', 'severity' => 'warning', 'message' => 'x',
-        ])->assertStatus(400);
+        ])->assertSessionHasErrors('expr');
 
         $this->assertDatabaseMissing('validation_rules', ['code' => 'UJI-RUSAK']);
     }
@@ -593,7 +593,8 @@ class AdminMetadataTest extends TestCase
         $res = $this->actingAs($admin)->get("/admin/aturan?qv={$other->id}");
         $res->assertOk();
         $this->assertSame($other->id, $res->viewData('qv')->id);
-        $this->assertTrue(collect($res->viewData('docs'))->every(fn ($d) => $d->qversion_id === $other->id));
+        $this->actingAs($admin)->get("/admin/aturan-baru?qv={$other->id}")->assertOk()
+            ->assertViewHas('qv', fn ($q) => $q->id === $other->id);
 
         // Wizard terpandu -> aturan baru nempel ke versi non-aktif
         $this->actingAs($admin)->post('/admin/aturan-terpandu', [

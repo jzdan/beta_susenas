@@ -20,6 +20,7 @@ class QueueAgingTest extends TestCase
     {
         $doc = Document::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.KP'))
             ->where('status', '!=', 'bersih')->firstOrFail();
+        $doc = $this->openForPetugas($doc, User::where('username', 'ppl_ani')->firstOrFail());
         $doc->update(['status' => 'draft', 'submitted_at' => null]);
 
         $this->actingAs(User::where('username', 'ppl_ani')->firstOrFail())

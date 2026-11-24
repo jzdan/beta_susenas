@@ -10,7 +10,7 @@
 <div class="kpis">
   <div class="kpi"><span class="n">{{ $total }}</span><span class="l">Total sampel</span></div>
   <div class="kpi"><span class="n">{{ $total - $proses - $selesai }}</span><span class="l">Belum diisi</span></div>
-  <div class="kpi"><span class="n">{{ $proses }}</span><span class="l">Sedang dikerjakan (draft)</span></div>
+  <div class="kpi"><span class="n">{{ $proses }}</span><span class="l">Sedang diisi</span></div>
   <div class="kpi"><span class="n">{{ $selesai }}</span><span class="l">Selesai dicacah</span></div>
   <div class="kpi"><span class="n">{{ count($kec) }}</span><span class="l">Kecamatan</span></div>
   <div class="kpi"><span class="n">{{ collect($kec)->sum(fn ($k) => count($k['desa'])) }}</span><span class="l">Desa</span></div>
@@ -75,10 +75,10 @@
   </summary>
   <div class="tablewrap mt">
   <table class="tbl">
-    <thead><tr><th>Blok Sensus</th><th>Nomor Rumah Tangga</th><th>Nama Kepala Rumah Tangga</th><th>Pencacah Lapangan</th><th>Pengawas Lapangan</th><th>Status sampel</th><th>Isian</th><th></th></tr></thead>
+    <thead><tr><th>Blok Sensus</th><th>Nomor Rumah Tangga</th><th>Nama Kepala Rumah Tangga</th><th>Pencacah Lapangan</th><th>Pengawas Lapangan</th><th>Tahap</th><th></th></tr></thead>
     <tbody>
     @foreach ($k['desa'] as $d)
-      <tr class="group-header"><th colspan="8">
+      <tr class="group-header"><th colspan="7">
         Desa {{ $d['name'] }} <span class="muted mono small">{{ $d['code'] }}</span>
         <span class="muted small">— {{ $d['selesai'] }} selesai dicacah · {{ $d['proses'] }} sedang dikerjakan ·
           {{ $d['belum'] }} belum diisi (dari {{ $d['total'] }}) ·
@@ -92,8 +92,7 @@
           <td>{{ $s->krt_name }}</td>
           <td>{{ $s->petugas->name ?? '—' }}</td>
           <td>{{ $s->pml->name ?? '—' }}</td>
-          <td><span class="chip s-{{ $s->status }}">{{ $statusLabels[$s->status] ?? $s->status }}</span></td>
-          <td>@if($doc)<span class="chip d-{{ $doc->status }}">{{ $doc->status }}</span>@else<span class="muted small">belum diisi</span>@endif</td>
+          <td><span class="chip t-{{ Tahap::of($s, $doc) }}">{{ Tahap::label(Tahap::of($s, $doc)) }}</span></td>
           <td><a class="btn-ghost" href="{{ route('monitoring.sample', $s) }}">Buka</a></td>
         </tr>
       @endforeach

@@ -47,7 +47,9 @@ class ListArtBlockTest extends TestCase
     public function test_per_commodity_per_art_rule_fires_with_row_ref(): void
     {
         $b = $this->iv1m();
-        $doc = Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail();
+        $doc = $this->openForPetugas(
+            Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail(),
+            User::where('username', 'ppl_ani')->firstOrFail());
         $qSumber = Question::where('block_id', $b->id)->where('var_name', 'mj_sumber')->firstOrFail();
         $qKuant = Question::where('block_id', $b->id)->where('var_name', 'mj_kuantitas')->firstOrFail();
 
@@ -73,7 +75,9 @@ class ListArtBlockTest extends TestCase
     public function test_saving_a_list_art_cell_keeps_the_packed_index(): void
     {
         $b = $this->iv1m();
-        $doc = Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail();
+        $doc = $this->openForPetugas(
+            Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail(),
+            User::where('username', 'ppl_ani')->firstOrFail());
         $q = Question::where('block_id', $b->id)->where('var_name', 'mj_kuantitas')->firstOrFail();
 
         // komoditas 217 (Es krim) × ART 4 -> art_index 217004, dulu ke-clamp ke 500
@@ -91,7 +95,9 @@ class ListArtBlockTest extends TestCase
     public function test_set_art_count_shrinks_and_drops_orphaned_answers(): void
     {
         $b = $this->iv1m();
-        $doc = Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail();
+        $doc = $this->openForPetugas(
+            Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail(),
+            User::where('username', 'ppl_ani')->firstOrFail());
         $qKuant = Question::where('block_id', $b->id)->where('var_name', 'mj_kuantitas')->firstOrFail();
         $op = User::where('username', 'ppl_ani')->firstOrFail();
 
@@ -112,10 +118,11 @@ class ListArtBlockTest extends TestCase
     public function test_set_art_count_shrinks_roster_answers_on_kor(): void
     {
         $qv = QuestionnaireVersion::where('code', 'VSEN26.K')->firstOrFail();
-        $doc = Document::where('qversion_id', $qv->id)->where('status', '!=', 'bersih')->firstOrFail();
+        $op = User::where('username', 'ppl_ani')->firstOrFail();
+        $doc = $this->openForPetugas(
+            Document::where('qversion_id', $qv->id)->where('status', '!=', 'bersih')->firstOrFail(), $op);
         $bArt = Block::where('qversion_id', $qv->id)->where('code', 'ART')->firstOrFail();
         $qArtRoster = Question::where('block_id', $bArt->id)->where('var_name', 'r407')->firstOrFail();
-        $op = User::where('username', 'ppl_ani')->firstOrFail();
 
         Answer::updateOrCreate(['document_id' => $doc->id, 'question_id' => $qArtRoster->id, 'art_index' => 12],
             ['raw_value' => '30']);
@@ -131,7 +138,9 @@ class ListArtBlockTest extends TestCase
     public function test_entry_form_follows_banyak_art_up_to_the_cap(): void
     {
         $b = $this->iv1m();
-        $doc = Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail();
+        $doc = $this->openForPetugas(
+            Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail(),
+            User::where('username', 'ppl_ani')->firstOrFail());
         $qArt = Question::whereIn('block_id', Block::where('qversion_id', $b->qversion_id)->pluck('id'))
             ->where('var_name', 'banyak_art')->firstOrFail();
 
@@ -156,10 +165,8 @@ class ListArtBlockTest extends TestCase
             if (! $doc) {
                 continue;
             }
-            // operator dikunci ke periode versi yang sedang aktif — tandai versi yang sedang
-            // diuji giliran ini sebagai aktif (masing-masing beda periode di data seed).
-            QuestionnaireVersion::query()->update(['is_active' => false]);
-            $qv->update(['is_active' => true]);
+            // petugas hanya bisa mengisi selama periode lapangan siklusnya dibuka
+            $doc = $this->openForPetugas($doc, $op);
 
             $res = $this->actingAs($op)->get("/entri/{$doc->id}")->assertOk();
             $this->assertSame($var, $res->viewData('state')['art_var'], "art_var untuk {$code}");
@@ -178,7 +185,9 @@ class ListArtBlockTest extends TestCase
         // TIDAK ikut kalori_total/belanja mingguan (bug: computeAggregate belum membongkar
         // art_index terpaket row*1000+art punya list_art, jadi ref.kalori/nilai tak pernah kena).
         $b = $this->iv1m();
-        $doc = Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail();
+        $doc = $this->openForPetugas(
+            Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail(),
+            User::where('username', 'ppl_ani')->firstOrFail());
         $row = $b->rows()->where('row_index', 188)->firstOrFail(); // Roti tawar
         $kalori = (float) $row->ref['kalori'];
         $this->assertGreaterThan(0, $kalori, 'baris uji harus punya ref.kalori');
@@ -212,7 +221,9 @@ class ListArtBlockTest extends TestCase
     public function test_entry_form_renders_list_art_block(): void
     {
         $b = $this->iv1m();
-        $doc = Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail();
+        $doc = $this->openForPetugas(
+            Document::where('qversion_id', $b->qversion_id)->where('status', '!=', 'bersih')->firstOrFail(),
+            User::where('username', 'ppl_ani')->firstOrFail());
         // set banyak_art supaya ada baris ART
         $qArt = Question::whereIn('block_id', Block::where('qversion_id', $b->qversion_id)->pluck('id'))
             ->where('var_name', 'banyak_art')->firstOrFail();

@@ -110,8 +110,9 @@ class CleaningController extends Controller
             'rows' => $rows, 'fStatus' => $fStatus, 'fRule' => $fRule, 'fQ' => $fQ,
             'ruleAgg' => $ruleAgg, 'totalDocs' => $allDocIds->count(),
             'queueAge' => $queueAge, 'staleDays' => self::STALE_DAYS,
-            'statuses' => ['draft' => 'Draft', 'selesai' => 'Selesai (siap dibersihkan)',
-                'dikembalikan' => 'Dikembalikan ke petugas', 'bersih' => 'Bersih'],
+            // label sama dengan tahap di Daftar Sampel (App\Support\Tahap)
+            'statuses' => collect(\App\Support\Tahap::FROM_DOC)
+                ->map(fn ($t) => \App\Support\Tahap::label($t))->all(),
         ]);
     }
 
@@ -359,7 +360,7 @@ class CleaningController extends Controller
         abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
         $sum = $this->engine->run($document);
         if ($sum['errors'] > 0) {
-            return back()->withErrors(['bersih' => "Masih ada {$sum['errors']} error — tidak bisa ditandai bersih."]);
+            return back()->withErrors(['bersih' => "Masih ada {$sum['errors']} kesalahan, belum bisa ditandai bersih."]);
         }
         // tentukan dokumen berikutnya SEBELUM status berubah (agar posisi antrean akurat)
         $next = $request->boolean('next') ? $this->nextDoc($request, $document) : null;
@@ -413,7 +414,7 @@ class CleaningController extends Controller
             "{$done} bersih, {$skip} dilewati", $request->user()->id);
 
         return redirect()->route('pengolahan.index', $request->only('status', 'rule', 'q'))
-            ->with('ok', "{$done} sampel ditandai bersih".($skip ? ", {$skip} dilewati (masih ada error / siklus terkunci)." : '.'));
+            ->with('ok', "{$done} sampel ditandai bersih".($skip ? ", {$skip} dilewati (masih ada kesalahan atau siklus terkunci)." : '.'));
     }
 
     public function reopen(Request $request, Document $document)

@@ -3,10 +3,11 @@
 @section('title', "Siklus {$cycle->name} · Sistem SUSENAS")
 @section('content')
 <p class="no-print"><a class="btn-ghost" href="{{ route('admin.jadwal') }}">← Jadwal siklus</a>
+  <a class="btn-ghost" href="{{ route('admin.siklus.persiapan', $cycle) }}">Persiapan periode</a>
   <button type="button" class="btn-ghost" onclick="window.print()">Cetak laporan</button></p>
 <div class="print-doc">
 <h1>{{ $cycle->name }}
-  <span class="chip s-{{ $cycle->status === 'selesai' ? 'selesai' : 'proses' }}">{{ $cycle->status }}</span>
+  <span class="chip s-{{ $cycle->status === 'selesai' ? 'selesai' : 'proses' }}">{{ Istilah::cycleStatus($cycle->status) }}</span>
 </h1>
 <p class="muted">Periode {{ $cycle->period }} ·
   versi: {{ $versions->isEmpty() ? '—' : $versions->implode(', ') }} ·
@@ -14,8 +15,8 @@
 
 @if(session('ok'))<div class="alert no-print" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 
-<section class="panel no-print" style="border-style:dashed;border-color:var(--accent);background:var(--accent-soft)">
-  <h2 style="color:var(--accent-strong)">⚡ Aksi cepat — untuk siklus ini</h2>
+<section class="panel no-print">
+  <h2>Pintasan</h2>
   <div class="grid2">
     <div class="panel" style="margin:0">
       <h2>Instrumen &amp; validasi</h2>
@@ -41,12 +42,10 @@
     </div>
     <div class="panel" style="margin:0">
       <h2>Wilayah kerja</h2>
-      <p class="muted small" style="margin:4px 0 6px">Master wilayah kabupaten — dipakai bersama, tidak khusus siklus ini.</p>
       <p class="small" style="margin:4px 0"><a href="{{ route('admin.impor.wilayah') }}">Impor Wilkerstat →</a></p>
     </div>
     <div class="panel" style="margin:0">
       <h2>Pengguna</h2>
-      <p class="muted small" style="margin:4px 0 6px">Akun pencacah lapangan, pengawas lapangan, dan penanggung jawab — dipakai bersama, tidak khusus siklus ini.</p>
       <p class="small" style="margin:4px 0"><a href="{{ route('admin.pengguna') }}">Kelola Pengguna →</a></p>
     </div>
   </div>
@@ -55,50 +54,28 @@
 <section class="panel">
   <h2>Respons &amp; disposisi</h2>
   <div class="summary-counts">
-    <span class="cnt">{{ $response['rate'] }}%</span> response rate ·
-    <span class="cnt">{{ $response['responded'] }}</span>/{{ $response['eligible'] }} eligible terespons ·
+    <span class="cnt">{{ $response['rate'] }}%</span> angka respons ·
+    <span class="cnt">{{ $response['responded'] }}</span>/{{ $response['eligible'] }} yang memenuhi syarat terespons ·
     <span class="cnt warn">{{ $response['nonresponse'] }}</span> non-respons ·
-    <span class="muted">{{ $response['ineligible'] }} tidak eligible · {{ $response['replaced'] }} diganti</span>
+    <span class="muted">{{ $response['ineligible'] }} tidak memenuhi syarat · {{ $response['replaced'] }} diganti</span>
   </div>
 </section>
 
 <div class="grid2">
   <section class="panel">
-    <h2>Sampel ({{ $sTotal }})</h2>
-    <table class="tbl mini"><tbody>
-      @foreach ($statusLabels as $k => $lbl)
-      <tr><td>{{ $lbl }}</td><td class="num">{{ $sByStatus[$k] ?? 0 }}</td></tr>
-      @endforeach
-      <tr class="{{ $unresolved ? 'row-has-warn' : '' }}">
-        <td><strong>Belum tuntas (belum/proses)</strong></td><td class="num"><strong>{{ $unresolved }}</strong></td>
-      </tr>
-    </tbody></table>
-  </section>
-
-  <section class="panel">
-    <h2>Sampel terisi ({{ $dTotal }})</h2>
-    <table class="tbl mini"><tbody>
-      @foreach (['draft','selesai','dikembalikan','bersih'] as $k)
-      <tr><td>{{ $k }}</td><td class="num">{{ $dByStatus[$k] ?? 0 }}</td></tr>
-      @endforeach
-      <tr class="{{ $notBersih ? 'row-has-warn' : '' }}">
-        <td><strong>Belum bersih</strong></td><td class="num"><strong>{{ $notBersih }}</strong></td></tr>
-      <tr class="{{ $errDocs ? 'row-has-warn' : '' }}">
-        <td>Sampel masih ada error</td><td class="num">{{ $errDocs }}</td></tr>
-    </tbody></table>
-  </section>
-</div>
-
-<div class="grid2">
-  <section class="panel">
-    <h2>Alur pengolahan</h2>
+    <h2>Tahap sampel ({{ $sTotal }})</h2>
     <div class="tablewrap">
     <table class="tbl mini"><tbody>
-      @php($ft = max(1, collect($funnel)->sum('n')))
-      @foreach ($funnel as $f)
-      <tr><td>{{ $f['label'] }}</td><td class="num">{{ $f['n'] }}</td>
-        <td><div class="bar"><i style="width: {{ round(100 * $f['n'] / $ft, 1) }}%"></i></div></td></tr>
+      @foreach (Tahap::LABELS as $k => $lbl)
+      <tr><td><span class="chip t-{{ $k }}">{{ $lbl }}</span></td><td class="num">{{ $tahap[$k] }}</td>
+        <td><div class="bar"><i style="width: {{ $sTotal ? round(100 * $tahap[$k] / $sTotal, 1) : 0 }}%"></i></div></td></tr>
       @endforeach
+      <tr class="{{ $unresolved ? 'row-has-warn' : '' }}">
+        <td><strong>Belum tuntas di lapangan</strong></td><td class="num"><strong>{{ $unresolved }}</strong></td><td></td></tr>
+      <tr class="{{ $notBersih ? 'row-has-warn' : '' }}">
+        <td><strong>Terisi tapi belum bersih</strong></td><td class="num"><strong>{{ $notBersih }}</strong></td><td></td></tr>
+      <tr class="{{ $errDocs ? 'row-has-warn' : '' }}">
+        <td>Masih ada kesalahan</td><td class="num">{{ $errDocs }}</td><td></td></tr>
     </tbody></table>
     </div>
   </section>
@@ -110,11 +87,11 @@
     @else
     <div class="tablewrap">
     <table class="tbl mini">
-      <thead><tr><th>Kode</th><th>Sev</th><th class="num">Dok</th></tr></thead>
+      <thead><tr><th>Kode</th><th>Tingkat</th><th class="num">Sampel</th></tr></thead>
       <tbody>
       @foreach ($topRules as $tr)
       <tr><td class="mono">{{ $tr->code }}</td>
-        <td><span class="flag {{ $tr->severity === 'error' ? 'error' : 'warning' }}">{{ $tr->severity }}</span></td>
+        <td><span class="flag {{ $tr->severity === 'error' ? 'error' : 'warning' }}">{{ Istilah::severity($tr->severity) }}</span></td>
         <td class="num">{{ $tr->n_doc }}</td></tr>
       @endforeach
       </tbody>
@@ -144,13 +121,13 @@
     </form>
   @else
     @if($ready)
-      <p class="muted">Semua sampel tuntas &amp; semua sampel bersih tanpa error — siap dikunci.</p>
+      <p class="muted">Semua sampel tuntas &amp; semua sampel bersih tanpa kesalahan, siap dikunci.</p>
     @else
       <div class="alert err">Belum sepenuhnya siap:
         <ul class="small">
           @if($unresolved)<li>{{ $unresolved }} sampel belum tuntas</li>@endif
           @if($notBersih)<li>{{ $notBersih }} sampel belum bersih</li>@endif
-          @if($errDocs)<li>{{ $errDocs }} sampel masih ada error</li>@endif
+          @if($errDocs)<li>{{ $errDocs }} sampel masih ada kesalahan</li>@endif
         </ul>
         Mengunci tetap bisa dilakukan (mis. non-respons yang memang final), tapi data tak bisa diubah lagi setelahnya.
       </div>
@@ -162,6 +139,6 @@
   @endif
 </section>
 
-<p class="muted small print-foot">Laporan internal siklus — rekap pra-pengolahan, bukan angka resmi.</p>
+<p class="muted small print-foot">Laporan internal siklus, bukan angka resmi.</p>
 </div>
 @endsection

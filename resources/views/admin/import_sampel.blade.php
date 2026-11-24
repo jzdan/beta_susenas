@@ -5,7 +5,7 @@
 <h1>Daftar Sampel Rumah Tangga</h1>
 <p class="muted">Untuk satu responden pakai form <strong>Tambah satu sampel</strong>; untuk banyak sekaligus
   pakai <strong>Impor CSV</strong> (kolom wajib <span class="mono">wilayah_code, no_bs, no_ruta</span>,
-  opsional <span class="mono">krt_name, petugas, pml</span> — dua terakhir diisi <em>username</em>).
+  opsional <span class="mono">krt_name, petugas, pml</span>; dua terakhir diisi nama pengguna untuk masuk).
   Sampel duplikat dan kode desa yang tidak ada di master wilayah akan dilewati/ditolak.</p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
@@ -59,8 +59,8 @@
     </label>
     <button type="submit">Tambah</button>
   </form>
-  <p class="muted small">Daftar Petugas otomatis tersaring ke kecamatan Kode desa yang dipilih (operator
-    tanpa wilayah scope dianggap bisa kemana saja, selalu muncul).</p>
+  <p class="muted small">Daftar petugas otomatis tersaring ke kecamatan dari kode desa yang dipilih
+    (petugas tanpa cakupan wilayah selalu muncul).</p>
 </section>
 
 <section class="panel">

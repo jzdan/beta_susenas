@@ -12,7 +12,33 @@ class QuestionnaireVersion extends Model
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return ['is_active' => 'boolean', 'rules_changed_at' => 'datetime'];
+    }
+
+    /** Tandai bahan pemeriksaan versi ini berubah (Inc 153, lihat Concerns\MarksRulesChanged). */
+    public static function markRulesChanged(?int $qvId): void
+    {
+        if ($qvId) {
+            \Illuminate\Support\Facades\DB::table('questionnaire_versions')->where('id', $qvId)
+                ->update(['rules_changed_at' => now()->format('Y-m-d H:i:s')]);
+        }
+    }
+
+    /**
+     * Isian versi ini yang hasil pemeriksaannya lebih tua dari perubahan aturan terakhir
+     * (atau belum pernah diperiksa). Siklus yang sudah dikunci dilewati.
+     */
+    public function staleDocuments(): \Illuminate\Database\Eloquent\Builder
+    {
+        $since = $this->rules_changed_at?->format('Y-m-d H:i:s');
+
+        return Document::query()->select('documents.*')
+            ->where('documents.qversion_id', $this->id)
+            ->whereHas('sample.cycle', fn ($c) => $c->where('status', '!=', 'selesai'))
+            ->leftJoin('document_snapshots as ds', 'ds.document_id', '=', 'documents.id')
+            ->where(fn ($w) => $since
+                ? $w->whereNull('ds.updated_at')->orWhere('ds.updated_at', '<', $since)
+                : $w->whereNull('ds.updated_at'));
     }
 
     public function cycle(): BelongsTo
@@ -50,26 +76,14 @@ class QuestionnaireVersion extends Model
         return $this->hasMany(Document::class, 'qversion_id');
     }
 
-    /** Versi yang ditandai aktif (global, 1 di seluruh sistem) — jatuh ke versi terbaru bila belum ada yang ditandai. */
+    /**
+     * Versi bawaan yang dibuka di menu admin (Metadata/Aturan) — 1 di seluruh sistem, jatuh ke
+     * versi terbaru bila belum ada yang ditandai. TIDAK menentukan akses petugas: periode
+     * lapangan dibuka/ditutup lewat status siklus (SurveyCycle::isFieldOpen).
+     */
     public static function active(): self
     {
         return static::where('is_active', true)->first()
             ?? static::orderByDesc('id')->firstOrFail();
-    }
-
-    /**
-     * ID siklus yang boleh dibuka operator: siklus manapun yang PERIODENYA sama dengan
-     * siklus milik versi yang sedang aktif — bukan cuma 1 siklus tunggal. Ini supaya
-     * kuesioner yang dicacah bersamaan dalam satu periode (mis. KOR & KP triwulan yang
-     * sama, tiap-tiap disimpan sebagai survey_cycle terpisah) tetap sama-sama terbuka
-     * begitu salah satu ditandai aktif, bukan saling mengunci.
-     *
-     * @return array<int,int>
-     */
-    public static function activeCycleIds(): array
-    {
-        $period = static::active()->cycle?->period;
-
-        return SurveyCycle::where('period', $period)->pluck('id')->all();
     }
 }

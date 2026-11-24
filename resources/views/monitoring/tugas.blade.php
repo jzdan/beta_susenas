@@ -7,11 +7,16 @@
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 
+@if($returned->isEmpty() && $noteRows->isEmpty() && $pending->isEmpty())
+<section class="panel"><p class="muted">Tidak ada yang perlu ditindaklanjuti saat ini.</p></section>
+@endif
+
+@if($returned->isNotEmpty())
 <section class="panel">
-  <h2>Dikembalikan untuk perbaikan <span class="chip d-dikembalikan">{{ $returned->count() }}</span></h2>
+  <h2>Dikembalikan untuk perbaikan ({{ $returned->count() }})</h2>
   @forelse ($returned->groupBy('siklus') as $siklusName => $rows)
     <details class="rule-group" open>
-      <summary style="cursor:pointer;font-weight:600">{{ $siklusName }} <span class="muted small">— {{ $rows->count() }}</span></summary>
+      <summary style="cursor:pointer;font-weight:600">{{ $siklusName }} <span class="muted small">({{ $rows->count() }})</span></summary>
       @foreach ($rows as $r)
         <div class="task-row">
           <div>
@@ -24,42 +29,44 @@
       @endforeach
     </details>
   @empty
-    <p class="muted">Tidak ada sampel yang dikembalikan. 👍</p>
   @endforelse
 </section>
+@endif
 
+@if($noteRows->isNotEmpty())
 <section class="panel">
-  <h2>Catatan menunggu tanggapan <span class="chip">{{ $noteRows->count() }}</span></h2>
+  <h2>Catatan menunggu tanggapan ({{ $noteRows->count() }})</h2>
   @forelse ($noteRows as $n)
     <div class="task-row">
       <div>
         <a href="{{ route('entri.form', $n['doc_id']) }}"><strong>#{{ $n['doc_id'] }}</strong> · {{ $n['ruta'] }}</a>
-        <span class="chip">{{ $n['siklus'] }}</span>
+        <span class="muted small">· {{ $n['siklus'] }}</span>
         <span class="muted small">· {{ $n['note']->user->name ?? '—' }} · {{ $n['note']->created_at?->format('d M H:i') }}</span>
         <div class="small">{{ \Illuminate\Support\Str::limit($n['note']->body, 160) }}</div>
       </div>
       <a class="btn-ghost" href="{{ route('entri.form', $n['doc_id']) }}#catatan">Buka →</a>
     </div>
   @empty
-    <p class="muted">Tidak ada catatan baru dari orang lain.</p>
   @endforelse
 </section>
+@endif
 
+@if($pending->isNotEmpty())
 <section class="panel">
-  <h2>Sampel belum tuntas <span class="chip s-proses">{{ $pending->count() }}</span></h2>
+  <h2>Sampel belum tuntas ({{ $pending->count() }})</h2>
   @forelse ($pending->groupBy('siklus') as $siklusName => $rows)
     <details class="rule-group" open>
-      <summary style="cursor:pointer;font-weight:600">{{ $siklusName }} <span class="muted small">— {{ $rows->count() }} sampel</span></summary>
+      <summary style="cursor:pointer;font-weight:600">{{ $siklusName }} <span class="muted small">({{ $rows->count() }} sampel)</span></summary>
       <div class="tablewrap">
       <table class="tbl">
-        <thead><tr><th>Wilayah / Rumah Tangga</th><th>Status</th><th>Sampel</th><th></th></tr></thead>
+        <thead><tr><th>Wilayah / Rumah Tangga</th><th>Tahap</th><th></th></tr></thead>
         <tbody>
         @foreach ($rows as $p)
           <tr>
             <td>{{ $p['wil'] }} <span class="mono muted">· Blok Sensus {{ $p['sample']->no_bs }} · Rumah Tangga {{ $p['sample']->no_ruta }}</span><br>
               <span class="muted small">{{ $p['sample']->krt_name }}</span></td>
-            <td><span class="chip s-{{ $p['sample']->status }}">{{ $p['sample']->status }}</span></td>
-            <td>@if($p['doc'])<span class="chip d-{{ $p['doc']->status }}">{{ $p['doc']->status }}</span>@else <span class="muted">belum ada</span>@endif</td>
+            @php($t = Tahap::of($p['sample'], $p['doc']))
+            <td><span class="chip t-{{ $t }}">{{ Tahap::label($t) }}</span></td>
             <td class="right">
               @if($p['doc'])
                 <a class="btn-ghost" href="{{ route('entri.form', $p['doc']) }}">Lanjut entri →</a>
@@ -78,7 +85,7 @@
       </div>
     </details>
   @empty
-    <p class="muted">Semua sampel sudah tuntas. 🎉</p>
   @endforelse
 </section>
+@endif
 @endsection

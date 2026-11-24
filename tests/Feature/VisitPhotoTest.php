@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Document;
-use App\Models\QuestionnaireVersion;
 use App\Models\User;
 use App\Models\VisitPhoto;
 use Database\Seeders\DatabaseSeeder;
@@ -30,12 +29,10 @@ class VisitPhotoTest extends TestCase
     private function operatorDoc(): array
     {
         $ani = User::where('username', 'ppl_ani')->firstOrFail();
-        // scoped ke siklus periode aktif — operator tidak lagi bisa buka siklus di luar itu.
-        $doc = Document::whereHas('sample', fn ($q) => $q->where('petugas_id', $ani->id)
-            ->whereIn('cycle_id', QuestionnaireVersion::activeCycleIds()))
+        $doc = Document::whereHas('sample', fn ($q) => $q->where('petugas_id', $ani->id))
             ->where('status', '!=', 'bersih')->firstOrFail();
 
-        return [$ani, $doc];
+        return [$ani, $this->openForPetugas($doc, $ani)];
     }
 
     public function test_operator_uploads_and_pml_can_view(): void

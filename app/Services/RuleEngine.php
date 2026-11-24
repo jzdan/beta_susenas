@@ -389,8 +389,9 @@ class RuleEngine
      *
      * @return array{docs:int,truncated:bool,fire_docs:int,fire_rows:int,eval_errors:int,samples:array<int,array<string,mixed>>}
      */
-    public function previewExpression(string $expr, string $rowBlock = '', ?int $qversionId = null): array
+    public function previewExpression(string $expr, string $rowBlock = '', ?int $qversionId = null, string $message = ''): array
     {
+        $example = null;   // pesan contoh (placeholder terisi) dari sampel pertama yang menyala
         $qvId = $qversionId ?: QuestionnaireVersion::query()->orderByDesc('id')->value('id');
         $base = Document::where('qversion_id', $qvId);
         $total = (clone $base)->count();
@@ -410,11 +411,18 @@ class RuleEngine
                             $hit = true;
                             $fireRows++;
                             $rowsHit[] = $rowIdx;
+                            if ($example === null && $message !== '') {
+                                $example = ['text' => $this->interpolate($message, $rc, $rf), 'doc_id' => $doc->id,
+                                    'row' => $rc['baris_label'] ?? $rowIdx];
+                            }
                         }
                     }
                 } elseif (ExpressionEvaluator::truthy($this->ev->evaluate($expr, $ctx, $rf))) {
                     $hit = true;
                     $fireRows++;
+                    if ($example === null && $message !== '') {
+                        $example = ['text' => $this->interpolate($message, $ctx, $rf), 'doc_id' => $doc->id, 'row' => null];
+                    }
                 }
             } catch (\Throwable) {
                 $evalErrors++;
@@ -427,7 +435,7 @@ class RuleEngine
                     $samples[] = [
                         'doc_id' => $doc->id,
                         'wilayah' => $s?->wilayah_code,
-                        'ruta' => $s ? "BS {$s->no_bs} / Ruta {$s->no_ruta}" : '',
+                        'ruta' => $s ? "Blok Sensus {$s->no_bs} / Rumah Tangga {$s->no_ruta}" : '',
                         'rows' => $rowsHit,
                     ];
                 }
@@ -437,7 +445,7 @@ class RuleEngine
         return [
             'docs' => $docs->count(), 'truncated' => $total > $docs->count(),
             'fire_docs' => $fireDocs, 'fire_rows' => $fireRows, 'eval_errors' => $evalErrors,
-            'samples' => $samples,
+            'samples' => $samples, 'example' => $example,
         ];
     }
 

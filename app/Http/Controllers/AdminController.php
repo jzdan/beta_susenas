@@ -167,7 +167,6 @@ class AdminController extends Controller
             'total' => $aktif->count(),
             'proses' => $aktif->filter(fn ($s) => $s->status !== 'selesai' && $s->documents->isNotEmpty())->count(),
             'selesai' => $aktif->where('status', 'selesai')->count(),
-            'statusLabels' => \App\Http\Controllers\MonitoringController::STATUS,
         ]);
     }
 
@@ -734,25 +733,57 @@ class AdminController extends Controller
 
     public function rulesList(Request $request)
     {
-        return $this->rulesView(null, $request);
+        return $this->rulesView($request);
     }
 
+    /**
+     * Halaman sendiri untuk menyunting satu aturan (Inc 153) — dulu formulir ini menempel di
+     * bawah daftar aturan yang panjang. Selalu memakai versi milik aturan itu.
+     */
     public function ruleEditor(Request $request, ValidationRule $rule)
     {
-        return $this->rulesView($rule, $request);
+        return view('admin.rule_form', ['edit' => $rule, 'qv' => $rule->qversion, 'mode' => 'rumus']
+            + $this->ruleFormData($rule->qversion));
     }
 
-    private function rulesView(?ValidationRule $edit, ?Request $request = null)
+    /** Buat aturan baru: dibuka dengan formulir terpandu; ?mode=rumus = tulis rumus sendiri. */
+    public function ruleNew(Request $request)
     {
-        // Menyunting aturan tertentu selalu pakai qversion aturan itu sendiri (bukan
-        // selector ?qv= yang mungkin basi di URL) — supaya link "Sunting" selalu benar.
-        $qv = $edit ? $edit->qversion : ($request ? $this->selectedQv($request) : $this->activeQv());
+        $qv = $this->selectedQv($request);
+        $mode = $request->query('mode') === 'rumus' || $request->old('expr') !== null ? 'rumus' : 'terpandu';
+
+        return view('admin.rule_form', ['edit' => null, 'qv' => $qv, 'mode' => $mode] + $this->ruleFormData($qv));
+    }
+
+    /** Bahan formulir aturan: blok, kamus variabel, parameter, kunci referensi baris. */
+    private function ruleFormData(QuestionnaireVersion $qv): array
+    {
+        $blocks = $qv->blocks()->with('questions')->orderBy('order')->orderBy('id')->get();
+        $refKeys = $blocks->filter(fn ($bl) => in_array($bl->repeat, ['list', 'list_art'], true))
+            ->flatMap(fn ($bl) => \App\Models\BlockRow::where('block_id', $bl->id)->get()
+                ->flatMap(fn ($r) => array_keys((array) $r->ref)))
+            ->unique()->reject(fn ($k) => $k === 'group')->sort()->values();
+
+        return [
+            'wizardBlocks' => $blocks,
+            'rowBlocks' => $blocks->where('repeat', '!=', 'ruta')->values(),
+            'derivedFields' => DerivedField::where('qversion_id', $qv->id)->orderBy('var_name')->get(),
+            'ruleParams' => Parameter::where('qversion_id', $qv->id)->orderBy('name')->get(),
+            'refKeys' => $refKeys,
+            'hasRoster' => $blocks->contains(fn ($bl) => $bl->repeat === 'art'),
+            'nDocs' => Document::where('qversion_id', $qv->id)->count(),
+        ];
+    }
+
+    private function rulesView(Request $request)
+    {
+        $qv = $this->selectedQv($request);
         $all = $qv->rules;
 
-        $fSev = $request?->query('sev', '') ?? '';
-        $fScope = $request?->query('scope', '') ?? '';
-        $fActive = $request?->query('active', '') ?? '';
-        $fQ = trim((string) ($request?->query('q', '') ?? ''));
+        $fSev = (string) $request->query('sev', '');
+        $fScope = (string) $request->query('scope', '');
+        $fActive = (string) $request->query('active', '');
+        $fQ = trim((string) $request->query('q', ''));
         $rules = $all->filter(function ($r) use ($fSev, $fScope, $fActive, $fQ) {
             if ($fSev && $r->severity !== $fSev) {
                 return false;
@@ -787,21 +818,18 @@ class AdminController extends Controller
             return $scopeLabels[$r->scope] ?? ('Lainnya ('.$r->scope.')');
         })->sortKeys();
 
-        $wizardBlocks = $qv->blocks()->with('questions')->orderBy('order')->orderBy('id')->get();
-        $refKeys = $wizardBlocks->filter(fn ($bl) => in_array($bl->repeat, ['list', 'list_art'], true))
-            ->flatMap(fn ($bl) => \App\Models\BlockRow::where('block_id', $bl->id)->get()
-                ->flatMap(fn ($r) => array_keys((array) $r->ref)))
-            ->unique()->reject(fn ($k) => $k === 'group')->sort()->values();
-
         // Inc 141: satu halaman "Aturan Validasi" berisi tiga tab —
-        //   aturan  = daftar aturan (seperti sebelumnya)
-        //   neraca  = parameter + agregat cek-silang (NERACA) + variabel turunan
-        //   harga   = patokan harga wajar & Calories per komoditas
-        // Metadata sekarang hanya untuk membuat kuesioner.
-        $tab = (string) ($request?->query('tab', 'aturan') ?? 'aturan');
+        //   aturan = daftar aturan; neraca = parameter + agregat + turunan; harga = patokan harga & kalori.
+        $tab = (string) $request->query('tab', 'aturan');
         if (! in_array($tab, ['aturan', 'neraca', 'harga'], true)) {
             $tab = 'aturan';
         }
+
+        // Inc 153: berapa sampel yang kena tiap aturan (hasil pemeriksaan terakhir tersimpan)
+        $hits = RuleResult::query()->whereIn('rule_id', $all->pluck('id'))
+            ->whereIn('status', ['error', 'warning'])
+            ->selectRaw('rule_id, count(distinct document_id) as n')->groupBy('rule_id')
+            ->pluck('n', 'rule_id');
 
         return view('admin.rules', [
             'qv' => $qv,
@@ -809,16 +837,12 @@ class AdminController extends Controller
             'versions' => QuestionnaireVersion::orderByDesc('id')->get(),
             'rules' => $rules,
             'groups' => $groups,
-            'wizardBlocks' => $wizardBlocks,
-            'derivedFields' => \App\Models\DerivedField::where('qversion_id', $qv->id)->orderBy('var_name')->get(),
-            'ruleParams' => Parameter::where('qversion_id', $qv->id)->orderBy('name')->get(),
-            'refKeys' => $refKeys,
-            'hasRoster' => $wizardBlocks->contains(fn ($bl) => $bl->repeat === 'art'),
+            'hits' => $hits,
+            'nDocs' => Document::where('qversion_id', $qv->id)->count(),
+            'nStale' => $qv->staleDocuments()->count(),
             'total' => $all->count(),
             'activeCount' => $all->where('active', true)->count(),
             'ruleErrs' => $rules->mapWithKeys(fn ($r) => [$r->id => $this->ev->checkSyntax($r->expr, RuleEngine::ROSTER_FUNCS)]),
-            'docs' => Document::where('qversion_id', $qv->id)->orderBy('id')->get(),
-            'edit' => $edit,
             'scopes' => $all->pluck('scope')->unique()->filter()->sort()->values(),
             'filters' => ['sev' => $fSev, 'scope' => $fScope, 'active' => $fActive, 'q' => $fQ],
             // data untuk tab "neraca" & "harga"
@@ -833,6 +857,40 @@ class AdminController extends Controller
         ]);
     }
 
+    /** Periksa ulang isian yang hasil pemeriksaannya lebih tua dari perubahan aturan terakhir. */
+    public function rulesRecheck(Request $request)
+    {
+        $qv = $this->selectedQv($request);
+        $n = 0;
+        foreach ($qv->staleDocuments()->orderBy('documents.id')->get() as $doc) {
+            $this->engine->run($doc);
+            $n++;
+        }
+        AuditLog::record('qversion', $qv->id, 'revalidasi', "{$n} sampel (setelah aturan berubah)");
+
+        return redirect()->route('admin.aturan', ['qv' => $qv->id, 'tab' => $request->input('tab', 'aturan')])
+            ->with('ok', "{$n} sampel sudah diperiksa ulang dengan aturan terbaru.");
+    }
+
+    /**
+     * Pemeriksaan langsung di formulir aturan (dipanggil saat mengetik): rumus terbaca atau
+     * tidak, menyala di berapa sampel, dan contoh pesan yang akan dibaca pemeriksa.
+     */
+    public function rulePreview(Request $request)
+    {
+        $expr = trim((string) $request->input('expr', ''));
+        if ($expr === '') {
+            return response()->json(['ok' => false, 'error' => 'Rumus masih kosong.']);
+        }
+        if ($err = $this->ev->checkSyntax($expr, RuleEngine::ROSTER_FUNCS)) {
+            return response()->json(['ok' => false, 'error' => $err]);
+        }
+        $report = $this->engine->previewExpression($expr, trim((string) $request->input('row_block', '')),
+            $this->selectedQv($request)->id, (string) $request->input('message', ''));
+
+        return response()->json(['ok' => true] + $report);
+    }
+
     /** Aktif/nonaktif banyak aturan sekaligus. */
     public function bulkToggleRules(Request $request)
     {
@@ -843,6 +901,7 @@ class AdminController extends Controller
         $n = ValidationRule::where('qversion_id', $this->selectedQv($request)->id)
             ->whereIn('id', $d['ids'])
             ->update(['active' => $d['aksi'] === 'aktif']);
+        QuestionnaireVersion::markRulesChanged($this->selectedQv($request)->id);   // update massal tak memicu event model
         AuditLog::record('rule', '-', 'toggle-massal', "{$n} aturan -> {$d['aksi']}");
 
         return back()->with('ok', "{$n} aturan di-{$d['aksi']}kan.");
@@ -996,24 +1055,31 @@ class AdminController extends Controller
             'target_var' => 'nullable|string', 'note' => 'nullable|string', 'rule_id' => 'nullable|integer',
         ]);
         if ($err = $this->ev->checkSyntax($d['expr'], RuleEngine::ROSTER_FUNCS)) {
-            abort(400, "Ekspresi tidak valid: {$err}");
+            return back()->withInput()->withErrors(['expr' => "Rumus tidak bisa dibaca: {$err}"]);
         }
         $sev = in_array($d['severity'] ?? '', ['error', 'warning'], true) ? $d['severity'] : 'warning';
         $payload = [
             'code' => trim($d['code']), 'expr' => trim($d['expr']), 'message' => trim($d['message']),
-            'severity' => $sev, 'scope' => trim($d['scope'] ?? 'dokumen'),
+            'severity' => $sev, 'scope' => trim($d['scope'] ?? '') ?: 'dokumen',
             'row_block' => trim($d['row_block'] ?? ''),
             'target_var' => trim($d['target_var'] ?? ''),
             'note' => trim($d['note'] ?? '') ?: null,
         ];
         if ($d['rule_id'] ?? null) {
-            ValidationRule::where('id', $d['rule_id'])->update($payload);
-            AuditLog::record('rule', $d['rule_id'], 'ubah', $d['code']);
+            $rule = ValidationRule::findOrFail($d['rule_id']);
+            $rule->update($payload);
+            AuditLog::record('rule', $rule->id, 'ubah', $d['code']);
+            $qvId = $rule->qversion_id;
         } else {
-            ValidationRule::create($payload + ['qversion_id' => $this->selectedQv($request)->id, 'active' => true]);
+            $qvId = $this->selectedQv($request)->id;
+            if (ValidationRule::where('qversion_id', $qvId)->where('code', $payload['code'])->exists()) {
+                return back()->withInput()->withErrors(['code' => 'Kode aturan sudah dipakai.']);
+            }
+            ValidationRule::create($payload + ['qversion_id' => $qvId, 'active' => true]);
             AuditLog::record('rule', 'baru', 'tambah', $d['code']);
         }
-        return redirect()->route('admin.aturan');
+
+        return redirect()->route('admin.aturan', ['qv' => $qvId])->with('ok', "Aturan {$payload['code']} disimpan.");
     }
 
     /** Sunting cepat: keterangan + angka ambang, tanpa menyentuh ekspresi. */
@@ -1041,15 +1107,18 @@ class AdminController extends Controller
         $qvId = $rule->qversion_id;
         RuleResult::where('rule_id', $rule->id)->delete();
         $rule->delete();
-        AuditLog::record('rule', $rule->id, 'hapus');
-        return redirect()->route('admin.aturan', ['qv' => $qvId]);
+        AuditLog::record('rule', $rule->id, 'hapus', $rule->code);
+
+        return redirect()->route('admin.aturan', ['qv' => $qvId])->with('ok', "Aturan {$rule->code} dihapus.");
     }
 
     public function toggleRule(ValidationRule $rule)
     {
         $rule->update(['active' => ! $rule->active]);
         AuditLog::record('rule', $rule->id, 'toggle', 'active='.($rule->active ? '1' : '0'));
-        return redirect()->route('admin.aturan', ['qv' => $rule->qversion_id]);
+
+        return redirect()->route('admin.aturan', ['qv' => $rule->qversion_id])
+            ->with('ok', "Aturan {$rule->code} ".($rule->active ? 'dinyalakan.' : 'dimatikan.'));
     }
 
     public function testRule(Request $request)
@@ -1236,27 +1305,20 @@ class AdminController extends Controller
         return redirect()->route('admin.metadata', ['qv' => $qv->id])->with('ok', "Versi \"{$code}\" diperbarui.");
     }
 
-    /** Pilih versi kuesioner yang disunting di menu Admin. */
     /**
-     * Aktifkan versi. Inc 145: versi diperiksa dulu (VersionChecker) — bila ada rujukan
-     * putus (error), versi TIDAK diaktifkan dan alasannya ditampilkan; admin bisa memaksa
-     * lewat "Aktifkan tetap" (force=1, tercatat di log audit).
+     * Jadikan versi bawaan menu admin (is_active). Sejak Inc 148 ini TIDAK memengaruhi petugas,
+     * jadi tidak lagi ditahan pemeriksaan versi; pemeriksaan yang menahan pindah ke saat siklus
+     * dibuka untuk lapangan (CyclePrep). Hasil pemeriksaan tetap ditampilkan sebagai informasi.
      */
     public function activateVersion(Request $request, QuestionnaireVersion $qv)
     {
         $check = app(\App\Services\VersionChecker::class)->check($qv);
-        $force = $request->boolean('force');
-        if ($check['errors'] && ! $force) {
-            return redirect()->route('admin.metadata', ['qv' => $qv->id])
-                ->with('versiCheck', $check + ['qv_id' => $qv->id, 'code' => $qv->code, 'blocked' => true]);
-        }
 
         QuestionnaireVersion::where('is_active', true)->update(['is_active' => false]);
         $qv->update(['is_active' => true]);
-        AuditLog::record('qversion', $qv->id, 'aktifkan',
-            $qv->code.($check['errors'] ? ' (DIPAKSA, '.count($check['errors']).' error pengecekan)' : ''));
+        AuditLog::record('qversion', $qv->id, 'aktifkan', $qv->code);
 
-        $redirect = redirect()->route('admin.metadata', ['qv' => $qv->id])->with('ok', "Versi aktif: {$qv->code}.");
+        $redirect = redirect()->route('admin.metadata', ['qv' => $qv->id])->with('ok', "Versi bawaan menu admin: {$qv->code}.");
 
         return $check['warnings'] || $check['errors']
             ? $redirect->with('versiCheck', $check + ['qv_id' => $qv->id, 'code' => $qv->code, 'blocked' => false])
@@ -1513,6 +1575,7 @@ class AdminController extends Controller
             }
         }
         $row->update(['code' => trim($d['code'] ?? ''), 'label' => trim($d['label']), 'ref' => $ref ?: null]);
+        QuestionnaireVersion::markRulesChanged(Block::whereKey($row->block_id)->value('qversion_id'));
         AuditLog::record('block_row', $row->code, 'harga', "{$row->label}: {$row->ref['harga_min']}–{$row->ref['harga_max']}");
 
         return back()->with('ok', "Komoditas \"{$row->label}\" diperbarui.");
@@ -1567,6 +1630,9 @@ class AdminController extends Controller
             }
             $target->update(['ref' => $ref]);
             $n++;
+        }
+        if ($n) {
+            QuestionnaireVersion::markRulesChanged($qv->id);
         }
         AuditLog::record('block_row', $this->hargaBlocks($qv)->pluck('code')->implode(','), 'impor-harga', "{$n} komoditas");
 
@@ -2112,6 +2178,10 @@ class AdminController extends Controller
             'field_start' => 'nullable|date',
             'field_end' => 'nullable|date|after_or_equal:field_start',
         ]);
+        if ($d['status'] === 'lapangan') {
+            return back()->withInput()->withErrors(['status' => 'Siklus baru belum punya versi kuesioner dan sampel. '
+                .'Buat dulu dengan status Persiapan, lalu buka lapangan dari halaman Persiapan periode.']);
+        }
         $c = SurveyCycle::create([
             'name' => trim($d['name']), 'period' => trim($d['period']), 'status' => $d['status'],
             'field_start' => ($d['field_start'] ?? null) ?: null,
@@ -2147,12 +2217,11 @@ class AdminController extends Controller
             'rate' => $eligible ? round(100 * $done / $eligible, 1) : 0.0,
         ];
 
-        // corong pengolahan
-        $funnel = [];
-        $byS = $docs->countBy('status');
-        foreach (['draft' => 'Entri/draft', 'selesai' => 'Menunggu cleaning',
-            'dikembalikan' => 'Dikembalikan', 'bersih' => 'Bersih'] as $k => $lbl) {
-            $funnel[] = ['label' => $lbl, 'n' => (int) ($byS[$k] ?? 0)];
+        // satu hitungan per tahap (gabungan status sampel + isian)
+        $docBySample = $docs->keyBy('sample_id');
+        $tahap = array_fill_keys(array_keys(\App\Support\Tahap::LABELS), 0);
+        foreach ($samples as $s) {
+            $tahap[\App\Support\Tahap::of($s, $docBySample[$s->id] ?? null)]++;
         }
 
         // temuan tersering
@@ -2167,17 +2236,15 @@ class AdminController extends Controller
         return view('admin.siklus', [
             'cycle' => $cycle,
             'sTotal' => $samples->count(),
-            'sByStatus' => $samples->countBy('status'),
+            'tahap' => $tahap,
             'unresolved' => $unresolved,
             'dTotal' => $docs->count(),
-            'dByStatus' => $docs->countBy('status'),
             'notBersih' => $notBersih,
             'errDocs' => $errDocs,
-            'response' => $response, 'funnel' => $funnel, 'topRules' => $topRules,
+            'response' => $response, 'topRules' => $topRules,
             'versions' => $cycle->versions()->pluck('code'),
             'versionObjs' => $cycle->versions()->orderBy('id')->get(['id', 'code']),
             'ready' => $unresolved === 0 && $notBersih === 0 && $errDocs === 0,
-            'statusLabels' => \App\Http\Controllers\MonitoringController::STATUS,
         ]);
     }
 
@@ -2202,6 +2269,30 @@ class AdminController extends Controller
         return redirect()->route('admin.siklus', $cycle)->with('ok', 'Siklus dikunci (selesai). Entri & pengolahan untuk siklus ini terkunci.');
     }
 
+    /** Daftar periksa sebelum siklus dibuka untuk lapangan. */
+    public function cyclePrep(SurveyCycle $cycle)
+    {
+        return view('admin.persiapan', ['cycle' => $cycle] + app(\App\Services\CyclePrep::class)->check($cycle));
+    }
+
+    /** Buka periode lapangan (status `lapangan`): petugas mulai bisa mengisi. */
+    public function cycleOpenField(Request $request, SurveyCycle $cycle)
+    {
+        abort_if($cycle->isLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        $prep = app(\App\Services\CyclePrep::class)->check($cycle);
+        $force = $request->boolean('force');
+        if (! $prep['siap'] && ! $force) {
+            return redirect()->route('admin.siklus.persiapan', $cycle)
+                ->withErrors(['buka' => 'Masih ada butir wajib yang belum beres.']);
+        }
+        $cycle->update(['status' => 'lapangan']);
+        AuditLog::record('cycle', $cycle->id, 'buka-lapangan',
+            $prep['siap'] ? 'semua butir wajib beres' : 'DIPAKSA: '.implode('; ', \App\Services\CyclePrep::blockers($prep)));
+
+        return redirect()->route('admin.siklus.persiapan', $cycle)
+            ->with('ok', "Periode lapangan \"{$cycle->name}\" dibuka. Petugas sekarang bisa mengisi.");
+    }
+
     public function cycleUnlock(Request $request, SurveyCycle $cycle)
     {
         $cycle->update(['status' => 'pengolahan']);
@@ -2218,6 +2309,13 @@ class AdminController extends Controller
             'field_end' => 'nullable|date|after_or_equal:field_start',
             'status' => 'required|in:'.implode(',', self::CYCLE_STATUS),
         ]);
+        if ($d['status'] === 'lapangan' && $cycle->status !== 'lapangan') {
+            $prep = app(\App\Services\CyclePrep::class)->check($cycle);
+            if (! $prep['siap']) {
+                return back()->withErrors(['status' => "\"{$cycle->name}\" belum bisa dibuka untuk lapangan: "
+                    .implode('; ', \App\Services\CyclePrep::blockers($prep)).'. Lihat halaman Persiapan periode.']);
+            }
+        }
         $cycle->update([
             'name' => trim($d['name']),
             'field_start' => ($d['field_start'] ?? null) ?: null,

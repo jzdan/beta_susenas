@@ -5,8 +5,8 @@
 <p><a class="btn-ghost" href="{{ route('admin.metadata', ['qv' => $qv->id]) }}">← Metadata Kuesioner</a></p>
 <h1>Pratinjau Tampilan Entri</h1>
 <div class="alert" style="background:var(--accbg);border:1px solid var(--acc)">
-  <strong>Pratinjau tampilan petugas (operator).</strong> Ini dirender dengan <em>renderer yang sama</em>
-  dengan halaman entri, jadi persis seperti yang dilihat petugas — tanpa menyimpan data apa pun
+  <strong>Pratinjau tampilan Pencacah Lapangan.</strong> Tampilannya dibuat dengan cara yang sama
+  dengan halaman entri, jadi persis seperti yang dilihat petugas, tanpa menyimpan data apa pun
   (isian kosong; baris/baris komoditas tetap tampil utuh).
   <br><span class="muted small">Gunakan untuk mengecek tata letak &amp; keterbacaan kuesioner sebelum rilis semester.</span>
 </div>

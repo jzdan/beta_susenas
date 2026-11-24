@@ -18,7 +18,7 @@
   @else
     <strong>{{ $hasil['dibuat'] }}</strong> isian baru, <strong>{{ $hasil['diperbarui'] }}</strong> diperbarui.
   @endif
-  Hasil validasi: {{ $hasil['totErr'] }} error, {{ $hasil['totWarn'] }} warning total.
+  Hasil validasi: {{ $hasil['totErr'] }} kesalahan, {{ $hasil['totWarn'] }} peringatan.
   @if($hasil['dilewati'])<br>Dilewati {{ count($hasil['dilewati']) }}:
     <ul>@foreach ($hasil['dilewati'] as $x)<li class="small">{{ $x }}</li>@endforeach</ul>@endif
 </div>
@@ -94,13 +94,13 @@
   </table>
   </div>
   <p class="muted small">Ekspor jawaban memakai format kolom yang sama dengan impor —
-    bisa diunduh, disunting di luar sistem, lalu dimuat ulang (round-trip).</p>
+    bisa diunduh, disunting di luar sistem, lalu dimuat ulang.</p>
 </section>
 
 <section class="panel">
   <h2>Alias kolom (pemetaan nama kolom CAPI)</h2>
   <p class="muted small">Bila berkas CAPI memakai nama kolom berbeda dari sistem, daftarkan pemetaannya di sini.
-    Untuk kolom roster, alias-kan per nomor: <span class="mono">KRT_UMUR_1 → r407__1</span>.</p>
+    Untuk kolom anggota rumah tangga, petakan per nomor anggota: <span class="mono">KRT_UMUR_1 → r407__1</span>.</p>
 
   @foreach ($aliases as $code => $list)
     <p class="small"><strong>{{ $code }}</strong>:
@@ -137,7 +137,7 @@
 <section class="panel">
   <h2>Variabel yang dikenal per blok</h2>
   @foreach ($blocks as $b)
-  <p class="small"><strong>{{ $b->code }}</strong> ({{ $b->repeat }}):
+  <p class="small"><strong>{{ $b->code }}</strong> ({{ Istilah::repeat($b->repeat) }}):
     <span class="mono muted">{{ ($varsByBlock[$b->id] ?? collect())->implode(', ') }}</span>
     @if($b->repeat !== 'ruta')<br><span class="muted small">→ pakai akhiran <span class="mono">__n</span></span>@endif
   </p>

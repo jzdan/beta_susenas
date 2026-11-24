@@ -34,6 +34,21 @@ class Document extends Model
         return (bool) $this->sample?->cycle?->isLocked();
     }
 
+    /**
+     * Petugas boleh mengubah isian ini? Ya selama periode lapangan siklusnya dibuka, atau —
+     * di luar itu — bila isian dikembalikan pemeriksa untuk diperbaiki (selama siklus belum
+     * dikunci). Kepemilikan sampel diperiksa terpisah (EntryController::assertCanView).
+     */
+    public function editableByPetugas(): bool
+    {
+        $cycle = $this->sample?->cycle;
+        if (! $cycle || $cycle->isLocked() || $this->status === 'bersih') {
+            return false;
+        }
+
+        return $cycle->isFieldOpen() || $this->status === 'dikembalikan';
+    }
+
     /** Sejak kapan dokumen menunggu di tahap saat ini (null bila tak relevan). */
     public function waitingSince(): ?\Illuminate\Support\Carbon
     {
@@ -62,10 +77,5 @@ class Document extends Model
     public function answers(): HasMany
     {
         return $this->hasMany(Answer::class);
-    }
-
-    public function ruleResults(): HasMany
-    {
-        return $this->hasMany(RuleResult::class);
     }
 }

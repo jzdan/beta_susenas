@@ -3,8 +3,8 @@
 @section('title', 'Peta Progres · Sistem SUSENAS')
 @section('content')
 <h1>Peta Progres Pencacahan</h1>
-<p class="muted">Skematik per kecamatan → desa → blok sensus. Warna = persen ruta selesai dicacah.
-  Total: {{ $done }}/{{ $total }} ruta.</p>
+<p class="muted">Skematik per kecamatan → desa → blok sensus. Warna = persen rumah tangga selesai dicacah.
+  Total: {{ $done }}/{{ $total }} rumah tangga.</p>
 
 <div class="legend">
   <span><i class="tile b0"></i> 0%</span>

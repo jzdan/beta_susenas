@@ -14,7 +14,7 @@
     <span class="mono muted">{{ $sample->wilayah_code }}</span></td></tr>
   <tr><td>Blok Sensus / Rumah Tangga</td><td class="mono">{{ $sample->no_bs }} / {{ $sample->no_ruta }}</td></tr>
   <tr><td>Kepala rumah tangga</td><td>{{ $sample->krt_name }}</td></tr>
-  <tr><td>Sampel</td><td>#{{ $doc->id }} · status <strong>{{ $doc->status }}</strong>
+  <tr><td>Sampel</td><td>#{{ $doc->id }} · tahap <strong>{{ Tahap::label(Tahap::ofDocument($doc)) }}</strong>
     @if($doc->cleaned_at) · dibersihkan {{ $doc->cleaned_at->format('d-m-Y') }}@endif</td></tr>
 </table>
 
@@ -70,7 +70,7 @@
   <h2>Temuan validasi ({{ count($warn) }})</h2>
   @forelse ($warn as $w)
     <p class="small"><span class="mono">{{ $w['code'] }}</span>
-      <span class="flag {{ $w['status'] }}">{{ $w['status'] }}</span>
+      <span class="flag {{ $w['status'] }}">{{ Istilah::severity($w['status']) }}</span>
       {{ $w['message'] }}
       @if($w['row'] > 0)<span class="muted">(baris {{ $w['row'] }})</span>@endif</p>
   @empty
@@ -80,7 +80,7 @@
 
 @if(count($corrections))
 <section class="print-block">
-  <h2>Jejak koreksi cleaning ({{ count($corrections) }})</h2>
+  <h2>Jejak koreksi pengolahan ({{ count($corrections) }})</h2>
   <div class="tablewrap">
   <table class="tbl mini">
     <thead><tr><th>Variabel</th><th>Baris</th><th>Semula</th><th>Menjadi</th><th>Alasan</th><th>Oleh / waktu</th></tr></thead>

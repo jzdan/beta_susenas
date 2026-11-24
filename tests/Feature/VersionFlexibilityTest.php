@@ -139,10 +139,13 @@ class VersionFlexibilityTest extends TestCase
         $this->assertFalse((bool) Block::where('qversion_id', $new->id)->where('code', 'IV.2')->value('harga_kalori'));
     }
 
-    public function test_aktivasi_ditolak_bila_aturan_merujuk_variabel_yang_tidak_ada(): void
+    /**
+     * Inc 148: "Jadikan bawaan" tidak lagi ditahan (tidak memengaruhi petugas) — rujukan putus
+     * cuma ditampilkan. Yang ditahan adalah membuka periode lapangan siklus pemakai versi itu.
+     */
+    public function test_rujukan_putus_menahan_buka_lapangan_bukan_versi_bawaan(): void
     {
         $qv = $this->copyOfKp('UJI-PUTUS');
-        $before = QuestionnaireVersion::where('is_active', true)->value('id');
         ValidationRule::create([
             'qversion_id' => $qv->id, 'code' => 'UJI-PUTUS', 'scope' => 'dokumen', 'row_block' => '',
             'target_var' => '', 'expr' => 'n(var_yang_tidak_ada) > 0', 'severity' => 'warning',
@@ -150,16 +153,24 @@ class VersionFlexibilityTest extends TestCase
         ]);
 
         $this->actingAs($this->admin())->post("/admin/versi/{$qv->id}/aktifkan")
-            ->assertRedirect()->assertSessionHas('versiCheck', fn ($c) => $c['blocked']
-                && str_contains(implode(' ', $c['errors']), 'var_yang_tidak_ada'));
-        $this->assertSame($before, QuestionnaireVersion::where('is_active', true)->value('id'));
-
-        // dipaksa → aktif, tercatat di log audit
-        $this->actingAs($this->admin())->post("/admin/versi/{$qv->id}/aktifkan", ['force' => '1'])->assertRedirect();
+            ->assertRedirect()->assertSessionHas('versiCheck', fn ($c) => str_contains(implode(' ', $c['errors']), 'var_yang_tidak_ada'));
         $this->assertTrue($qv->fresh()->is_active);
-        $this->assertDatabaseHas('audit_logs', ['entity' => 'qversion', 'entity_id' => (string) $qv->id, 'action' => 'aktifkan']);
+
+        // siklus yang memakai versi ini (versi terbaru siklusnya) tidak bisa dibuka untuk lapangan
+        $cycle = $qv->cycle;
+        $cycle->update(['status' => 'persiapan']);
+        $this->actingAs($this->admin())->post("/admin/siklus/{$cycle->id}/buka-lapangan")->assertRedirect();
+        $this->assertSame('persiapan', $cycle->fresh()->status);
+        $this->actingAs($this->admin())->post("/admin/jadwal/{$cycle->id}", [
+            'name' => $cycle->name, 'status' => 'lapangan',
+        ])->assertSessionHasErrors('status');
+        $this->assertSame('persiapan', $cycle->fresh()->status);
+
+        // dipaksa → dibuka, tercatat di log audit
+        $this->actingAs($this->admin())->post("/admin/siklus/{$cycle->id}/buka-lapangan", ['force' => '1']);
+        $this->assertSame('lapangan', $cycle->fresh()->status);
         $this->assertStringContainsString('DIPAKSA',
-            \App\Models\AuditLog::where('entity', 'qversion')->where('entity_id', (string) $qv->id)->latest('id')->value('detail'));
+            \App\Models\AuditLog::where('entity', 'cycle')->where('action', 'buka-lapangan')->latest('id')->value('detail'));
     }
 
     public function test_versi_seed_lolos_pemeriksaan(): void

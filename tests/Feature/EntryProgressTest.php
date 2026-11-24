@@ -20,8 +20,10 @@ class EntryProgressTest extends TestCase
 
     private function kpDoc(): Document
     {
-        return Document::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.KP'))
+        $doc = Document::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.KP'))
             ->where('status', '!=', 'bersih')->firstOrFail();
+
+        return $this->openForPetugas($doc, User::where('username', 'ppl_ani')->firstOrFail());
     }
 
     private function q(Document $doc, string $var): Question

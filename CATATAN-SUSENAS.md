@@ -2143,6 +2143,109 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   `test_admin_imports_block_rows_with_calorie_data_from_xlsx` (kolom harga/kalori
   diabaikan di impor baris). 238 tes lulus.
 
+### Increment 153 — Aturan Validasi lebih ringkas: formulir sendiri, periksa langsung, periksa ulang
+
+- **Halaman daftar** (`/admin/aturan`) kini hanya untuk pekerjaan harian: nyalakan/matikan, ubah ambang,
+  tombol **+ Buat aturan baru**. Kamus variabel, formulir terpandu, mode lanjutan, dan daftar ekspresi
+  dipindah dari halaman ini.
+- **Formulir sendiri** `admin/rule_form.blade.php`: `/admin/aturan/{rule}` (ubah) dan `/admin/aturan-baru`
+  (buat; dibuka dengan formulir terpandu, `?mode=rumus` = tulis rumus sendiri). Tiga bagian:
+  1 Apa yang diperiksa (kode, tingkat, "Diperiksa": sekali per sampel / tiap baris blok — pilihan,
+  bukan ketik kode), 2 Rumus (kotak beberapa baris), 3 Pesan. Jenis aturan, variabel sasaran,
+  keterangan masuk "Pengaturan lain". Bantuan rumus + kamus variabel tertutup bawaan. Hapus aturan
+  di panel terpisah paling bawah.
+- **Periksa langsung** saat mengetik: `POST /admin/aturan-pratinjau` (`rulePreview`) → rumus terbaca /
+  tidak, kena di N dari M sampel, dan **contoh pesan** yang placeholder-nya sudah terisi dari sampel
+  pertama yang kena (`RuleEngine::previewExpression(..., $message)` → `example`).
+- **Jumlah sampel yang kena** per aturan di daftar (dari `rule_results` terakhir), tautan ke
+  Pengolahan `?rule=KODE`.
+- **Periksa ulang setelah aturan berubah**: kolom baru `questionnaire_versions.rules_changed_at`
+  (diisi trait `Models\Concerns\MarksRulesChanged` pada ValidationRule/Parameter/Aggregate/DerivedField,
+  plus manual di toggle massal & simpan/impor patokan harga). `QuestionnaireVersion::staleDocuments()` =
+  isian yang snapshot-nya lebih tua (siklus terkunci dilewati). Daftar aturan menampilkan kotak
+  "N sampel belum diperiksa ulang" + tombol **Periksa ulang sekarang** (`POST /admin/aturan-periksa-ulang`).
+- `saveRule`: rumus rusak / kode ganda → kembali ke formulir dengan pesan (dulu 400), sukses kembali ke
+  daftar versi yang benar.
+- CSS: `.stack-form` kolom `minmax(0,1fr)` + select/input `max-width:100%` — opsi select yang panjang
+  tidak lagi melebarkan formulir di HP. Cek ulang 40 halaman × 4 lebar: bersih.
+- Tes: `RuleWorkflowTest`.
+
+### Increment 152 — halaman "Persiapan periode" + pemeriksaan versi pindah ke buka lapangan
+
+- `App\Services\CyclePrep::check($cycle)` — daftar periksa sebelum siklus dibuka untuk lapangan.
+  **Wajib** (menahan): versi kuesioner ada; versi utuh (`VersionChecker`, tanpa rujukan putus);
+  sampel sudah dimuat; semua sampel punya Pencacah Lapangan. **Disarankan**: aturan menyala,
+  patokan harga komoditas terisi (blok bertanda `harga_kalori`), pengawas, akun petugas aktif,
+  kode wilayah sampel terdaftar, tanggal lapangan. Versi yang diperiksa = versi terbaru siklus
+  (`CyclePrep::versionFor`, sama dengan `createDocument`).
+- Halaman `/admin/siklus/{cycle}/persiapan` + tombol **Buka periode lapangan**
+  (`POST …/buka-lapangan`, `force=1` = paksa, tercatat `buka-lapangan` di log audit dengan `DIPAKSA`).
+  Ditautkan dari Jadwal (siklus berstatus persiapan) dan laporan siklus.
+- Form Jadwal: mengubah status ke `lapangan` ikut ditahan daftar periksa; siklus **baru** tidak boleh
+  langsung dibuat berstatus lapangan.
+- **"Jadikan aktif" → "Jadikan bawaan"** tidak lagi ditahan pemeriksaan versi (sejak Inc 148 versi
+  bawaan tidak memengaruhi petugas); hasil pemeriksaan tetap ditampilkan sebagai informasi.
+  Penahan pindah ke pembukaan lapangan — di situlah versi rusak bisa sampai ke petugas.
+- Tes: `CyclePrepTest`, `VersionFlexibilityTest::test_rujukan_putus_menahan_buka_lapangan_bukan_versi_bawaan`.
+
+### Increment 151 — tampilan dirapikan: satu keluarga huruf, teks bantu dipangkas
+
+- Judul memakai IBM Plex Sans (Serif dibuang dari pemuatan font); monospace hanya untuk kode
+  (`.mono`, `textarea.mono`). Label tabel, KPI, chip, `h3`, pemisah menu: tanpa huruf kapital
+  berjarak.
+- Teks bantu panjang dipangkas (Aturan Validasi: 4 paragraf → 1 baris per tab; Wilayah; Sunting
+  blok; Pengguna). Panel "Aturan, neraca…" di Metadata → satu baris tautan. Panel "⚡ Aksi cepat"
+  di laporan siklus → "Pintasan" biasa. Tanda pisah "—" di kalimat diganti titik/koma.
+- Tugas Saya: panel kosong disembunyikan; bila semuanya kosong tampil satu kalimat.
+- Chip dikurangi: chip jenis blok di halaman entri dibuang; nama siklus di judul jadi teks kecil.
+- Perbaikan tampilan HP: tabel tahap laporan siklus dibungkus `.tablewrap`; nama variabel panjang
+  di ringkasan/label boleh patah baris. Cek ulang 39 halaman × 360/412/768/1024 px: semua bersih.
+
+### Increment 150 — bahasa antarmuka: label, bukan kode
+
+- `App\Support\Istilah` — terjemahan nilai DB ke teks: tingkat aturan (`error` → Kesalahan,
+  `warning` → Peringatan), status siklus (+ dampak ke petugas, `CYCLE_STATUS_HELP`), jenis blok,
+  jenis isian, jenis aturan (`scope`), aksi & jenis data di Log Audit/Riwayat. Alias Blade
+  `Istilah::` dan `Tahap::` didaftarkan di `AppServiceProvider`.
+- Istilah diganti: response rate → angka respons, eligible → memenuhi syarat, Wilayah scope →
+  Cakupan wilayah, Username → Nama pengguna, cleaning → pengolahan/pemeriksaan, Sev/Dok →
+  Tingkat/Sampel, Row block → Periksa per baris blok, var_name → Variabel, Skip bila → Lewati bila.
+  Penyebutan "Inc NNN" dibuang dari teks antarmuka.
+- Kolom **Variabel** & **Lewati bila** di Metadata/Sunting blok disembunyikan; muncul lewat centang
+  "Tampilkan detail teknis" (diingat per peramban, `localStorage['susenas.tech']`).
+- Pemilih versi: "(aktif)" → "(bawaan)" + keterangan siklus pemakai versi itu (peringatan lama
+  "entri pencacah tetap pakai versi aktif" sudah salah sejak Inc 148, dibuang).
+- Tes: `IstilahTest`.
+
+### Increment 149 — satu urutan tahap sampel
+
+- `App\Support\Tahap` menggabungkan `sample_households.status` + `documents.status` menjadi satu
+  tahap yang dilihat pengguna: Belum dikunjungi → Sedang diisi → Menunggu pemeriksaan →
+  Dikembalikan ke petugas → Bersih, plus Non-respons / Diganti sampel lain (tanda manual,
+  mengalahkan status isian). Kolom DB tetap dua.
+- Daftar Sampel, Tugas Saya, Rincian sampel versi: dua kolom status → satu kolom **Tahap**; filter
+  `?tahap=` (`Tahap::filter`). Dashboard & laporan siklus: tabel "Status pencacahan" + "Alur
+  pengolahan" → satu tabel **Tahap sampel** (tautan ke daftar terfilter). Chip isian mentah
+  (`draft`, `selesai`, …) di entri/pengolahan/cetak → label tahap. Warna `.chip.t-*`.
+- Tanda manual pengawas dibatasi: `setStatus` hanya menerima `non_respons` (wajib alasan) atau
+  `batal` (kembali ke tahap otomatis, `Tahap::autoSampleStatus`; ditolak bila sampel sudah punya
+  pengganti). Ganti sampel tetap lewat "Buat sampel pengganti". Status lain berjalan otomatis.
+- Tes: `TahapTest`, `SampleReplacementTest` (diperbarui).
+
+### Increment 148 — akses petugas diatur status siklus, bukan versi aktif
+
+- Jebakan Inc 135: mengaktifkan versi periode berikutnya mengunci petugas yang masih di lapangan.
+  Sekarang `questionnaire_version.is_active` hanya versi bawaan menu admin.
+- `SurveyCycle::isFieldOpen()` (status `lapangan`), `Document::editableByPetugas()` (lapangan,
+  atau isian `dikembalikan` selama siklus belum `selesai`). Di luar itu petugas hanya melihat
+  (banner "Periode lapangan sampel ini sudah ditutup"). Isian baru hanya saat lapangan.
+- **Celah akses ditutup**: sebelumnya petugas bisa membuka/mengubah `/entri/{id}`, `/entri/{id}/cetak`,
+  dan `/monitoring/sampel/{id}` milik petugas lain lewat alamat. Sekarang dicek kepemilikan
+  (`petugas_id`) & cakupan wilayah (`EntryController::assertCanView/assertCanEdit`,
+  `MonitoringController::sample`, `createDocument`, unggah foto kunjungan).
+- Finalisasi isian yang sudah `bersih` kini ditolak 409 (buka kunci lewat Pengolahan).
+- Tes: `PetugasAccessTest`; helper `TestCase::openForPetugas()`.
+
 ### Increment 147 — singkatan ditulis lengkap di antarmuka; PPL/PCL diseragamkan
 
 - Permintaan: seragamkan PPL & PCL, dan singkatan jangan disingkat.

@@ -118,6 +118,9 @@ Route::middleware('role')->group(function () {
         Route::post('/turunan', [AdminController::class, 'saveDerived'])->name('turunan.save');
         Route::post('/turunan/{derived}/hapus', [AdminController::class, 'delDerived'])->name('turunan.del');
         Route::get('/aturan', [AdminController::class, 'rulesList'])->name('aturan');
+        Route::get('/aturan-baru', [AdminController::class, 'ruleNew'])->name('aturan.baru');
+        Route::post('/aturan-periksa-ulang', [AdminController::class, 'rulesRecheck'])->name('aturan.periksa-ulang');
+        Route::post('/aturan-pratinjau', [AdminController::class, 'rulePreview'])->name('aturan.pratinjau');
         Route::get('/aturan/{rule}', [AdminController::class, 'ruleEditor'])->name('aturan.edit');
         Route::post('/aturan', [AdminController::class, 'saveRule'])->name('aturan.save');
         Route::post('/aturan/{rule}/hapus', [AdminController::class, 'delRule'])->name('aturan.del');
@@ -141,7 +144,6 @@ Route::middleware('role')->group(function () {
         // Pratinjau tampilan entri (renderer yang sama dengan halaman petugas) — Inc 143
         Route::get('/pratinjau/{qv}', [EntryController::class, 'previewForm'])->name('pratinjau');
         // Demo UI (percobaan): wizard + grid padat + tooltip + filter, data contoh — tidak terhubung ke entri asli
-        Route::get('/demo-ui', fn () => view('admin.demo_ui'))->name('demo-ui');
         Route::get('/impor-wilayah', [AdminController::class, 'wilayahForm'])->name('impor.wilayah');
         Route::post('/impor-wilayah', [AdminController::class, 'wilayahImport'])->name('impor.wilayah.run');
         Route::post('/wilayah', [AdminController::class, 'wilayahStore'])->name('wilayah.simpan');
@@ -164,6 +166,8 @@ Route::middleware('role')->group(function () {
         Route::post('/jadwal', [AdminController::class, 'cycleCreate'])->name('jadwal.create');
         Route::post('/jadwal/{cycle}', [AdminController::class, 'jadwalSave'])->name('jadwal.save');
         Route::get('/siklus/{cycle}', [AdminController::class, 'cycleShow'])->name('siklus');
+        Route::get('/siklus/{cycle}/persiapan', [AdminController::class, 'cyclePrep'])->name('siklus.persiapan');
+        Route::post('/siklus/{cycle}/buka-lapangan', [AdminController::class, 'cycleOpenField'])->name('siklus.buka-lapangan');
         Route::post('/siklus/{cycle}/revalidasi', [AdminController::class, 'cycleRevalidate'])->name('siklus.revalidate');
         Route::post('/siklus/{cycle}/kunci', [AdminController::class, 'cycleLock'])->name('siklus.lock');
         Route::post('/siklus/{cycle}/buka', [AdminController::class, 'cycleUnlock'])->name('siklus.unlock');

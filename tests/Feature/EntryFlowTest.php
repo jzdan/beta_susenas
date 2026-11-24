@@ -22,8 +22,10 @@ class EntryFlowTest extends TestCase
 
     private function kpDoc(): Document
     {
-        return Document::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.KP'))
+        $doc = Document::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.KP'))
             ->where('status', '!=', 'bersih')->firstOrFail();
+
+        return $this->openForPetugas($doc, User::where('username', 'ppl_ani')->firstOrFail());
     }
 
     private function q(Document $doc, string $var): Question
@@ -89,6 +91,7 @@ class EntryFlowTest extends TestCase
     public function test_save_blocked_on_clean_document(): void
     {
         $doc = Document::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.KP'))->firstOrFail();
+        $doc = $this->openForPetugas($doc, User::where('username', 'ppl_ani')->firstOrFail());
         $doc->update(['status' => 'bersih']);
         $this->actingAs(User::where('username', 'ppl_ani')->firstOrFail())
             ->postJson("/entri/{$doc->id}/jawaban", [

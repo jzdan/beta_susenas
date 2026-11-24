@@ -13,7 +13,7 @@
     <thead><tr>
       <th>Petugas</th><th class="num">Sampel</th><th class="num">Difinalisasi</th>
       <th class="num">Bersih</th><th class="num">Dikembalikan</th>
-      <th class="num">Rata² hari entri</th><th class="num">Rata² warning</th>
+      <th class="num">Rata² hari entri</th><th class="num">Rata² peringatan</th>
     </tr></thead>
     <tbody>
     @forelse ($entriRows as $r)
@@ -40,7 +40,7 @@
   <table class="tbl">
     <thead><tr>
       <th>Pemeriksa</th><th class="num">Dibersihkan</th><th class="num">Koreksi</th>
-      <th class="num">Warning ditinjau</th><th class="num">Dikembalikan</th>
+      <th class="num">Peringatan ditinjau</th><th class="num">Dikembalikan</th>
       <th class="num">Rata² hari tunggu→bersih</th>
     </tr></thead>
     <tbody>

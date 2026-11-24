@@ -20,7 +20,7 @@
 
 <section class="panel">
   <h2>Tambah satu wilayah</h2>
-  <p class="muted small">Untuk menambah beberapa kode sekaligus, pakai impor CSV di bawah. Kode yang sudah ada tidak bisa ditambah lagi — sunting lewat Telusuri.</p>
+  <p class="muted small">Untuk menambah beberapa kode sekaligus, pakai impor CSV di bawah. Kode yang sudah ada disunting lewat Telusuri.</p>
   <form method="post" action="{{ route('admin.wilayah.simpan') }}" class="row-form">
     @csrf
     <label class="small">Kode <input name="code" value="{{ old('code') }}" class="mono" style="width:120px" placeholder="mis. 3526190" required></label>
@@ -35,9 +35,7 @@
     </label>
     <button type="submit">Tambah</button>
   </form>
-  <p class="muted small">Kode induk (kecamatan → kabupaten <span class="mono">3526</span>, desa → kecamatannya)
-    <strong>tidak perlu diisi</strong> — diturunkan otomatis dari awalan Kode di atas, induknya harus sudah ada duluan.
-    Kabupaten tidak ada di daftar Jenjang — cuma ada satu (Bangkalan/3526) dan sudah tersedia sejak awal, tidak perlu/bisa ditambah lagi.</p>
+  <p class="muted small">Induknya diambil otomatis dari awalan kode dan harus sudah ada.</p>
 </section>
 
 <section class="panel">
@@ -112,14 +110,12 @@
   @endif
 </section>
 
-<p class="muted">Impor CSV — kolom wajib: <span class="mono">code, name, level</span>.
-  <span class="mono">level</span> = kabupaten / kecamatan / desa (kabupaten = jenjang teratas, tanpa induk).
-  Kode induk tidak perlu kolom sendiri — diturunkan otomatis dari awalan <span class="mono">code</span>.
-  Kode yang sudah ada akan <em>diperbarui</em>.</p>
+<p class="muted">Impor CSV, kolom wajib: <span class="mono">code, name, level</span>
+  (<span class="mono">level</span> = kabupaten / kecamatan / desa). Kode yang sudah ada akan <em>diperbarui</em>.</p>
 
 @if($hasil)
 <div class="alert {{ $hasil['dilewati'] && !($hasil['baru'] || $hasil['diperbarui']) ? 'err' : '' }}">
-  @if($hasil['preview'] ?? false)<strong>PRATINJAU</strong> (belum disimpan) — @endif
+  @if($hasil['preview'] ?? false)<strong>Pratinjau</strong> (belum disimpan): @endif
   <strong>{{ $hasil['baru'] }}</strong> {{ ($hasil['preview'] ?? false) ? 'akan ditambah' : 'baru' }},
   <strong>{{ $hasil['diperbarui'] }}</strong> {{ ($hasil['preview'] ?? false) ? 'akan diperbarui' : 'diperbarui' }}.
   @if($hasil['dilewati'])<br>Dilewati {{ count($hasil['dilewati']) }}:
@@ -128,9 +124,7 @@
 @endif
 
 <section class="panel">
-  <p class="muted small">Validasi: panjang kode sesuai jenjang (kab 4, kec 7, desa 10); induk hasil turunan
-    dari awalan <span class="mono">code</span> harus sudah ada (kecuali kabupaten — jenjang teratas, tanpa induk).
-    Baris diurutkan otomatis (induk dulu).</p>
+  <p class="muted small">Panjang kode: kabupaten 4, kecamatan 7, desa 10 digit. Baris diurutkan otomatis (induk dulu).</p>
   <form method="post" action="{{ route('admin.impor.wilayah.run') }}" class="stack-form">
     @csrf
     <label>Data CSV

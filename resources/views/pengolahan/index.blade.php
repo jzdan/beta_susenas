@@ -2,7 +2,7 @@
 @php($nav = 'pengolahan')
 @section('title', 'Pengolahan · Sistem SUSENAS')
 @section('content')
-<h1>Pengolahan Data (Cleaning)</h1>
+<h1>Pengolahan Data</h1>
 <p class="muted">Tinjau sampel berstatus <em>selesai</em>, koreksi isian bermasalah pada
   <strong>nilai bersih</strong> (nilai mentah tetap tersimpan), lalu tandai <em>bersih</em>.</p>
 
@@ -28,7 +28,7 @@
     @foreach ($ruleAgg as $ra)
       <tr @class(['row-has-warn' => $fRule === $ra->code])>
         <td class="mono">{{ $ra->code }}</td>
-        <td><span class="flag {{ $ra->severity === 'error' ? 'error' : 'warning' }}" style="display:inline-block">{{ $ra->severity }}</span></td>
+        <td><span class="flag {{ $ra->severity === 'error' ? 'error' : 'warning' }}" style="display:inline-block">{{ Istilah::severity($ra->severity) }}</span></td>
         <td class="small">{{ $ra->message }}</td>
         <td class="num">{{ $ra->n_doc }}</td>
         <td class="num">{{ $ra->n_hit }}</td>
@@ -75,7 +75,7 @@
 @endif
 <div class="tablewrap tall">
 <table class="tbl">
-  <thead><tr>@if($canBulk)<th></th>@endif<th>Sampel</th><th>Wilayah / Rumah Tangga</th><th>Status</th><th class="num">Menunggu</th><th class="num">Error</th><th class="num">Warning <span class="muted">blm/total</span></th><th class="num">Catatan</th><th></th></tr></thead>
+  <thead><tr>@if($canBulk)<th></th>@endif<th>Sampel</th><th>Wilayah / Rumah Tangga</th><th>Status</th><th class="num">Menunggu</th><th class="num">Kesalahan</th><th class="num">Peringatan <span class="muted">belum ditinjau/total</span></th><th class="num">Catatan</th><th></th></tr></thead>
   <tbody>
   @forelse ($rows as $r)
     <tr>
@@ -83,7 +83,7 @@
       <td class="mono">#{{ $r['doc']->id }}</td>
       <td>{{ $r['wil'] }} <span class="mono muted">· Blok Sensus {{ $r['doc']->no_bs }} · Rumah Tangga {{ $r['doc']->no_ruta }}</span><br>
         <span class="muted small">{{ $r['doc']->krt_name }}</span></td>
-      <td><span class="chip d-{{ $r['doc']->status }}">{{ $r['doc']->status }}</span></td>
+      <td><span class="chip t-{{ Tahap::ofDocument($r['doc']) }}">{{ Tahap::label(Tahap::ofDocument($r['doc'])) }}</span></td>
       <td class="num">
         @if($r['wait_days'] === null)<span class="muted">—</span>
         @elseif($r['wait_days'] >= $staleDays)<span class="flag warning" style="display:inline-block">{{ $r['wait_days'] }} hari</span>

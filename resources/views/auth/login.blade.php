@@ -11,7 +11,7 @@
     <form method="post" action="{{ route('login') }}">
       @csrf
       <input type="hidden" name="next" value="{{ $next }}">
-      <label>Username
+      <label>Nama pengguna
         <input name="username" autocomplete="username" autofocus required value="{{ old('username') }}">
       </label>
       <label>Kata sandi

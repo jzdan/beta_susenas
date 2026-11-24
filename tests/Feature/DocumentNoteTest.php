@@ -21,10 +21,7 @@ class DocumentNoteTest extends TestCase
     {
         $doc = Document::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.KP'))
             ->where('status', '!=', 'bersih')->firstOrFail();
-        $op = User::where('username', 'ppl_ani')->firstOrFail();
-        $doc->sample->update(['petugas_id' => $op->id]);
-
-        return $doc;
+        return $this->openForPetugas($doc, User::where('username', 'ppl_ani')->firstOrFail());
     }
 
     public function test_pml_note_is_saved_shown_and_notifies_the_operator(): void

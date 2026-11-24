@@ -5,8 +5,8 @@
   <div class="panel sticky">
     <h2>Ringkasan</h2>
     <div class="summary-counts">
-      <span class="cnt err" id="cnt-err">{{ $state['n_err'] }}</span> error
-      <span class="cnt warn" id="cnt-warn">{{ $state['n_warn'] }}</span> warning
+      <span class="cnt err" id="cnt-err">{{ $state['n_err'] }}</span> kesalahan
+      <span class="cnt warn" id="cnt-warn">{{ $state['n_warn'] }}</span> peringatan
       <span class="saved-note" id="saved-note"></span>
     </div>
     @if($canEdit)
@@ -15,7 +15,7 @@
 
     <div class="entry-filter">
       <input type="text" id="entry-filter-text" placeholder="Cari rincian…" aria-label="Cari rincian">
-      <label><input type="checkbox" id="entry-filter-issues"> Hanya error/kosong</label>
+      <label><input type="checkbox" id="entry-filter-issues"> Hanya yang bermasalah/kosong</label>
     </div>
 
     @php($pr = $state['progress'])
@@ -79,7 +79,7 @@
         {{ $doc->status === 'dikembalikan' ? 'Kirim ulang ke pemeriksa' : 'Finalisasi (tandai selesai)' }}
       </button>
     </form>
-    @if($state['n_err'] > 0)<p class="muted small">Perbaiki semua error dulu.</p>@endif
+    @if($state['n_err'] > 0)<p class="muted small">Perbaiki semua kesalahan dulu.</p>@endif
     @endif
   </div>
 

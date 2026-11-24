@@ -14,12 +14,12 @@
       <label>Kode <input name="code_rincian" value="{{ $q->code_rincian }}" required></label>
       <label>Variabel <input name="var_name" value="{{ $q->var_name }}" class="mono" required></label>
       <label>Tipe
-        <select name="qtype">@foreach ($qtypes as $t)<option value="{{ $t }}" @selected($q->qtype === $t)>{{ $t }}</option>@endforeach</select>
+        <select name="qtype">@foreach ($qtypes as $t)<option value="{{ $t }}" @selected($q->qtype === $t)>{{ Istilah::qtype($t) }}</option>@endforeach</select>
       </label>
       <label>Satuan <input name="unit" value="{{ $q->unit }}"></label>
     </div>
     <label>Label <input name="label" value="{{ $q->label }}" required></label>
-    <label>Skip bila (ekspresi) <input name="skip_expr" value="{{ $q->skip_expr }}" class="mono"></label>
+    <label>Lewati bila <input name="skip_expr" value="{{ $q->skip_expr }}" class="mono"></label>
     <label>Teks bantuan <input name="help_text" value="{{ $q->help_text }}"></label>
     <div class="row-form">
       <button type="submit">Simpan</button>

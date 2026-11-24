@@ -4,14 +4,18 @@
 @section('content')
 <p><a class="btn-ghost" href="{{ route('monitoring.sample', $sample) }}">← Sampel</a>
   <a class="btn-ghost" href="{{ route('entri.print', $doc) }}">Cetak / arsip</a></p>
-<h1>Entri Kuesioner <span class="chip">{{ $sample->cycle->name ?? '—' }}</span></h1>
+<h1>Entri Kuesioner <small class="muted">{{ $sample->cycle->name ?? '' }}</small></h1>
 <p class="muted mono">
   {{ $qv->code }} · {{ $wil[$sample->wilayah_code] ?? $sample->wilayah_code }} ·
   Blok Sensus {{ $sample->no_bs }} · Rumah Tangga {{ $sample->no_ruta }} · isian #{{ $doc->id }}
-  <span class="chip d-{{ $doc->status }}">{{ $doc->status }}</span>
+  <span class="chip t-{{ Tahap::ofDocument($doc) }}">{{ Tahap::label(Tahap::ofDocument($doc)) }}</span>
 </p>
 
 @if ($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
+
+@if ($petugasLocked ?? false)
+<div class="alert">Periode lapangan sampel ini sudah ditutup. Isian hanya bisa dilihat, tidak bisa diubah.</div>
+@endif
 
 @if ($doc->status === 'dikembalikan')
 <div class="alert err">

@@ -11,12 +11,12 @@
 <div class="grid2">
   <section class="panel">
     <h2>Ekspor</h2>
-    <p class="muted small">Data datar = satu baris per sampel, kolom = seluruh variabel snapshot
-      (jawaban + turunan + agregat). Warning = satu baris per temuan aturan.
-      Koreksi = jejak setiap perubahan nilai bersih saat cleaning (nilai lama → baru, alasan, petugas).</p>
+    <p class="muted small">Data datar = satu baris per sampel, kolom = seluruh variabel
+      (jawaban + turunan + agregat). Peringatan = satu baris per temuan aturan.
+      Koreksi = jejak setiap perubahan nilai saat pengolahan (nilai lama → baru, alasan, petugas).</p>
     <div class="row-form">
       <a class="btn-ghost" href="{{ route('tabulasi.export.raw', ['selesai' => $onlySelesai ? 1 : 0]) }}">⬇ Data datar (semua kolom)</a>
-      <a class="btn-ghost" href="{{ route('tabulasi.export.rules') }}">⬇ Daftar warning (CSV)</a>
+      <a class="btn-ghost" href="{{ route('tabulasi.export.rules') }}">⬇ Daftar peringatan (CSV)</a>
       <a class="btn-ghost" href="{{ route('tabulasi.export.corrections') }}">⬇ Jejak koreksi (CSV)</a>
     </div>
 

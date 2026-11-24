@@ -1,13 +1,13 @@
 @extends('layouts.app')
 @php($nav = 'pengolahan')
-@section('title', "Pengolahan dok #{$doc->id} · Sistem SUSENAS")
+@section('title', "Pengolahan sampel #{$doc->id} · Sistem SUSENAS")
 @section('content')
 <p><a class="btn-ghost" href="{{ route('pengolahan.index') }}">← Antrean</a>
   <a class="btn-ghost" href="{{ route('entri.print', $doc) }}">Cetak / arsip</a>
   @if($nextDoc)<a class="btn-ghost" href="{{ route('pengolahan.show', $nextDoc) }}">Lewati ke #{{ $nextDoc->id }} →</a>@endif</p>
 <h1>Pengolahan Sampel #{{ $doc->id }}</h1>
 <p class="muted mono">{{ $sample->wilayah_code }} · Blok Sensus {{ $sample->no_bs }} · Rumah Tangga {{ $sample->no_ruta }}
-  · {{ $sample->krt_name }} <span class="chip d-{{ $doc->status }}">{{ $doc->status }}</span>
+  · {{ $sample->krt_name }} <span class="chip t-{{ Tahap::ofDocument($doc) }}">{{ Tahap::label(Tahap::ofDocument($doc)) }}</span>
   @if($doc->waitingDays() !== null)<span class="muted small">· menunggu {{ $doc->waitingDays() }} hari</span>@endif</p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
@@ -18,8 +18,8 @@
 @endif
 
 <div class="summary-counts" style="margin:12px 0">
-  <span class="cnt err">{{ $nErr }}</span> error
-  <span class="cnt warn">{{ $nWarn }}</span> warning
+  <span class="cnt err">{{ $nErr }}</span> kesalahan
+  <span class="cnt warn">{{ $nWarn }}</span> peringatan
   @if($nWarnAck)<span class="muted small">({{ $nWarnAck }} sudah ditinjau, {{ max(0, $nWarn - $nWarnAck) }} belum)</span>@endif
   @if($doc->status !== 'bersih')
   <form method="post" action="{{ route('pengolahan.bersih', $doc) }}" style="margin-left:auto;display:flex;gap:6px">@csrf
@@ -43,7 +43,7 @@
         placeholder="mis. Blok IV.1 beras kuantitas tidak wajar — konfirmasi ke responden dan perbaiki"></textarea>
     </label>
     <button type="submit" class="btn-ghost">Kembalikan ke petugas</button>
-    <p class="muted small">Status sampel menjadi <em>dikembalikan</em> dan keluar dari antrean cleaning sampai petugas mengirim ulang.</p>
+    <p class="muted small">Status sampel menjadi <em>dikembalikan</em> dan keluar dari antrean pemeriksaan sampai petugas mengirim ulang.</p>
   </form>
 </details>
 @endif

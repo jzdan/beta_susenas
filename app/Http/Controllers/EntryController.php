@@ -35,26 +35,48 @@ class EntryController extends Controller
     ) {}
 
     /**
-     * Operator hanya boleh membuka/mengisi dokumen milik siklus yang seperiode dengan versi
-     * kuesioner yang sedang aktif (KOR & KP periode yang sama tetap sama-sama terbuka —
-     * lihat QuestionnaireVersion::activeCycleIds()). Peran lain (pml/pj/admin/viewer) tidak
-     * dibatasi (perlu akses lintas siklus/periode utk pengolahan).
+     * Boleh membuka isian ini? Pengguna berwilayah hanya sampel di wilayahnya; petugas
+     * (operator) hanya sampel yang ditugaskan kepadanya — di siklus mana pun (isian lama
+     * tetap bisa dilihat walau periode lapangannya sudah ditutup).
      */
-    private function assertActiveCycle(Request $request, Document $document): void
+    private function assertCanView(Request $request, Document $document): void
     {
-        if ($request->user()->role !== 'operator') {
-            return;
+        $user = $request->user();
+        $sample = $document->sample;
+        if ($user->wilayah_scope && ! str_starts_with($sample->wilayah_code, $user->wilayah_scope)) {
+            abort(403, 'Sampel ini di luar cakupan wilayah Anda.');
         }
-        abort_unless(in_array($document->sample->cycle_id, QuestionnaireVersion::activeCycleIds(), true), 403,
-            'Periode kuesioner siklus sampel ini sedang tidak aktif — hubungi admin.');
+        if ($user->role === 'operator') {
+            abort_unless((int) $sample->petugas_id === (int) $user->id, 403, 'Sampel ini tidak ditugaskan kepada Anda.');
+        }
+    }
+
+    /**
+     * Boleh mengubah isian ini? Petugas: lihat Document::editableByPetugas() (periode lapangan
+     * dibuka, atau isian dikembalikan). Peran lain tidak dibatasi periode — pengolahan perlu
+     * akses lintas siklus; kunci 'bersih' & siklus 'selesai' tetap dicek di tiap aksi.
+     */
+    private function assertCanEdit(Request $request, Document $document): void
+    {
+        $this->assertCanView($request, $document);
+        // kunci yang lebih spesifik didahulukan supaya pesannya tepat
+        abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        abort_if($document->status === 'bersih', 409, 'Sampel sudah dikunci (bersih)');
+        if ($request->user()->role === 'operator') {
+            abort_unless($document->editableByPetugas(), 403,
+                'Periode lapangan sampel ini sudah ditutup — isian hanya bisa dilihat.');
+        }
     }
 
     public function form(Request $request, Document $document)
     {
-        $this->assertActiveCycle($request, $document);
+        $this->assertCanView($request, $document);
         $this->engine->run($document);
         $state = $this->formState($document);
         $sample = $document->sample;
+        $role = $request->user()->role;
+        // petugas di luar periode lapangan tetap bisa membuka isiannya, tapi hanya melihat
+        $petugasLocked = $role === 'operator' && ! $document->editableByPetugas();
 
         return view('entri.document', [
             'doc' => $document,
@@ -62,7 +84,8 @@ class EntryController extends Controller
             'qv' => $document->qversion,
             'wil' => Wilayah::pluck('name', 'code'),
             'state' => $state,
-            'canEdit' => in_array($request->user()->role, ['operator', 'admin'], true),
+            'canEdit' => in_array($role, ['operator', 'admin'], true) && ! $petugasLocked,
+            'petugasLocked' => $petugasLocked,
             'notes' => \App\Models\DocumentNote::with('user:id,name')
                 ->where('document_id', $document->id)->orderBy('id')->get(),
             'visitPhotos' => config('susenas.bukti_kunjungan')
@@ -111,6 +134,7 @@ class EntryController extends Controller
     /** Tampilan cetak/arsip satu dokumen: semua blok, jawaban (mentah + bersih), temuan. */
     public function printView(Request $request, Document $document)
     {
+        $this->assertCanView($request, $document);
         $this->engine->run($document);
         $blocks = Block::where('qversion_id', $document->qversion_id)->orderBy('order')->get();
 
@@ -201,9 +225,7 @@ class EntryController extends Controller
 
     public function saveAnswer(Request $request, Document $document)
     {
-        $this->assertActiveCycle($request, $document);
-        abort_if($document->status === 'bersih', 409, 'Sampel sudah dikunci (bersih)');
-        abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        $this->assertCanEdit($request, $document);
         $data = $request->validate([
             'question_id' => 'required|integer',
             'value' => 'nullable|string',
@@ -251,9 +273,7 @@ class EntryController extends Controller
      */
     public function setArtCount(Request $request, Document $document)
     {
-        $this->assertActiveCycle($request, $document);
-        abort_if($document->status === 'bersih', 409, 'Sampel sudah dikunci (bersih)');
-        abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        $this->assertCanEdit($request, $document);
         $d = $request->validate(['count' => 'required|integer|min:0|max:'.self::MAX_ART]);
         $n = (int) $d['count'];
 
@@ -303,11 +323,10 @@ class EntryController extends Controller
 
     public function finalize(Request $request, Document $document)
     {
-        $this->assertActiveCycle($request, $document);
-        abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        $this->assertCanEdit($request, $document);
         $sum = $this->engine->run($document);
         if ($sum['errors'] > 0) {
-            return back()->withErrors(['finalisasi' => "Masih ada {$sum['errors']} error — perbaiki dulu."]);
+            return back()->withErrors(['finalisasi' => "Masih ada {$sum['errors']} kesalahan. Perbaiki dulu."]);
         }
         if (config('susenas.bukti_kunjungan') && config('susenas.bukti_kunjungan_wajib')
             && ! \App\Models\VisitPhoto::where('sample_id', $document->sample_id)->exists()) {

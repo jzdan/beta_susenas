@@ -10,30 +10,24 @@
 @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
 
 @include('admin.partials._qv_switch')
+@include('admin.partials._tech_toggle')
 
 @if($vc = session('versiCheck'))
 <section class="panel" style="border-color:{{ $vc['errors'] ? 'var(--err)' : 'var(--warn)' }}">
   <h2>Hasil pemeriksaan versi {{ $vc['code'] }}</h2>
-  @if($vc['blocked'])
-    <div class="alert err"><strong>Versi belum diaktifkan</strong> — ada {{ count($vc['errors']) }} rujukan yang putus.
-      Perbaiki dulu (biasanya di Metadata atau Aturan Validasi), lalu klik <em>Jadikan aktif</em> lagi.</div>
-  @elseif(!$vc['errors'] && !$vc['warnings'])
-    <p style="color:var(--ok)">Tidak ada masalah — semua aturan, agregat, turunan, dan parameter menunjuk blok &amp; variabel yang ada.</p>
+  @if(!$vc['errors'] && !$vc['warnings'])
+    <p style="color:var(--ok)">Tidak ada masalah. Semua aturan, agregat, turunan, dan parameter menunjuk blok &amp; variabel yang ada.</p>
+  @elseif($vc['errors'])
+    <p class="muted small">Rujukan putus menahan pembukaan periode lapangan siklus yang memakai versi ini.
+      Perbaiki di Metadata atau Aturan Validasi.</p>
   @endif
   @if($vc['errors'])
-    <h3>Error ({{ count($vc['errors']) }})</h3>
+    <h3>Rujukan putus ({{ count($vc['errors']) }})</h3>
     <ul>@foreach ($vc['errors'] as $e)<li class="small" style="color:var(--err)">{{ $e }}</li>@endforeach</ul>
   @endif
   @if($vc['warnings'])
     <h3>Peringatan ({{ count($vc['warnings']) }})</h3>
     <ul>@foreach ($vc['warnings'] as $w)<li class="small">{{ $w }}</li>@endforeach</ul>
-  @endif
-  @if($vc['blocked'])
-    <form method="post" action="{{ route('admin.versi.aktifkan', $vc['qv_id']) }}"
-      onsubmit="return confirm('Aktifkan versi {{ $vc['code'] }} walau ada {{ count($vc['errors']) }} error? Aturan yang putus tidak akan menyala.')">
-      @csrf<input type="hidden" name="force" value="1">
-      <button class="btn-ghost" style="color:var(--err)">Aktifkan tetap (tercatat di log audit)</button>
-    </form>
   @endif
 </section>
 @endif
@@ -57,7 +51,7 @@
           <a class="small" href="{{ route('admin.versi.sampel', $v) }}">Rincian sampel →</a>
         </td>
         <td>
-          @if($v->id === $activeId)<span class="chip d-bersih">aktif</span>@endif
+          @if($v->id === $activeId)<span class="chip d-bersih" title="Versi yang dibuka pertama kali di menu admin. Tidak memengaruhi petugas.">bawaan</span>@endif
           @if($v->id === $qv->id)<span class="chip d-draft">dilihat</span>@endif
         </td>
         <td class="right nowrap">
@@ -66,7 +60,7 @@
             <a class="btn-ghost" href="{{ route('admin.metadata', ['qv' => $v->id]) }}">Lihat/sunting</a>
           @endif
           @if($v->id !== $activeId)
-            <form method="post" action="{{ route('admin.versi.aktifkan', $v) }}">@csrf<button class="btn-ghost">Jadikan aktif</button></form>
+            <form method="post" action="{{ route('admin.versi.aktifkan', $v) }}">@csrf<button class="btn-ghost" title="Buka versi ini pertama kali di menu admin. Tidak memengaruhi petugas.">Jadikan bawaan</button></form>
           @endif
           <form method="post" action="{{ route('admin.versi.periksa', $v) }}"
             title="Cek aturan, agregat, turunan & parameter yang menunjuk blok/variabel yang tidak ada">@csrf<button class="btn-ghost">Periksa</button></form>
@@ -87,12 +81,11 @@
   <form method="post" action="{{ route('admin.versi.duplikat') }}" class="row-form mt">
     @csrf
     <input name="new_code" placeholder="Kode versi baru, mis. VSEN27.KP-rev2" required style="min-width:280px">
-    <button type="submit">Duplikasi versi aktif</button>
+    <button type="submit">Duplikasi versi bawaan ({{ $versions->firstWhere('id', $activeId)->code ?? '?' }})</button>
   </form>
   <p class="muted small mt">Paket JSON berisi seluruh metadata versi (blok, rincian, opsi, parameter,
     aturan, agregat, nilai turunan, baris tetap).
-    <a href="{{ route('admin.versi.import') }}">Impor paket dari instansi lain →</a>
-    (atau CLI <span class="mono">php artisan susenas:qversion:import &lt;file&gt;</span>).</p>
+    <a href="{{ route('admin.versi.import') }}">Impor paket dari instansi lain →</a></p>
 </section>
 
 <section class="panel">
@@ -101,7 +94,7 @@
     @csrf
     <input type="hidden" name="qv" value="{{ $qv->id }}">
     <input name="code" placeholder="Kode (mis. IV.3)" required>
-    <input name="title" placeholder="Judul blok (mis. Konsumsi Rokok)" required style="min-width:290px">
+    <input name="title" placeholder="Judul blok (mis. Konsumsi Rokok)" required style="min-width:min(290px, 100%)">
     <select name="repeat" id="blok-tipe" aria-describedby="tipe-help">
       <option value="ruta">Diisi sekali per rumah tangga (mis. Blok I)</option>
       <option value="art">Diisi per anggota rumah tangga (mis. umur, pendidikan)</option>
@@ -143,7 +136,7 @@
         Contoh: IV.1M makanan jadi / Makan Bergizi Gratis per orang.<br>
         <span class="muted">Setelah dibuat: tambah rincian, lalu isi daftar barisnya.</span></p>
     </div>
-    <p class="tipe-warn">Tipe tidak bisa diubah lagi setelah blok punya isian — kalau salah, buat blok baru.</p>
+    <p class="tipe-warn">Tipe tidak bisa diubah lagi setelah blok punya isian. Kalau salah, buat blok baru.</p>
   </div>
 </section>
 
@@ -175,23 +168,14 @@
 </script>
 @endpush
 
-<section class="panel">
-  <h2>Aturan, neraca, turunan, harga &amp; kalori</h2>
-  <p class="muted">Bagian ini tidak ada di halaman Metadata — semuanya dipindah ke menu
-    <strong>Aturan Validasi</strong> (Inc 141) supaya ada satu tempat untuk mesin &amp; patokan:</p>
-  <ul class="muted small">
-    <li><a href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'aturan']) }}">Tab <strong>Aturan</strong></a> — daftar aturan validasi.</li>
-    <li><a href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'neraca']) }}">Tab <strong>Neraca &amp; Turunan</strong></a> — parameter, agregat cek-silang (NERACA), variabel turunan.</li>
-    <li><a href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'harga']) }}">Tab <strong>Harga &amp; Kalori</strong></a> — patokan harga wajar &amp; kalori per komoditas.</li>
-  </ul>
-  <p class="muted small">Halaman Metadata sekarang khusus membuat kuesioner: versi, blok, rincian, opsi, dan baris tetap.</p>
-</section>
+<p class="muted small">Aturan, neraca, turunan, serta harga &amp; kalori ada di menu
+  <a href="{{ route('admin.aturan', ['qv' => $qv->id]) }}">Aturan Validasi</a>.</p>
 
 @foreach ($blocks as $i => $b)
 <section class="panel">
   <div class="panel-head">
     <h2>Blok {{ $b->code }} — {{ $b->title }}
-      <span class="chip d-draft">{{ ['ruta'=>'per rumah tangga','art'=>'roster anggota rumah tangga','list'=>'daftar baris tetap','list_art'=>'daftar × anggota rumah tangga'][$b->repeat] ?? $b->repeat }}</span>
+      <small class="muted">{{ Istilah::repeat($b->repeat) }}</small>
       @if($b->harga_kalori)<span class="chip d-selesai" title="Daftar komoditas blok ini disunting di Aturan Validasi → Harga & Kalori">harga &amp; kalori</span>@endif</h2>
     <span>
       <form method="post" action="{{ route('admin.blok.order', $b) }}" style="display:inline">
@@ -209,15 +193,15 @@
   </div>
   <div class="tablewrap">
   <table class="tbl">
-    <thead><tr><th>Rincian</th><th>Variabel</th><th>Label</th><th>Tipe</th><th>Skip bila</th><th></th></tr></thead>
+    <thead><tr><th>Rincian</th><th class="tech">Variabel</th><th>Label</th><th>Tipe</th><th class="tech">Lewati bila</th><th></th></tr></thead>
     <tbody>
     @foreach ($b->questions->sortBy('order') as $q)
       <tr>
         <td class="mono">{{ $q->code_rincian }}</td>
-        <td class="mono">{{ $q->var_name }}</td>
+        <td class="mono tech">{{ $q->var_name }}</td>
         <td>{{ $q->label }}</td>
-        <td>{{ $q->qtype }}@if($q->unit) · {{ $q->unit }}@endif</td>
-        <td class="mono muted small">{{ $q->skip_expr ?: '—' }}</td>
+        <td>{{ Istilah::qtype($q->qtype) }}@if($q->unit) · {{ $q->unit }}@endif</td>
+        <td class="mono muted small tech">{{ $q->skip_expr ?: '—' }}</td>
         <td class="right"><a class="btn-ghost" href="{{ route('admin.rincian', $q) }}">Sunting</a></td>
       </tr>
     @endforeach

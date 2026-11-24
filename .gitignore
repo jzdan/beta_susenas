@@ -25,3 +25,9 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# peta kode graphify (dibuat ulang otomatis)
+graphify-out/
+
+# pengaturan Claude Code lokal (hook graphify per komputer)
+.claude/

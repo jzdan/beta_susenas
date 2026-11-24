@@ -10,6 +10,7 @@ use App\Models\SampleHousehold;
 use App\Models\SurveyCycle;
 use App\Models\User;
 use App\Models\Wilayah;
+use App\Support\Tahap;
 use Illuminate\Http\Request;
 
 class MonitoringController extends Controller
@@ -44,10 +45,10 @@ class MonitoringController extends Controller
         }
         if ($user->role === 'operator') {
             $q->where('petugas_id', $user->id);
-            // operator hanya boleh melihat/mengerjakan siklus yang seperiode dengan versi
-            // kuesioner yang sedang ditandai aktif (KOR & KP periode yang sama tetap
-            // sama-sama terbuka) — begitu admin mengaktifkan periode lain, ini tertutup.
-            $q->whereIn('cycle_id', QuestionnaireVersion::activeCycleIds());
+            // petugas melihat sampelnya di siklus yang sudah lewat tahap persiapan — termasuk
+            // periode yang lapangannya sudah ditutup (isian lama tetap bisa dilihat). Boleh
+            // tidaknya MENGUBAH diatur per isian: Document::editableByPetugas().
+            $q->whereHas('cycle', fn ($c) => $c->where('status', '!=', 'persiapan'));
         }
         return $q;
     }
@@ -57,13 +58,15 @@ class MonitoringController extends Controller
     {
         $user = $request->user();
         $samples = $this->visibleSamples($user)
-            ->with(['documents:id,sample_id,status,return_reason,returned_at', 'cycle:id,name,period'])
+            ->with(['documents:id,sample_id,status,return_reason,returned_at', 'cycle:id,name,period,status'])
             ->get();
         $wil = Wilayah::pluck('name', 'code');
         $siklus = fn ($s) => $s->cycle->name ?? '—';
 
-        // sampel belum tuntas (belum/proses)
+        // sampel belum tuntas (belum/proses) — untuk petugas hanya yang periode lapangannya
+        // masih dibuka (sampel periode lama tidak bisa dikerjakan lagi, jadi bukan "tugas")
         $pending = $samples->whereIn('status', ['belum', 'proses'])
+            ->filter(fn ($s) => $user->role !== 'operator' || $s->cycle?->isFieldOpen())
             ->sortBy([['wilayah_code', 'asc'], ['no_bs', 'asc'], ['no_ruta', 'asc']])
             ->map(fn ($s) => [
                 'sample' => $s,
@@ -116,7 +119,6 @@ class MonitoringController extends Controller
         // sampel yang sudah digantikan tidak lagi menempati kuota — pengganti yang dihitung
         $rows = $all->where('status', '!=', 'ganti_sampel')->values();
         $total = $rows->count();
-        $byStatus = $all->countBy('status');
         $done = collect(self::DONE)->sum(fn ($s) => $rows->where('status', $s)->count());
         $rate = $total ? round(100 * $done / $total, 1) : 0.0;
 
@@ -209,12 +211,12 @@ class MonitoringController extends Controller
         $nWarnDocs = $docIds->isEmpty() ? 0 : RuleResult::whereIn('document_id', $docIds)
             ->where('status', 'warning')->distinct('document_id')->count('document_id');
 
-        // corong pengolahan: dokumen per tahap
-        $funnel = [];
-        $docByStatus = $docs->countBy('status');
-        foreach (['draft' => 'Entri/draft', 'selesai' => 'Menunggu cleaning',
-            'dikembalikan' => 'Dikembalikan', 'bersih' => 'Bersih'] as $k => $lbl) {
-            $funnel[] = ['label' => $lbl, 'n' => (int) ($docByStatus[$k] ?? 0)];
+        // satu hitungan per tahap (gabungan status sampel + isian), termasuk yang diganti
+        $docBySample = Document::whereIn('sample_id', $all->pluck('id'))->get(['sample_id', 'status'])
+            ->keyBy('sample_id');
+        $tahap = array_fill_keys(array_keys(Tahap::LABELS), 0);
+        foreach ($all as $s) {
+            $tahap[Tahap::of($s, $docBySample[$s->id] ?? null)]++;
         }
 
         // aturan yang paling sering menyala (untuk fokus perbaikan)
@@ -228,9 +230,9 @@ class MonitoringController extends Controller
             ->limit(6)->get();
 
         return view('monitoring.dashboard', compact(
-            'total', 'done', 'rate', 'byStatus', 'perWil', 'perPetugas',
-            'nErrDocs', 'nWarnDocs', 'schedule', 'funnel', 'topRules', 'response'
-        ) + ['statusLabels' => self::STATUS, 'nDocs' => $docs->count()]);
+            'total', 'done', 'rate', 'tahap', 'perWil', 'perPetugas',
+            'nErrDocs', 'nWarnDocs', 'schedule', 'topRules', 'response'
+        ) + ['nDocs' => $docs->count(), 'nAll' => $all->count()]);
     }
 
     public function peta(Request $request)
@@ -297,8 +299,8 @@ class MonitoringController extends Controller
     public function samples(Request $request)
     {
         $query = $this->visibleSamples($request->user());
-        if ($s = $request->query('status')) {
-            $query->where('status', $s);
+        if (($t = $request->query('tahap')) && isset(Tahap::LABELS[$t])) {
+            Tahap::filter($query, $t);
         }
         if ($w = $request->query('wil')) {
             $query->where('wilayah_code', 'like', $w.'%');
@@ -321,15 +323,14 @@ class MonitoringController extends Controller
             'wilNames' => Wilayah::pluck('name', 'code'),
             'userNames' => User::pluck('name', 'id'),
             'cycleNames' => SurveyCycle::pluck('name', 'id'),
-            // operator cuma boleh kerja di periode aktif — jangan tawarkan pilihan siklus lain di filter
+            // petugas tidak melihat siklus yang masih persiapan — samakan pilihan filternya
             'cycles' => $request->user()->role === 'operator'
-                ? SurveyCycle::whereIn('id', QuestionnaireVersion::activeCycleIds())->get()
+                ? SurveyCycle::where('status', '!=', 'persiapan')->orderByDesc('period')->get()
                 : SurveyCycle::orderByDesc('period')->get(),
             'fCycle' => $request->query('cycle', ''),
             'docBySample' => Document::whereIn('sample_id', $items->pluck('id'))->get()->keyBy('sample_id'),
-            'statusLabels' => self::STATUS,
             'kecs' => Wilayah::where('level', 'kecamatan')->get(),
-            'fStatus' => $request->query('status', ''),
+            'fTahap' => $request->query('tahap', ''),
             'fWil' => $request->query('wil', ''),
             'fQ' => $request->query('q', ''),
             'fPetugas' => $request->query('petugas', ''),
@@ -340,6 +341,9 @@ class MonitoringController extends Controller
 
     public function sample(Request $request, SampleHousehold $sample)
     {
+        // sama dengan daftar sampel: yang tak muncul di daftar Anda, tak bisa dibuka lewat alamat
+        abort_unless($this->visibleSamples($request->user())->whereKey($sample->id)->exists(), 403,
+            'Sampel ini tidak ada dalam daftar Anda.');
         $canAssign = in_array($request->user()->role, ['pj', 'pml', 'admin'], true);
 
         return view('monitoring.sample', [
@@ -347,7 +351,6 @@ class MonitoringController extends Controller
             'wilNames' => Wilayah::pluck('name', 'code'),
             'userNames' => User::pluck('name', 'id'),
             'docs' => $sample->documents,
-            'statusLabels' => self::STATUS,
             'nrReasons' => self::NONRESPONSE_REASONS,
             'replacement' => $sample->replacedBy()->first(),
             'original' => $sample->replaces,
@@ -361,29 +364,46 @@ class MonitoringController extends Controller
         ]);
     }
 
+    /**
+     * Tanda manual pengawas. Tahap lain (belum → diisi → menunggu pemeriksaan → bersih) berjalan
+     * otomatis mengikuti isian, jadi yang bisa diubah tangan hanya:
+     *  - `non_respons` (wajib alasan), dan
+     *  - `batal` — mencabut tanda non-respons / ganti sampel, kembali ke tahap otomatis.
+     * Ganti sampel dibuat lewat replace() karena sekaligus membuat sampel pengganti.
+     */
     public function setStatus(Request $request, SampleHousehold $sample)
     {
         $new = $request->input('new_status');
-        abort_unless(array_key_exists($new, self::STATUS), 400, 'Status tidak valid');
+        abort_unless(in_array($new, ['non_respons', 'batal'], true), 400, 'Status tidak valid');
         $this->assertInScope($request->user(), $sample);
+        $old = $sample->status;
 
-        $needsReason = in_array($new, self::NEEDS_REASON, true);
+        if ($new === 'batal') {
+            abort_unless(in_array($old, Tahap::MANUAL, true), 409,
+                'Sampel ini tidak bertanda non-respons atau ganti sampel.');
+            abort_if($sample->replacedBy()->exists(), 409,
+                'Sampel ini sudah punya pengganti, tandanya tidak bisa dibatalkan.');
+            $sample->update(['status' => Tahap::autoSampleStatus($sample),
+                'nonresponse_reason' => null, 'status_note' => null]);
+            AuditLog::record('sample', $sample->id, 'ubah-status', "{$old} -> {$sample->status} (dibatalkan)",
+                $request->user()->id);
+
+            return redirect()->route('monitoring.sample', $sample)->with('ok', 'Tanda dibatalkan.');
+        }
+
         $d = $request->validate([
-            'reason' => [$needsReason ? 'required' : 'nullable',
-                'string', 'in:'.implode(',', array_keys(self::NONRESPONSE_REASONS))],
+            'reason' => 'required|string|in:'.implode(',', array_keys(self::NONRESPONSE_REASONS)),
             'note' => 'nullable|string|max:300',
         ]);
-
-        $old = $sample->status;
         $sample->update([
-            'status' => $new,
-            'nonresponse_reason' => $needsReason ? $d['reason'] : null,
-            'status_note' => $needsReason ? ($d['note'] ?? null) : null,
+            'status' => 'non_respons',
+            'nonresponse_reason' => $d['reason'],
+            'status_note' => $d['note'] ?? null,
         ]);
-        $detail = "{$old} -> {$new}".($needsReason ? " ({$d['reason']})" : '');
-        AuditLog::record('sample', $sample->id, 'ubah-status', $detail, $request->user()->id);
+        AuditLog::record('sample', $sample->id, 'ubah-status', "{$old} -> non_respons ({$d['reason']})",
+            $request->user()->id);
 
-        return redirect()->route('monitoring.sample', $sample)->with('ok', 'Status diperbarui.');
+        return redirect()->route('monitoring.sample', $sample)->with('ok', 'Sampel ditandai non-respons.');
     }
 
     /** Buat sampel pengganti dari sampel yang non-respons / tidak eligible. */
@@ -488,11 +508,15 @@ class MonitoringController extends Controller
     public function createDocument(Request $request, SampleHousehold $sample)
     {
         abort_if($sample->cycle?->isLocked(), 423, 'Siklus sudah dikunci (selesai).');
-        if ($request->user()->role === 'operator') {
-            abort_unless(in_array($sample->cycle_id, QuestionnaireVersion::activeCycleIds(), true), 403,
-                'Periode kuesioner siklus ini sedang tidak aktif.');
-        }
         $doc = $sample->documents()->first();
+        if ($request->user()->role === 'operator') {
+            abort_unless((int) $sample->petugas_id === (int) $request->user()->id, 403,
+                'Sampel ini tidak ditugaskan kepada Anda.');
+            // isian yang sudah ada tetap bisa dibuka (hanya-lihat di luar periode lapangan);
+            // isian BARU hanya boleh dibuat selama periode lapangan dibuka
+            abort_unless($doc || $sample->cycle?->isFieldOpen(), 403,
+                'Periode lapangan sampel ini belum/sudah ditutup — isian baru tidak bisa dibuat.');
+        }
         if (! $doc) {
             $qv = QuestionnaireVersion::where('cycle_id', $sample->cycle_id)->orderByDesc('id')->first();
             $doc = Document::create([

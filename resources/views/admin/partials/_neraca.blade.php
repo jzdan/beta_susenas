@@ -2,7 +2,7 @@
      Berisi: Parameter, Agregat cek-silang (NERACA), Variabel turunan.
      Dipindah dari halaman Metadata supaya Metadata hanya untuk membuat kuesioner. --}}
 <section class="panel">
-  <h2>Parameter <small class="muted">(konstanta per versi — dipakai ekspresi aturan)</small></h2>
+  <h2>Parameter <small class="muted">(nilai tetap per versi, dipakai aturan)</small></h2>
   @foreach ($params as $p)
   <div class="param-row">
     <form method="post" action="{{ route('admin.parameter.save') }}" class="row-form">
@@ -27,7 +27,7 @@
   </form>
 
   <details class="mt">
-    <summary style="cursor:pointer;font-weight:600">Parameter sistem — nama variabel yang dipakai program</summary>
+    <summary style="cursor:pointer;font-weight:600">Parameter sistem: nama variabel yang dipakai program</summary>
     <p class="muted small">Bila kuesioner baru mengganti nama variabel kunci, buat parameter dengan nama di bawah
       (nilai = nama variabel; boleh beberapa dipisah koma, yang pertama ada yang dipakai). Bila tidak dibuat,
       dipakai nilai bawaan.</p>
@@ -53,7 +53,7 @@
 @php($opOpts = ['sum','weighted_sum','count','max','min'])
 @php($fopOpts = ['any','eq','in','ne'])
 <section class="panel">
-  <h2>Agregat cek-silang <small class="muted">(NERACA — agregasi terkelompok atas blok berulang)</small></h2>
+  <h2>Agregat cek-silang <small class="muted">(jumlah per kelompok dari blok berulang)</small></h2>
 
   @forelse ($aggregates->sortBy('order') as $a)
   <details class="param-row" style="display:block">

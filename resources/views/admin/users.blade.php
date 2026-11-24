@@ -12,7 +12,7 @@
   <h2>Daftar pengguna ({{ $users->count() }})</h2>
   <div class="tablewrap">
   <table class="tbl">
-    <thead><tr><th></th><th>Username</th><th>Nama</th><th>Peran</th><th>Wilayah</th><th>Aktif</th><th></th></tr></thead>
+    <thead><tr><th></th><th>Nama pengguna</th><th>Nama</th><th>Peran</th><th>Wilayah</th><th>Aktif</th><th></th></tr></thead>
     <tbody>
     @foreach ($users as $u)
       <tr class="{{ $u->active ? '' : 'row-off' }}">
@@ -42,14 +42,14 @@
     @csrf
     <input type="hidden" name="user_id" id="user_id">
     <div class="row-form">
-      <label>Username <input name="username" id="username" class="mono" required pattern="[a-z0-9_.]+"></label>
+      <label>Nama pengguna <input name="username" id="username" class="mono" required pattern="[a-z0-9_.]+"></label>
       <label>Nama <input name="name" id="name" required></label>
       <label>Peran
         <select name="role" id="role">
           @foreach ($roles as $k => $lbl)<option value="{{ $k }}">{{ $lbl }}</option>@endforeach
         </select>
       </label>
-      <label>Wilayah scope
+      <label>Cakupan wilayah
         <select name="wilayah_scope" id="wilayah_scope">
           <option value="">— (semua kecamatan)</option>
           @foreach ($kecamatans as $k)
@@ -58,10 +58,10 @@
         </select>
       </label>
     </div>
-    <p class="muted small">Wilayah scope membatasi apa yang dilihat pengguna — selalu berupa satu <strong>kecamatan</strong>
-      (bukan desa/kabupaten). <strong>Penanggung Jawab</strong>: wajib diisi — satu penanggung jawab per kecamatan.
+    <p class="muted small">Cakupan wilayah membatasi apa yang dilihat pengguna, berupa satu <strong>kecamatan</strong>.
+      <strong>Penanggung Jawab</strong>: wajib diisi, satu penanggung jawab per kecamatan.
       <strong>Pengawas Lapangan</strong>: pilih kecamatan, atau kosongkan untuk lihat semua.
-      <strong>Operator/Peninjau</strong>: biasanya dikosongkan (operator dibatasi lewat penugasan sampel, bukan wilayah scope).</p>
+      <strong>Operator/Peninjau</strong>: biasanya dikosongkan (pencacah dibatasi lewat penugasan sampel, bukan cakupan wilayah).</p>
     <label>Kata sandi <input type="password" name="password" id="password" placeholder="min. 8 karakter (kosongkan = tidak diubah)"></label>
     <div class="row-form">
       <button type="submit">Simpan</button>

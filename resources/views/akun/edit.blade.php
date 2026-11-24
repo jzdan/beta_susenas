@@ -10,7 +10,7 @@
   <section class="panel">
     <h2>Keterangan</h2>
     <dl class="kv">
-      <div><dt>Username</dt><dd class="mono">{{ $u->username }}</dd></div>
+      <div><dt>Nama pengguna</dt><dd class="mono">{{ $u->username }}</dd></div>
       <div><dt>Nama</dt><dd>{{ $u->name }}</dd></div>
       <div><dt>Peran</dt><dd>{{ $u->roleLabel() }}</dd></div>
       @if($u->wilayah_scope)<div><dt>Cakupan wilayah</dt><dd class="mono">{{ $u->wilayah_scope }}</dd></div>@endif
@@ -32,7 +32,7 @@
         <input type="password" name="password_confirmation" required autocomplete="new-password">
       </label>
       <p class="muted small">Minimal 8 karakter, memuat huruf dan angka, bukan sama dengan yang lama,
-        dan tidak memuat username.</p>
+        dan tidak memuat nama pengguna.</p>
       <button type="submit">Simpan</button>
     </form>
   </section>

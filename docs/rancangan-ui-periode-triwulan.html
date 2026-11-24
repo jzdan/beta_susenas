@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rancangan Periode Survei</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#eceef3;--surface:#fff;--surface-2:#f4f6f9;--ink:#141b26;--ink-soft:#454f5d;--muted:#767f8d;
+  --line:#e3e6ec;--line-strong:#c9cfda;--accent:#1f5aa8;--accent-strong:#1b4f95;--accent-ink:#1c4c86;--accent-soft:#e6eef9;
+  --ok:#2f7d4e;--ok-soft:#e5f1e9;--warn:#96660f;--warn-soft:#f7edda;--err:#a83a3a;--err-soft:#f7e7e7;
+  --teal:#0f7a80;--teal-soft:#e0f0f0;--grey:#5f6b7c;--grey-soft:#eceff3;
+  --radius:8px;--radius-lg:12px;
+  --shadow-sm:0 1px 2px rgba(20,28,45,.04),0 1px 3px rgba(20,28,45,.06);
+  --shadow-md:0 2px 6px rgba(20,28,45,.05),0 12px 28px -10px rgba(20,28,45,.14);
+  --nav-bg:#172032;--nav-fg:#e8ebf2;--nav-fg-dim:#949fb3;--nav-hover:#212c42;--nav-active:#29374f;--nav-line:#2a3448;--nav-accent:#6ba2df;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.55;color:var(--ink);background:var(--paper)}
+a{color:var(--accent-ink)}
+.mono{font-family:"IBM Plex Mono",monospace;font-size:.92em}
+.muted{color:var(--muted)} .small{font-size:.86rem}
+
+/* catatan rancangan (bukan bagian aplikasi) */
+.note{max-width:1180px;margin:18px auto 0;padding:14px 18px;background:#fffbea;border:1px dashed #d8b64a;border-radius:var(--radius-lg);font-size:.9rem;color:#5c4a12}
+.note b{color:#3f330c}
+.note .steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.note .steps button{font:inherit;font-size:.85rem;padding:5px 12px;border-radius:999px;border:1px solid #d8b64a;background:#fff;cursor:pointer;color:#5c4a12}
+.note .steps button.on{background:#3f330c;color:#fff;border-color:#3f330c}
+
+/* bingkai aplikasi */
+.app{max-width:1180px;margin:14px auto 40px;border-radius:14px;overflow:hidden;box-shadow:var(--shadow-md);background:var(--paper);border:1px solid var(--line-strong)}
+.topbar{height:52px;background:var(--nav-bg);color:var(--nav-fg);display:flex;align-items:center;justify-content:space-between;padding:0 18px}
+.brand{font-weight:600;display:flex;gap:9px;align-items:center}
+.brand i{width:8px;height:8px;border-radius:50%;background:var(--nav-accent);box-shadow:0 0 0 4px rgba(107,162,223,.22)}
+.who{display:flex;gap:10px;align-items:center;font-size:.85rem;color:var(--nav-fg-dim)}
+.av{width:28px;height:28px;border-radius:50%;background:#3d7a4f;color:#fff;display:grid;place-items:center;font-size:.72rem;font-weight:600}
+.shell{display:grid;grid-template-columns:212px minmax(0,1fr);min-height:640px}
+.side{background:var(--nav-bg);padding:12px 10px;display:flex;flex-direction:column;gap:1px}
+.side a{color:var(--nav-fg-dim);text-decoration:none;font-size:.88rem;padding:8px 12px;border-radius:var(--radius);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.side a:hover{background:var(--nav-hover);color:var(--nav-fg)}
+.side a.on{background:var(--nav-active);color:#fff;font-weight:600}
+.side .sep{font-size:.74rem;font-weight:600;color:var(--nav-fg-dim);padding:14px 12px 4px;border-top:1px solid var(--nav-line);margin-top:6px}
+.side .new{font-size:.66rem;background:var(--nav-accent);color:#0d1a2c;border-radius:999px;padding:1px 7px;font-weight:700}
+.side .now{display:block;margin:4px 2px 8px;padding:10px 12px;border-radius:10px;background:linear-gradient(135deg,#1f5aa8,#0f7a80);color:#fff;text-decoration:none;cursor:pointer}
+.side .now small{display:block;font-size:.72rem;opacity:.85}
+.side .now b{font-size:.92rem}
+.content{padding:22px 28px 40px;min-width:0}
+
+.crumb{font-size:.86rem;color:var(--muted);margin-bottom:6px}
+.crumb a{cursor:pointer;text-decoration:none}
+.crumb a:hover{text-decoration:underline}
+h1{font-size:1.6rem;margin:0 0 4px;font-weight:600;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.lead{color:var(--ink-soft);margin:0 0 18px}
+
+.btn{font:inherit;font-size:.9rem;font-weight:500;padding:8px 14px;border-radius:var(--radius);border:1px solid var(--accent-strong);background:var(--accent-strong);color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:var(--surface);color:var(--ink-soft);border-color:var(--line-strong)}
+.chip{font-size:.78rem;font-weight:500;padding:2px 10px;border-radius:999px;border:1px solid;white-space:nowrap}
+.st-lapangan{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent)}
+.st-pengolahan{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.st-selesai{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+.st-persiapan{background:var(--grey-soft);color:var(--grey);border-color:var(--line-strong)}
+
+/* kartu ala Classroom */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.grid.q4{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm);cursor:pointer;display:flex;flex-direction:column;transition:box-shadow .15s,transform .15s}
+.card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.card .head{padding:16px 18px 14px;color:#fff;position:relative;min-height:96px}
+.card .head h3{margin:0;font-size:1.35rem;font-weight:600}
+.card .head p{margin:2px 0 0;font-size:.85rem;opacity:.9}
+.card .head .badge{position:absolute;right:14px;top:14px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.45);color:#fff;font-size:.75rem;padding:2px 9px;border-radius:999px}
+.card .body{padding:14px 18px;flex:1;font-size:.88rem;color:var(--ink-soft)}
+.card .foot{border-top:1px solid var(--line);padding:10px 18px;display:flex;justify-content:space-between;align-items:center;font-size:.84rem;color:var(--muted)}
+.h-lapangan{background:linear-gradient(135deg,#1f5aa8,#2d74c9)}
+.h-pengolahan{background:linear-gradient(135deg,#a8700f,#c98a1d)}
+.h-selesai{background:linear-gradient(135deg,#2f7d4e,#3f9864)}
+.h-persiapan{background:linear-gradient(135deg,#5f6b7c,#7a8697)}
+.h-tahun{background:linear-gradient(135deg,#172032,#29374f)}
+.bar{height:7px;background:var(--surface-2);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--accent)}
+.row{display:flex;justify-content:space-between;gap:8px;margin:5px 0}
+.inst{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.inst span{font-size:.8rem;padding:3px 10px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-soft)}
+.card.empty{border:2px dashed var(--line-strong);box-shadow:none;background:transparent;align-items:center;justify-content:center;text-align:center;min-height:250px;color:var(--muted)}
+.card.empty b{display:block;color:var(--ink-soft);font-size:1.15rem;margin-bottom:4px}
+
+/* hub */
+.hubhead{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px 0;box-shadow:var(--shadow-sm);margin-bottom:16px}
+.inst-switch{display:flex;gap:6px;margin:10px 0 0}
+.inst-switch a{font-size:.85rem;padding:5px 12px;border-radius:999px;border:1px solid var(--line-strong);text-decoration:none;color:var(--ink-soft);cursor:pointer}
+.inst-switch a.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tabs{display:flex;gap:2px;margin-top:14px;overflow-x:auto}
+.tabs a{padding:10px 14px;font-size:.9rem;color:var(--ink-soft);text-decoration:none;border-bottom:3px solid transparent;white-space:nowrap;cursor:pointer}
+.tabs a.on{color:var(--accent-ink);border-bottom-color:var(--accent);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm);margin-bottom:16px}
+.panel h2{font-size:1.05rem;margin:0 0 12px;font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px 16px}
+.kpi b{display:block;font-size:1.7rem;color:var(--accent-ink);font-weight:600;line-height:1.1}
+.kpi span{font-size:.84rem;color:var(--muted)}
+.next{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-soft);border:1px solid var(--warn);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:16px}
+.next b{display:block}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{font-size:.82rem;color:var(--muted);font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.t{font-size:.78rem;padding:2px 9px;border-radius:999px;border:1px solid}
+.t1{color:var(--muted);border-color:var(--line-strong)}
+.t2{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent)}
+.t3{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.t4{background:var(--err-soft);color:var(--err);border-color:var(--err)}
+.t5{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+.check{list-style:none;margin:0;padding:0}
+.check li{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.check li:last-child{border:0}
+.ck{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.8rem;font-weight:700;flex:none}
+.ck.ok{background:var(--ok-soft);color:var(--ok)} .ck.no{background:var(--err-soft);color:var(--err)}
+.locked{background:var(--grey-soft);border:1px solid var(--line-strong);border-radius:var(--radius);padding:8px 12px;font-size:.86rem;color:var(--grey);margin-bottom:12px}
+.view{display:none}.view.on{display:block}
+.tabview{display:none}.tabview.on{display:block}
+
+/* perbandingan sebelum/sesudah */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:1180px;margin:0 auto 40px}
+.cmp .panel h2{display:flex;gap:8px;align-items:center}
+.cmp ul{margin:0;padding-left:18px;font-size:.9rem}
+.cmp li{margin:4px 0}
+.del{color:var(--err);text-decoration:line-through}
+.add{color:var(--ok);font-weight:600}
+@media (max-width:860px){.shell{grid-template-columns:1fr}.side{flex-direction:row;overflow-x:auto}.side .sep{display:none}.cols,.cmp{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="note">
+  <b>Rancangan, bukan aplikasi sungguhan.</b> Data contoh. Klik kartu tahun → kartu triwulan → kartu survei untuk masuk ke hub,
+  atau pakai tombol di bawah untuk lompat ke tiap tingkat. Menu samping kiri juga bisa diklik.
+  <div class="steps">
+    <button data-go="v-periode" class="on">1 · Periode Survei (per tahun)</button>
+    <button data-go="v-tahun">2 · Tahun 2026 (per triwulan)</button>
+    <button data-go="v-tw">3 · TW1 2026 (per survei)</button>
+    <button data-go="v-hub">4 · Hub SUSENAS KP</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><i></i> Sistem SUSENAS</div>
+    <div class="who">Notifikasi · Tema <span class="av">AS</span> Administrator Sistem</div>
+  </div>
+  <div class="shell">
+    <nav class="side">
+      <a class="now" data-go="v-hub"><small>Triwulan berjalan</small><b>TW1 2027 · Lapangan</b></a>
+      <a data-go="v-periode" class="on" id="nav-periode">Periode Survei <span class="new">BARU</span></a>
+      <a>Dashboard</a>
+      <a>Tugas Saya</a>
+      <a>Daftar Sampel</a>
+      <a>Pengolahan</a>
+      <a>Tabulasi &amp; Ekspor</a>
+      <a>Kinerja Tim</a>
+      <a>Log Audit</a>
+      <div class="sep">Data bersama</div>
+      <a>Wilayah</a>
+      <a>Pengguna</a>
+    </nav>
+
+    <main class="content">
+
+      <!-- ============ TINGKAT 1 ============ -->
+      <section class="view on" id="v-periode">
+        <h1>Periode Survei</h1>
+        <p class="lead">Pilih tahun. Setiap tahun berisi empat triwulan.</p>
+        <div class="grid">
+          <div class="card" data-go="v-tahun">
+            <div class="head h-tahun"><h3>2027</h3><p>Triwulan berjalan: TW1</p><span class="badge">1 dari 4</span></div>
+            <div class="body">
+              <div class="row"><span>TW1 Maret</span><span class="chip st-lapangan">Lapangan</span></div>
+              <div class="row"><span>TW2–TW4</span><span class="muted">belum disiapkan</span></div>
+              <div style="margin-top:12px" class="bar"><i style="width:16%"></i></div>
+              <div class="small muted" style="margin-top:4px">5 dari 32 sampel terisi</div>
+            </div>
+            <div class="foot"><span>SUSENAS · SERUTI</span><span>Buka →</span></div>
+          </div>
+          <div class="card" data-go="v-tahun">
+            <div class="head h-tahun"><h3>2026</h3><p>Pengolahan TW1</p><span class="badge">1 dari 4</span></div>
+            <div class="body">
+              <div class="row"><span>TW1 Maret</span><span class="chip st-pengolahan">Pengolahan</span></div>
+              <div class="row"><span>TW2–TW4</span><span class="muted">belum disiapkan</span></div>
+              <div style="margin-top:12px" class="bar"><i style="width:97%;background:var(--warn)"></i></div>
+              <div class="small muted" style="margin-top:4px">31 dari 32 sampel terisi · 3 masih ada kesalahan</div>
+            </div>
+            <div class="foot"><span>SUSENAS · SERUTI</span><span>Buka →</span></div>
+          </div>
+          <div class="card empty">
+            <div><b>+ Tahun baru</b>Mulai dari TW1 tahun berikutnya</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TINGKAT 2 ============ -->
+      <section class="view" id="v-tahun">
+        <div class="crumb"><a data-go="v-periode">Periode</a> › 2026</div>
+        <h1>2026</h1>
+        <p class="lead">Empat triwulan. Warna kartu = status.</p>
+        <div class="grid q4">
+          <div class="card" data-go="v-tw">
+            <div class="head h-pengolahan"><h3>TW1</h3><p>Maret 2026</p><span class="badge">Pengolahan</span></div>
+            <div class="body">
+              <div class="row"><span>Sampel terisi</span><b>43 / 44</b></div>
+              <div class="bar"><i style="width:97%;background:var(--warn)"></i></div>
+              <div class="row" style="margin-top:8px"><span>Menunggu pemeriksaan</span><b>15</b></div>
+              <div class="row"><span>Masih ada kesalahan</span><b style="color:var(--err)">3</b></div>
+              <div class="inst"><span>SUSENAS KOR</span><span>SUSENAS KP</span><span>SERUTI</span></div>
+            </div>
+            <div class="foot"><span>3 kuesioner</span><span>Buka →</span></div>
+          </div>
+          <div class="card empty"><div><b>TW2</b>Juni 2026 · SERUTI<br><br><span class="btn">+ Siapkan triwulan ini</span><br><span class="small">menyalin SERUTI dari TW1</span></div></div>
+          <div class="card empty"><div><b>TW3</b>September 2026 · SUSENAS + SERUTI<br><br><span class="btn ghost">+ Siapkan triwulan ini</span></div></div>
+          <div class="card empty"><div><b>TW4</b>Desember 2026 · SERUTI<br><br><span class="btn ghost">+ Siapkan triwulan ini</span></div></div>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <h2>Contoh tahun yang sudah lengkap</h2>
+          <div class="grid q4">
+            <div class="card"><div class="head h-selesai"><h3>TW1</h3><p>Maret</p><span class="badge">Selesai</span></div><div class="body">32/32 bersih · angka respons 97%</div></div>
+            <div class="card"><div class="head h-selesai"><h3>TW2</h3><p>Juni</p><span class="badge">Selesai</span></div><div class="body">32/32 bersih · angka respons 94%</div></div>
+            <div class="card"><div class="head h-lapangan"><h3>TW3</h3><p>September</p><span class="badge">Lapangan</span></div><div class="body">hari ke-12/31 · 41% terisi</div></div>
+            <div class="card"><div class="head h-persiapan"><h3>TW4</h3><p>Desember</p><span class="badge">Persiapan</span></div><div class="body">persiapan 3 dari 6 beres</div></div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ============ TINGKAT 3: TRIWULAN ============ -->
+      <section class="view" id="v-tw">
+        <div class="crumb"><a data-go="v-periode">Periode</a> › <a data-go="v-tahun">2026</a> › TW1</div>
+        <h1>TW1 2026 · Maret</h1>
+        <p class="lead">Survei yang berjalan di triwulan ini. Klik salah satu untuk mengelolanya.</p>
+        <div class="grid">
+          <div class="card" data-go="v-hub">
+            <div class="head h-pengolahan"><h3>SUSENAS KOR</h3><p>Kuesioner Inti · VSEN26.K</p><span class="badge">Pengolahan</span></div>
+            <div class="body">
+              <div class="row"><span>Sampel terisi</span><b>3 / 3</b></div>
+              <div class="bar"><i style="width:100%;background:var(--warn)"></i></div>
+              <div class="row" style="margin-top:8px"><span>Menunggu pemeriksaan</span><b>1</b></div>
+            </div>
+            <div class="foot"><span>Lapangan 1–31 Mar</span><span>Buka →</span></div>
+          </div>
+          <div class="card" data-go="v-hub">
+            <div class="head h-pengolahan"><h3>SUSENAS KP</h3><p>Konsumsi &amp; Pengeluaran · VSEN26.KP</p><span class="badge">Pengolahan</span></div>
+            <div class="body">
+              <div class="row"><span>Sampel terisi</span><b>28 / 29</b></div>
+              <div class="bar"><i style="width:96%;background:var(--warn)"></i></div>
+              <div class="row" style="margin-top:8px"><span>Menunggu pemeriksaan</span><b>12</b></div>
+              <div class="row"><span>Masih ada kesalahan</span><b style="color:var(--err)">3</b></div>
+            </div>
+            <div class="foot"><span>Lapangan 1–31 Mar</span><span>Buka →</span></div>
+          </div>
+          <div class="card" data-go="v-hub">
+            <div class="head h-lapangan"><h3>SERUTI</h3><p>Ekonomi Rumah Tangga Triwulanan · VSERUTI26.INTI</p><span class="badge">Lapangan</span></div>
+            <div class="body">
+              <div class="row"><span>Sampel terisi</span><b>12 / 12</b></div>
+              <div class="bar"><i style="width:100%"></i></div>
+              <div class="row" style="margin-top:8px"><span>Subsampel dari SUSENAS KP</span><b>12</b></div>
+            </div>
+            <div class="foot"><span>Lapangan 1–31 Mar</span><span>Buka →</span></div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px">
+          <h2>Beban petugas triwulan ini <span class="muted small" style="font-weight:400">· gabungan semua survei</span></h2>
+          <table><thead><tr><th>Petugas</th><th class="n">SUSENAS</th><th class="n">SERUTI</th><th class="n">Total</th><th>Progres</th></tr></thead><tbody>
+            <tr><td>Ani Kurniawati</td><td class="n">11</td><td class="n">6</td><td class="n"><b>17</b></td><td style="min-width:140px"><div class="bar"><i style="width:94%"></i></div></td></tr>
+            <tr><td>Dodi Pratama</td><td class="n">10</td><td class="n">3</td><td class="n"><b>13</b></td><td><div class="bar"><i style="width:100%"></i></div></td></tr>
+            <tr><td>Rizal Hakim</td><td class="n">11</td><td class="n">3</td><td class="n"><b>14</b></td><td><div class="bar"><i style="width:86%"></i></div></td></tr>
+          </tbody></table>
+          <p class="small muted" style="margin:8px 0 0">Hanya terlihat di tingkat triwulan. Kalau dipisah per survei, beban gabungan seperti ini tidak pernah tampak.</p>
+        </div>
+      </section>
+      <!-- ============ TINGKAT 4: HUB ============ -->
+      <section class="view" id="v-hub">
+        <div class="crumb"><a data-go="v-periode">Periode</a> › <a data-go="v-tahun">2026</a> › <a data-go="v-tw">TW1</a> › SUSENAS KP</div>
+        <div class="hubhead">
+          <h1>SUSENAS KP · TW1 2026 <span class="chip st-pengolahan">Pengolahan</span></h1>
+          <div class="muted small">Lapangan 1–31 Mar 2026 (berakhir) · pengolahan berjalan · versi kuesioner <span class="mono">VSEN26.KP</span></div>
+          <div class="inst-switch"><a>SUSENAS KOR (3)</a><a class="on">SUSENAS KP (29)</a><a>SERUTI (12)</a></div>
+          <div class="tabs">
+            <a class="on" data-tab="t-ringkasan">Ringkasan</a>
+            <a data-tab="t-kuesioner">Kuesioner</a>
+            <a data-tab="t-aturan">Aturan Validasi</a>
+            <a data-tab="t-peserta">Peserta</a>
+            <a data-tab="t-sampel">Sampel</a>
+            <a data-tab="t-pengolahan">Pengolahan</a>
+            <a data-tab="t-persiapan">Persiapan &amp; Penutupan</a>
+          </div>
+        </div>
+
+        <div class="tabview on" id="t-ringkasan">
+          <div class="next">
+            <div><b>Langkah berikutnya: periksa 12 sampel yang sudah dikirim petugas</b>
+              <span class="small">Sistem menyarankan langkah sesuai status triwulan. Saat lapangan, isinya progres petugas; saat pengolahan, antrean pemeriksaan.</span></div>
+            <a class="btn" data-tab="t-pengolahan">Buka antrean →</a>
+          </div>
+          <div class="kpis">
+            <div class="kpi"><b>29</b><span>Total sampel</span></div>
+            <div class="kpi"><b>28</b><span>Selesai dicacah</span></div>
+            <div class="kpi"><b>96,6%</b><span>Angka respons</span></div>
+            <div class="kpi"><b style="color:var(--err)">3</b><span>Sampel ada kesalahan</span></div>
+          </div>
+          <div class="cols">
+            <div class="panel"><h2>Tahap sampel</h2>
+              <table><tbody>
+                <tr><td><span class="t t1">Belum dikunjungi</span></td><td class="n">1</td></tr>
+                <tr><td><span class="t t2">Sedang diisi</span></td><td class="n">2</td></tr>
+                <tr><td><span class="t t3">Menunggu pemeriksaan</span></td><td class="n">12</td></tr>
+                <tr><td><span class="t t4">Dikembalikan ke petugas</span></td><td class="n">1</td></tr>
+                <tr><td><span class="t t5">Bersih</span></td><td class="n">13</td></tr>
+              </tbody></table>
+            </div>
+            <div class="panel"><h2>Aturan tersering menyala</h2>
+              <table><thead><tr><th>Aturan</th><th class="n">Sampel</th></tr></thead><tbody>
+                <tr><td>Harga satuan kemahalan</td><td class="n">6</td></tr>
+                <tr><td>Pengeluaran di bawah garis kemiskinan</td><td class="n">6</td></tr>
+                <tr><td>Kalori per kapita di bawah ambang</td><td class="n">4</td></tr>
+              </tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabview" id="t-kuesioner">
+          <div class="locked" style="display:none"></div>
+          <div class="panel"><h2>Blok kuesioner VSEN26.KP <span class="muted small" style="font-weight:400">· 12 blok</span></h2>
+            <table><thead><tr><th>Blok</th><th>Judul</th><th>Jenis</th><th class="n">Rincian</th></tr></thead><tbody>
+              <tr><td>I</td><td>Keterangan Tempat</td><td>per rumah tangga</td><td class="n">8</td></tr>
+              <tr><td>II</td><td>Keterangan Pendataan</td><td>per rumah tangga</td><td class="n">7</td></tr>
+              <tr><td>III</td><td>Banyaknya Anggota Rumah Tangga</td><td>per rumah tangga</td><td class="n">5</td></tr>
+              <tr><td>IV.1</td><td>Konsumsi Makanan Seminggu Terakhir</td><td>daftar baris tetap</td><td class="n">194</td></tr>
+              <tr><td colspan="4" class="muted small">… isi sama dengan halaman Metadata Kuesioner sekarang, sudah tersaring ke triwulan ini</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <div class="tabview" id="t-aturan">
+          <div class="panel"><h2>Aturan validasi triwulan ini <span class="muted small" style="font-weight:400">· 25 aturan, 25 menyala</span></h2>
+            <table><thead><tr><th>Tingkat</th><th>Pesan</th><th class="n">Kena</th></tr></thead><tbody>
+              <tr><td><span class="t t3">Peringatan</span></td><td>Harga satuan kemahalan</td><td class="n"><a>6 sampel</a></td></tr>
+              <tr><td><span class="t t4">Kesalahan</span></td><td>Rekap IV.1 per kelompok tidak sama dengan total</td><td class="n">0</td></tr>
+              <tr><td colspan="3" class="muted small">… halaman Aturan Validasi yang sekarang, tanpa perlu memilih versi dari dropdown</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <div class="tabview" id="t-peserta">
+          <div class="panel"><h2>Peserta triwulan ini <span class="muted small" style="font-weight:400">· diambil dari penugasan sampel, akun tetap dikelola di menu Pengguna</span></h2>
+            <table><thead><tr><th>Nama</th><th>Peran</th><th>Wilayah</th><th class="n">Sampel</th><th>Progres</th><th class="n">Dikembalikan</th></tr></thead><tbody>
+              <tr><td>Ani Kurniawati</td><td>Pencacah Lapangan</td><td>Kamal</td><td class="n">11</td><td style="min-width:120px"><div class="bar"><i style="width:91%"></i></div></td><td class="n">1</td></tr>
+              <tr><td>Dodi Pratama</td><td>Pencacah Lapangan</td><td>Labang</td><td class="n">9</td><td><div class="bar"><i style="width:100%"></i></div></td><td class="n">0</td></tr>
+              <tr><td>Rizal Hakim</td><td>Pencacah Lapangan</td><td>Kwanyar</td><td class="n">9</td><td><div class="bar"><i style="width:89%"></i></div></td><td class="n">0</td></tr>
+              <tr><td>Rahmawati</td><td>Pengawas Lapangan</td><td>Kamal, Labang</td><td class="n">20</td><td><div class="bar"><i style="width:60%;background:var(--warn)"></i></div></td><td class="n">—</td></tr>
+              <tr><td>Kamaluddin</td><td>Penanggung Jawab</td><td>Kamal</td><td class="n">11</td><td class="muted small">memantau</td><td class="n">—</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <div class="tabview" id="t-sampel">
+          <div class="panel"><h2>Sampel triwulan ini</h2>
+            <p class="muted small">Halaman Daftar Sampel yang sekarang, otomatis tersaring ke TW1 2026 · KP (filter siklus tidak perlu dipilih lagi).</p>
+          </div>
+        </div>
+
+        <div class="tabview" id="t-pengolahan">
+          <div class="panel"><h2>Antrean pemeriksaan</h2>
+            <p class="muted small">Halaman Pengolahan yang sekarang, tersaring ke triwulan ini. 12 sampel menunggu, tertua 4 hari.</p>
+          </div>
+        </div>
+
+        <div class="tabview" id="t-persiapan">
+          <div class="cols">
+            <div class="panel"><h2>Persiapan (sebelum lapangan)</h2>
+              <ul class="check">
+                <li><span class="ck ok">✓</span><div><b>Versi kuesioner utuh</b><div class="small muted">VSEN26.KP, tidak ada rujukan putus</div></div></li>
+                <li><span class="ck ok">✓</span><div><b>Sampel dimuat</b><div class="small muted">29 sampel</div></div></li>
+                <li><span class="ck ok">✓</span><div><b>Semua sampel punya Pencacah Lapangan</b></div></li>
+                <li><span class="ck ok">✓</span><div><b>Tanggal lapangan diisi</b><div class="small muted">1–31 Mar 2026</div></div></li>
+              </ul>
+            </div>
+            <div class="panel"><h2>Penutupan (setelah pengolahan)</h2>
+              <ul class="check">
+                <li><span class="ck no">✕</span><div><b>Semua sampel tuntas di lapangan</b><div class="small muted">1 belum dikunjungi</div></div></li>
+                <li><span class="ck no">✕</span><div><b>Semua isian bersih</b><div class="small muted">16 belum bersih</div></div></li>
+                <li><span class="ck no">✕</span><div><b>Tidak ada kesalahan</b><div class="small muted">3 sampel</div></div></li>
+              </ul>
+              <p class="small muted">Setelah dikunci: kuesioner &amp; aturan triwulan ini menjadi hanya-lihat.</p>
+              <span class="btn ghost">Kunci triwulan</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- perbandingan menu -->
+<div class="cmp">
+  <div class="panel"><h2>Menu samping admin: sekarang <span class="chip st-persiapan">18 menu</span></h2>
+    <ul>
+      <li>Dashboard, Tugas Saya, Peta Progres, Daftar Sampel, Pengolahan, Tabulasi, Indikator, Kinerja Tim, Log Audit</li>
+      <li class="del">Metadata Kuesioner</li><li class="del">Impor Rincian</li><li class="del">Aturan Validasi</li>
+      <li class="del">Jadwal Lapangan</li>
+      <li>Impor Wilkerstat, Pengguna</li>
+      <li class="del">Impor Sampel</li><li class="del">Impor Isian (CAPI)</li>
+    </ul>
+    <p class="small muted">Untuk mengurus satu triwulan, admin melompat ke 6 menu berbeda dan memilih versi/siklus dari dropdown di tiap halaman.</p>
+  </div>
+  <div class="panel"><h2>Sesudah <span class="chip st-selesai">13 menu</span></h2>
+    <ul>
+      <li class="add">Kotak "Triwulan berjalan": 1 klik ke hub yang sedang aktif</li>
+      <li class="add">Periode Survei: tahun → triwulan → hub</li>
+      <li>Dashboard, Tugas Saya, Peta Progres, Daftar Sampel, Pengolahan, Tabulasi, Indikator, Kinerja Tim, Log Audit <span class="muted">(tetap, untuk kerja harian lintas triwulan)</span></li>
+      <li>Data bersama: Wilayah, Pengguna</li>
+    </ul>
+    <p class="small muted">Kuesioner, aturan, sampel, impor, persiapan, dan penutupan pindah <b>ke dalam</b> hub triwulan, sudah tersaring otomatis. Tidak ada lagi dropdown "pilih versi".
+      Petugas lapangan tidak melihat perubahan apa pun.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  function go(id){
+    document.querySelectorAll('.view').forEach(function(v){v.classList.toggle('on',v.id===id)});
+    document.querySelectorAll('.note .steps button').forEach(function(b){b.classList.toggle('on',b.dataset.go===id)});
+    document.getElementById('nav-periode').classList.toggle('on',true);
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  document.querySelectorAll('[data-go]').forEach(function(el){el.addEventListener('click',function(){go(el.dataset.go)})});
+  document.querySelectorAll('[data-tab]').forEach(function(el){el.addEventListener('click',function(){
+    var id=el.dataset.tab;
+    document.querySelectorAll('.tabview').forEach(function(v){v.classList.toggle('on',v.id===id)});
+    document.querySelectorAll('.tabs a').forEach(function(a){a.classList.toggle('on',a.dataset.tab===id)});
+  })});
+  var h=location.hash.replace('#','');
+  if(h.indexOf('t-')===0){go('v-hub');var t=document.querySelector('[data-tab="'+h+'"]');if(t)t.click();}
+  else if(document.getElementById(h))go(h);
+})();
+</script>
+</body>
+</html>

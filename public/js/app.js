@@ -490,3 +490,23 @@
     });
   }
 })();
+
+// Detail teknis (nama variabel, rumus) di halaman admin: tersembunyi kecuali dicentang; diingat per peramban.
+(function () {
+  var boxes = document.querySelectorAll("[data-tech-toggle]");
+  if (!boxes.length) return;
+  var on = false;
+  try { on = localStorage.getItem("susenas.tech") === "1"; } catch (e) {}
+  function apply() {
+    document.body.classList.toggle("show-tech", on);
+    boxes.forEach(function (b) { b.checked = on; });
+  }
+  boxes.forEach(function (b) {
+    b.addEventListener("change", function () {
+      on = b.checked;
+      try { localStorage.setItem("susenas.tech", on ? "1" : "0"); } catch (e) {}
+      apply();
+    });
+  });
+  apply();
+})();

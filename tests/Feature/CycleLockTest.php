@@ -19,8 +19,10 @@ class CycleLockTest extends TestCase
 
     private function kpDoc(): Document
     {
-        return Document::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.KP'))
+        $doc = Document::whereHas('qversion', fn ($q) => $q->where('code', 'VSEN26.KP'))
             ->where('status', '!=', 'bersih')->firstOrFail();
+
+        return $this->openForPetugas($doc, User::where('username', 'ppl_ani')->firstOrFail());
     }
 
     public function test_admin_locks_and_unlocks_a_cycle(): void
@@ -80,7 +82,10 @@ class CycleLockTest extends TestCase
         $resp = $res->viewData('response');
         $this->assertSame($resp['eligible'], max(0, $resp['eligible']));
         $this->assertLessThanOrEqual(100.0, $resp['rate']);
-        $this->assertCount(4, $res->viewData('funnel'));
+        // satu tabel tahap: semua sampel siklus terbagi tepat ke satu tahap
+        $tahap = $res->viewData('tahap');
+        $this->assertSame(array_keys(\App\Support\Tahap::LABELS), array_keys($tahap));
+        $this->assertSame($cycle->samples()->count(), array_sum($tahap));
         $res->assertSee('Respons &amp; disposisi', false)->assertSee('Temuan tersering');
     }
 
@@ -100,6 +105,6 @@ class CycleLockTest extends TestCase
             ->assertSee(route('admin.aturan', ['qv' => $qv->id]), false)
             ->assertSee(route('admin.harga', ['qv' => $qv->id]), false)
             ->assertSee(route('monitoring.samples', ['cycle' => $cycle->id]), false)
-            ->assertSee('Aksi cepat');
+            ->assertSee('Pintasan');
     }
 }

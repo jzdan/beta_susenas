@@ -9,9 +9,9 @@
   <div class="kpi"><span class="n">{{ $total }}</span><span class="l">Total sampel</span></div>
   <div class="kpi"><span class="n">{{ $nDocs }}</span><span class="l">Sampel terisi</span></div>
   <div class="kpi"><span class="n">{{ $done }}</span><span class="l">Selesai dicacah</span></div>
-  <div class="kpi"><span class="n">{{ $response['rate'] }}%</span><span class="l">Response rate (eligible)</span></div>
-  <div class="kpi {{ $nErrDocs ? 'bad' : '' }}"><span class="n">{{ $nErrDocs }}</span><span class="l">Sampel ada error</span></div>
-  <div class="kpi {{ $nWarnDocs ? 'warn' : '' }}"><span class="n">{{ $nWarnDocs }}</span><span class="l">Sampel ada warning</span></div>
+  <div class="kpi"><span class="n">{{ $response['rate'] }}%</span><span class="l">Angka respons</span></div>
+  <div class="kpi {{ $nErrDocs ? 'bad' : '' }}"><span class="n">{{ $nErrDocs }}</span><span class="l">Sampel ada kesalahan</span></div>
+  <div class="kpi {{ $nWarnDocs ? 'warn' : '' }}"><span class="n">{{ $nWarnDocs }}</span><span class="l">Sampel ada peringatan</span></div>
 </div>
 
 <section class="panel">
@@ -20,11 +20,11 @@
     <span class="cnt">{{ $response['responded'] }}</span> terespons ·
     <span class="cnt warn">{{ $response['nonresponse'] }}</span> non-respons ·
     <span class="cnt">{{ $response['pending'] }}</span> belum selesai ·
-    <span class="muted">{{ $response['ineligible'] }} tidak eligible (kosong/ganda)</span> ·
+    <span class="muted">{{ $response['ineligible'] }} tidak memenuhi syarat (kosong/ganda)</span> ·
     <span class="muted">{{ $response['replaced'] }} diganti</span>
   </div>
-  <p class="muted small">Response rate = selesai ÷ {{ $response['eligible'] }} ruta eligible
-    (sampel yang digantikan &amp; kasus tidak-eligible dikeluarkan dari penyebut).</p>
+  <p class="muted small">Angka respons = selesai ÷ {{ $response['eligible'] }} rumah tangga yang memenuhi syarat
+    (sampel yang digantikan, bangunan kosong, dan rumah tangga ganda tidak dihitung).</p>
 </section>
 
 @if(!empty($schedule))
@@ -65,27 +65,9 @@
 </section>
 @endif
 
-@if(collect($funnel)->sum('n') > 0)
+@if($topRules->isNotEmpty())
 <section class="panel">
-  <h2>Alur pengolahan sampel</h2>
-  <div class="tablewrap">
-  <table class="tbl">
-    <thead><tr><th>Tahap</th><th class="num">Sampel</th><th></th></tr></thead>
-    <tbody>
-    @php($fTot = max(1, collect($funnel)->sum('n')))
-    @foreach ($funnel as $f)
-      <tr>
-        <td>{{ $f['label'] }}</td>
-        <td class="num">{{ $f['n'] }}</td>
-        <td><div class="bar"><i style="width: {{ round(100 * $f['n'] / $fTot, 1) }}%"></i></div></td>
-      </tr>
-    @endforeach
-    </tbody>
-  </table>
-  </div>
-
-  @if($topRules->isNotEmpty())
-  <h3>Aturan tersering menyala</h3>
+  <h2>Aturan tersering menyala</h2>
   <div class="tablewrap">
   <table class="tbl">
     <thead><tr><th>Kode</th><th>Tingkat</th><th class="num">Sampel</th><th></th></tr></thead>
@@ -93,7 +75,7 @@
     @foreach ($topRules as $tr)
       <tr>
         <td class="mono">{{ $tr->code }}</td>
-        <td><span class="flag {{ $tr->severity === 'error' ? 'error' : 'warning' }}" style="display:inline-block">{{ $tr->severity }}</span></td>
+        <td><span class="flag {{ $tr->severity === 'error' ? 'error' : 'warning' }}" style="display:inline-block">{{ Istilah::severity($tr->severity) }}</span></td>
         <td class="num">{{ $tr->n_doc }}</td>
         <td class="right">
           @if(in_array(auth()->user()->role, ['pml','pj','admin']))
@@ -105,23 +87,21 @@
     </tbody>
   </table>
   </div>
-  @endif
 </section>
 @endif
 
 <div class="grid2">
   <section class="panel">
-    <h2>Status pencacahan</h2>
+    <h2>Tahap sampel</h2>
     <div class="tablewrap">
     <table class="tbl">
-      <thead><tr><th>Status</th><th class="num">Jumlah</th><th>Proporsi</th></tr></thead>
+      <thead><tr><th>Tahap</th><th class="num">Sampel</th><th>Proporsi</th></tr></thead>
       <tbody>
-      @foreach ($statusLabels as $k => $lbl)
-        @php($c = $byStatus[$k] ?? 0)
+      @foreach (Tahap::LABELS as $k => $lbl)
         <tr>
-          <td><span class="chip s-{{ $k }}">{{ $lbl }}</span></td>
-          <td class="num">{{ $c }}</td>
-          <td><div class="bar"><i style="width: {{ $total ? round(100*$c/$total,1) : 0 }}%"></i></div></td>
+          <td><a href="{{ route('monitoring.samples', ['tahap' => $k]) }}"><span class="chip t-{{ $k }}">{{ $lbl }}</span></a></td>
+          <td class="num">{{ $tahap[$k] }}</td>
+          <td><div class="bar"><i style="width: {{ $nAll ? round(100 * $tahap[$k] / $nAll, 1) : 0 }}%"></i></div></td>
         </tr>
       @endforeach
       </tbody>
@@ -133,7 +113,7 @@
     <h2>Progres per petugas</h2>
     <div class="tablewrap">
     <table class="tbl">
-      <thead><tr><th>Petugas</th><th class="num">Sel/Tot</th><th>Progres</th></tr></thead>
+      <thead><tr><th>Petugas</th><th class="num">Selesai/total</th><th>Progres</th></tr></thead>
       <tbody>
       @foreach ($perPetugas as $r)
         <tr>
@@ -152,7 +132,7 @@
   <h2>Progres per desa <small class="muted">(diurutkan dari terendah)</small></h2>
   <div class="tablewrap">
   <table class="tbl">
-    <thead><tr><th>Kecamatan</th><th>Desa</th><th class="num">Sel/Tot</th><th>Progres</th></tr></thead>
+    <thead><tr><th>Kecamatan</th><th>Desa</th><th class="num">Selesai/total</th><th>Progres</th></tr></thead>
     <tbody>
     @foreach ($perWil as $r)
       <tr>

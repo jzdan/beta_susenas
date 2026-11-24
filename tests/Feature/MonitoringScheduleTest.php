@@ -54,11 +54,12 @@ class MonitoringScheduleTest extends TestCase
         $admin = \App\Models\User::where('username', 'admin')->firstOrFail();
         $res = $this->actingAs($admin)->get('/monitoring')->assertOk();
 
-        // corong = semua dokumen dalam cakupan, terbagi per tahap
-        $funnel = collect($res->viewData('funnel'));
-        $this->assertSame(['Entri/draft', 'Menunggu cleaning', 'Dikembalikan', 'Bersih'],
-            $funnel->pluck('label')->all());
-        $this->assertSame(\App\Models\Document::count(), $funnel->sum('n'));
+        // satu tabel tahap = semua sampel dalam cakupan, masing-masing tepat satu tahap
+        $tahap = $res->viewData('tahap');
+        $this->assertSame(array_keys(\App\Support\Tahap::LABELS), array_keys($tahap));
+        $this->assertSame(\App\Models\SampleHousehold::count(), array_sum($tahap));
+        $this->assertSame(\App\Models\Document::where('status', 'bersih')->count(), $tahap['bersih']);
+        $res->assertSee('Tahap sampel')->assertDontSee('Status pencacahan');
 
         // aturan tersering: error di atas warning, n_doc menurun
         $top = collect($res->viewData('topRules'));

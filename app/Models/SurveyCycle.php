@@ -20,6 +20,15 @@ class SurveyCycle extends Model
         return $this->status === 'selesai';
     }
 
+    /**
+     * Periode lapangan dibuka: petugas boleh membuat & mengisi isian. Diatur admin per siklus
+     * di Jadwal Lapangan — terpisah dari "versi aktif" (itu cuma versi bawaan menu admin).
+     */
+    public function isFieldOpen(): bool
+    {
+        return $this->status === 'lapangan';
+    }
+
     public function versions(): HasMany
     {
         return $this->hasMany(QuestionnaireVersion::class, 'cycle_id');

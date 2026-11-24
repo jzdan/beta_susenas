@@ -9,7 +9,7 @@
   @elseif($b->repeat === 'list') daftar (baris tetap, mis. komoditas)
   @elseif($b->repeat === 'list_art') daftar baris tetap × per anggota rumah tangga
   @else per rumah tangga @endif.
-  @if($b->repeat !== 'ruta') Syarat lompatan (skip) belum berlaku untuk blok berulang — hanya untuk blok per rumah tangga. @endif</p>
+  @if($b->repeat !== 'ruta') Syarat lewati hanya berlaku untuk blok per rumah tangga. @endif</p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
@@ -35,7 +35,7 @@
   </form>
   <p class="muted small">Mengganti <strong>kode</strong> ikut memperbarui aturan per-baris &amp; agregat yang menunjuk blok ini.
     Jenis blok hanya bisa diubah bila belum ada jawaban. Tanda <em>harga &amp; kalori</em> hanya untuk blok
-    <em>daftar baris tetap</em> — daftar komoditasnya muncul di <strong>Aturan Validasi → Harga &amp; Kalori</strong>.</p>
+    <em>daftar baris tetap</em>; daftar komoditasnya muncul di <strong>Aturan Validasi → Harga &amp; Kalori</strong>.</p>
 </section>
 
 @if(session('rowsResult'))
@@ -51,7 +51,7 @@
 @php($cols = $refKeys->isNotEmpty() ? $refKeys : collect(['kalori','harga_min','harga_max']))
 <section class="panel">
   <h2>Baris tetap ({{ $rowTotal }})</h2>
-  <p class="muted small">Sunting langsung di tabel — ubah angka lalu klik <em>Simpan</em> pada baris itu.
+  <p class="muted small">Ubah angka di tabel lalu klik <em>Simpan</em> pada baris itu.
     Kolom referensi (mis. <span class="mono">kalori</span>, <span class="mono">harga_min</span>) dipakai aturan sebagai
     <span class="mono">ref_&lt;nama&gt;</span>.</p>
 
@@ -134,18 +134,19 @@
 
 <section class="panel">
   <h2>Rincian ({{ $questions->count() }})</h2>
+  @include('admin.partials._tech_toggle')
   <div class="tablewrap">
   <table class="tbl">
-    <thead><tr><th>#</th><th>Kode</th><th>Variabel</th><th>Label</th><th>Tipe</th><th>Skip bila</th><th></th></tr></thead>
+    <thead><tr><th>#</th><th>Kode</th><th class="tech">Variabel</th><th>Label</th><th>Tipe</th><th class="tech">Lewati bila</th><th></th></tr></thead>
     <tbody>
     @forelse ($questions as $q)
       <tr>
         <td class="mono muted">{{ $loop->iteration }}</td>
         <td class="mono">{{ $q->code_rincian }}</td>
-        <td class="mono">{{ $q->var_name }}</td>
+        <td class="mono tech">{{ $q->var_name }}</td>
         <td>{{ $q->label }}</td>
-        <td>{{ $q->qtype }}@if($q->unit) · {{ $q->unit }}@endif</td>
-        <td class="mono muted small">{{ $q->skip_expr ?: '—' }}</td>
+        <td>{{ Istilah::qtype($q->qtype) }}@if($q->unit) · {{ $q->unit }}@endif</td>
+        <td class="mono muted small tech">{{ $q->skip_expr ?: '—' }}</td>
         <td class="right nowrap">
           <form method="post" action="{{ route('admin.rincian.order', $q) }}">@csrf<input type="hidden" name="arah" value="naik"><button class="btn-ghost" @disabled($loop->first)>↑</button></form>
           <form method="post" action="{{ route('admin.rincian.order', $q) }}">@csrf<input type="hidden" name="arah" value="turun"><button class="btn-ghost" @disabled($loop->last)>↓</button></form>
@@ -166,12 +167,12 @@
     @csrf
     <div class="row-form">
       <input name="code_rincian" placeholder="Kode (mis. R234)" required>
-      <input name="var_name" placeholder="var_name (huruf/underscore)" class="mono" required>
-      <select name="qtype">@foreach ($qtypes as $t)<option value="{{ $t }}">{{ $t }}</option>@endforeach</select>
+      <input name="var_name" placeholder="Nama variabel (huruf, angka, garis bawah)" class="mono" required>
+      <select name="qtype">@foreach ($qtypes as $t)<option value="{{ $t }}">{{ Istilah::qtype($t) }}</option>@endforeach</select>
       <input name="unit" placeholder="Satuan (mis. Rp / bulan)">
     </div>
     <input name="label" placeholder="Label / pertanyaan" required>
-    <input name="skip_expr" placeholder="Skip bila (ekspresi, opsional) — mis. n(status_rumah) != 1" class="mono">
+    <input name="skip_expr" placeholder="Lewati bila (opsional), mis. n(status_rumah) != 1" class="mono">
     <input name="help_text" placeholder="Teks bantuan (opsional)">
     <button type="submit">Tambah rincian</button>
   </form>

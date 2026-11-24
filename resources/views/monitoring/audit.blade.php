@@ -11,10 +11,10 @@
 
 <form class="filters" method="get">
   <select name="entity">
-    <option value="">Semua entitas</option>
+    <option value="">Semua jenis data</option>
     <option value="keamanan" @selected($fEntity === 'keamanan')>Keamanan (login gagal/terkunci)</option>
     @foreach ($entities as $e)
-    <option value="{{ $e }}" @selected($fEntity === $e)>{{ $e }}</option>
+    <option value="{{ $e }}" @selected($fEntity === $e)>{{ Istilah::entity($e) }}</option>
     @endforeach
   </select>
   <select name="user">
@@ -36,8 +36,8 @@
   @foreach ($rows as $r)
     <tr @class(['row-has-warn' => in_array($r->action, ['login-gagal', 'login-terkunci'])])>
       <td class="mono muted">{{ $r->at?->format('d-m-Y H:i:s') }}</td>
-      <td>{{ $r->entity }}@if($r->entity_id) <span class="muted">#{{ $r->entity_id }}</span>@endif</td>
-      <td>{{ $r->action }}</td>
+      <td>{{ Istilah::entity($r->entity) }}@if($r->entity_id) <span class="muted">#{{ $r->entity_id }}</span>@endif</td>
+      <td>{{ Istilah::audit($r->action) }}</td>
       <td class="small">{{ $r->detail }}</td>
       <td>{{ $userNames[$r->by_user] ?? '—' }}</td>
     </tr>
