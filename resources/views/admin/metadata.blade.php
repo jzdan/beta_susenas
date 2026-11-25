@@ -2,14 +2,21 @@
 @php($nav = 'meta')
 @section('title', 'Metadata Kuesioner · Sistem SUSENAS')
 @section('content')
+@if($qv->cycle)
+@include('periode._hub_header', \App\Http\Controllers\PeriodeController::hubContext($qv->cycle) + ['hubTab' => 'kuesioner'])
+@else
 <h1>Metadata Kuesioner</h1>
-<p class="muted">Menyunting versi: <strong>{{ $qv->code }}</strong> (berlaku {{ $qv->effective_date }}).
-  Periode baru cukup <em>duplikasi versi</em> lalu sunting, bukan mengubah kode.</p>
+@endif
+<p class="muted">Menyunting versi <strong>{{ $qv->code }}</strong> (berlaku {{ $qv->effective_date }}).
+  Untuk rincian dalam jumlah banyak, pakai <a href="{{ route('admin.impor', ['qv' => $qv->id]) }}">Impor Rincian (CSV)</a>.</p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
 
+@unless($qv->cycle)
 @include('admin.partials._qv_switch')
+@endunless
+@include('admin.partials._ro_version', ['roQv' => $qv])
 @include('admin.partials._tech_toggle')
 
 @if($vc = session('versiCheck'))
@@ -32,16 +39,19 @@
 </section>
 @endif
 
+{{-- Inc 154: di dalam hub siklus, tabel ini hanya berisi versi milik siklus itu
+     (dulu semua versi dari semua siklus — membingungkan sejak Metadata jadi tab hub) --}}
+@php($listVersions = $qv->cycle ? $versions->where('cycle_id', $qv->cycle_id) : $versions)
 <section class="panel">
-  <h2>Versi kuesioner</h2>
-  @foreach ($versions as $v)
+  <h2>{{ $qv->cycle ? 'Versi kuesioner siklus ini' : 'Versi kuesioner' }}</h2>
+  @foreach ($listVersions as $v)
     <form method="post" action="{{ route('admin.versi.simpan', $v) }}" id="vf{{ $v->id }}" hidden>@csrf</form>
   @endforeach
   <div class="tablewrap">
   <table class="tbl">
     <thead><tr><th style="width:180px">Kode</th><th style="width:160px">Tanggal berlaku</th><th>Sampel</th><th></th><th></th></tr></thead>
     <tbody>
-    @foreach ($versions as $v)
+    @foreach ($listVersions as $v)
       <tr>
         <td><input form="vf{{ $v->id }}" name="code" value="{{ $v->code }}" class="mono" style="width:160px"></td>
         <td><input form="vf{{ $v->id }}" type="date" name="effective_date" value="{{ $v->effective_date }}"></td>
@@ -52,7 +62,7 @@
         </td>
         <td>
           @if($v->id === $activeId)<span class="chip d-bersih" title="Versi yang dibuka pertama kali di menu admin. Tidak memengaruhi petugas.">bawaan</span>@endif
-          @if($v->id === $qv->id)<span class="chip d-draft">dilihat</span>@endif
+          @if($v->id === $qv->id && $listVersions->count() > 1)<span class="chip d-draft">dilihat</span>@endif
         </td>
         <td class="right nowrap">
           <button form="vf{{ $v->id }}" type="submit" class="btn-ghost">Simpan</button>
@@ -60,9 +70,9 @@
             <a class="btn-ghost" href="{{ route('admin.metadata', ['qv' => $v->id]) }}">Lihat/sunting</a>
           @endif
           @if($v->id !== $activeId)
-            <form method="post" action="{{ route('admin.versi.aktifkan', $v) }}">@csrf<button class="btn-ghost" title="Buka versi ini pertama kali di menu admin. Tidak memengaruhi petugas.">Jadikan bawaan</button></form>
+            <form method="post" action="{{ route('admin.versi.aktifkan', $v) }}" class="ro-allow">@csrf<button class="btn-ghost" title="Buka versi ini pertama kali di menu admin. Tidak memengaruhi petugas.">Jadikan bawaan</button></form>
           @endif
-          <form method="post" action="{{ route('admin.versi.periksa', $v) }}"
+          <form method="post" action="{{ route('admin.versi.periksa', $v) }}" class="ro-allow"
             title="Cek aturan, agregat, turunan & parameter yang menunjuk blok/variabel yang tidak ada">@csrf<button class="btn-ghost">Periksa</button></form>
           <a class="btn-ghost" href="{{ route('admin.versi.codebook', $v) }}">Buku kode</a>
           <a class="btn-ghost" href="{{ route('admin.pratinjau', ['qv' => $v->id]) }}">Pratinjau entri</a>
@@ -78,11 +88,16 @@
     </tbody>
   </table>
   </div>
-  <form method="post" action="{{ route('admin.versi.duplikat') }}" class="row-form mt">
+  @if($qv->cycle)
+  <p class="muted small mt">Untuk triwulan berikutnya, kuesioner ini disalin lewat
+    <a href="{{ route('periode.tahun', $qv->cycle->year()) }}">Periode Survei → "+ Siapkan triwulan ini"</a>.</p>
+  @else
+  <form method="post" action="{{ route('admin.versi.duplikat') }}" class="row-form mt ro-allow">
     @csrf
     <input name="new_code" placeholder="Kode versi baru, mis. VSEN27.KP-rev2" required style="min-width:280px">
     <button type="submit">Duplikasi versi bawaan ({{ $versions->firstWhere('id', $activeId)->code ?? '?' }})</button>
   </form>
+  @endif
   <p class="muted small mt">Paket JSON berisi seluruh metadata versi (blok, rincian, opsi, parameter,
     aturan, agregat, nilai turunan, baris tetap).
     <a href="{{ route('admin.versi.import') }}">Impor paket dari instansi lain →</a></p>
@@ -177,6 +192,15 @@
     <h2>Blok {{ $b->code }} — {{ $b->title }}
       <small class="muted">{{ Istilah::repeat($b->repeat) }}</small>
       @if($b->harga_kalori)<span class="chip d-selesai" title="Daftar komoditas blok ini disunting di Aturan Validasi → Harga & Kalori">harga &amp; kalori</span>@endif</h2>
+    @php($lk = $links['byBlock'][$b->code] ?? ['rules' => 0, 'aggregates' => 0, 'derived' => 0])
+    <p class="link-line small">Terhubung:
+      @if($lk['rules'] + $lk['aggregates'] + $lk['derived'] === 0)
+        <span class="muted">belum dipakai aturan, agregat, maupun turunan.</span>
+      @else
+        <a href="{{ route('admin.aturan', ['qv' => $qv->id, 'blok' => $b->code]) }}">{{ $lk['rules'] }} aturan</a> ·
+        <a href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'neraca', 'blok' => $b->code]) }}">{{ $lk['aggregates'] }} agregat · {{ $lk['derived'] }} turunan</a>
+      @endif
+    </p>
     <span>
       <form method="post" action="{{ route('admin.blok.order', $b) }}" style="display:inline">
         @csrf
@@ -191,9 +215,30 @@
       </form>
     </span>
   </div>
+  @if($b->isRowBlock())
+  {{-- Blok baris tetap (mis. komoditas IV.1): dua lapis — kolom isian (pertanyaan, diisi tiap baris)
+       dan baris/rincian (block_rows). Dulu barisnya tidak tampil di sini sama sekali. --}}
+  @php($rowList = $b->rows->sortBy('row_index'))
+  <div class="row-block-rows">
+    <h3>Baris / rincian <span class="muted small">({{ $rowList->count() }})</span></h3>
+    @if($rowList->isEmpty())
+      <p class="muted small">Belum ada baris. Tambahkan di <a href="{{ route('admin.blok', $b) }}">Sunting blok</a> (satu per satu atau impor CSV).</p>
+    @else
+      <div class="pinst">
+        @foreach ($rowList->take(30) as $row)<span>{{ $row->label }}</span>@endforeach
+        @if($rowList->count() > 30)<span class="muted">+{{ $rowList->count() - 30 }} lagi</span>@endif
+      </div>
+      <p class="small mt">
+        <a href="{{ route('admin.blok', $b) }}">Kelola baris (tambah, ubah, impor CSV) →</a>
+        @if($b->harga_kalori) · <a href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'harga']) }}">Patokan harga &amp; kalori →</a>@endif
+      </p>
+    @endif
+  </div>
+  <h3>Kolom isian <span class="muted small">(diisi untuk setiap baris)</span></h3>
+  @endif
   <div class="tablewrap">
   <table class="tbl">
-    <thead><tr><th>Rincian</th><th class="tech">Variabel</th><th>Label</th><th>Tipe</th><th class="tech">Lewati bila</th><th></th></tr></thead>
+    <thead><tr><th>{{ $b->isRowBlock() ? 'Kolom' : 'Rincian' }}</th><th class="tech">Variabel</th><th>Label</th><th>Tipe</th><th class="tech">Lewati bila</th><th></th></tr></thead>
     <tbody>
     @foreach ($b->questions->sortBy('order') as $q)
       <tr>

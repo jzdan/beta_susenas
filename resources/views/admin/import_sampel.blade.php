@@ -2,6 +2,7 @@
 @php($nav = 'imsampel')
 @section('title', 'Impor Daftar Sampel · Sistem SUSENAS')
 @section('content')
+<x-back :href="request('cycle') ? route('monitoring.samples', ['cycle' => request('cycle')]) : route('periode.index')" smart />
 <h1>Daftar Sampel Rumah Tangga</h1>
 <p class="muted">Untuk satu responden pakai form <strong>Tambah satu sampel</strong>; untuk banyak sekaligus
   pakai <strong>Impor CSV</strong> (kolom wajib <span class="mono">wilayah_code, no_bs, no_ruta</span>,
@@ -27,7 +28,7 @@
     <label class="small">Siklus
       <select name="cycle_id" required>
         <option value="">—</option>
-        @foreach ($cycles as $c)<option value="{{ $c->id }}" @selected((string) old('cycle_id') === (string) $c->id)>{{ $c->name }} ({{ $c->period }})</option>@endforeach
+        @foreach ($cycles as $c)<option value="{{ $c->id }}" @selected((string) old('cycle_id', request('cycle')) === (string) $c->id)>{{ $c->name }} ({{ $c->period }})</option>@endforeach
       </select>
     </label>
     <label class="small">Kode desa

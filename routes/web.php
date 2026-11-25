@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CleaningController;
 use App\Http\Controllers\EntryController;
 use App\Http\Controllers\MonitoringController;
+use App\Http\Controllers\PeriodeController;
 use App\Http\Controllers\TabulationController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +49,17 @@ Route::middleware('role')->group(function () {
             ->middleware('role:pj,pml,admin')->name('audit');
         Route::get('/kinerja', [MonitoringController::class, 'kinerja'])
             ->middleware('role:pj,pml,admin')->name('kinerja');
+    });
+
+    // Inc 154 — Periode Survei: tahun → triwulan → survei → hub
+    Route::prefix('periode')->name('periode.')->middleware('role:pj,pml,admin')->group(function () {
+        Route::get('/', [PeriodeController::class, 'index'])->name('index');
+        Route::get('/siklus/{cycle}', [PeriodeController::class, 'hub'])->name('hub');
+        Route::get('/siklus/{cycle}/peserta', [PeriodeController::class, 'peserta'])->name('peserta');
+        Route::get('/{tahun}', [PeriodeController::class, 'year'])->whereNumber('tahun')->name('tahun');
+        Route::get('/{tahun}/tw/{tw}', [PeriodeController::class, 'quarter'])->whereNumber('tahun')->whereNumber('tw')->name('triwulan');
+        Route::post('/{tahun}/tw/{tw}/siapkan', [PeriodeController::class, 'prepare'])->whereNumber('tahun')->whereNumber('tw')
+            ->middleware('role:admin')->name('siapkan');
     });
 
     Route::prefix('pengolahan')->name('pengolahan.')->middleware('role:pj,pml,admin')->group(function () {
@@ -174,5 +186,6 @@ Route::middleware('role')->group(function () {
         Route::get('/harga', [AdminController::class, 'hargaForm'])->name('harga');
         Route::post('/harga', [AdminController::class, 'hargaImport'])->name('harga.import');
         Route::post('/harga/simpan', [AdminController::class, 'hargaSave'])->name('harga.save');
+        Route::post('/harga/tambah', [AdminController::class, 'hargaAdd'])->name('harga.add');
     });
 });

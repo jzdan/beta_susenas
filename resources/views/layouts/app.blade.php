@@ -38,7 +38,15 @@
     </div>
   </header>
   <div class="shell">
+    @php($navKey = in_array($nav ?? '', ['periode', 'meta', 'impor', 'aturan', 'jadwal', 'imsampel', 'imdok'], true) ? 'periode' : ($nav ?? ''))
     <nav class="side">
+      @if(in_array($u->role, ['pml','pj','admin']))
+        @if($currentCycle ?? null)
+        <a class="now" href="{{ route('periode.triwulan', [$currentCycle->year(), $currentCycle->quarter()]) }}">
+          <small>Triwulan berjalan</small><b>TW{{ $currentCycle->quarter() }} {{ $currentCycle->year() }} · Lapangan</b></a>
+        @endif
+        <a href="{{ route('periode.index') }}" class="{{ $navKey=='periode' ? 'on' : '' }}">Periode Survei</a>
+      @endif
       <a href="{{ route('monitoring.dashboard') }}" class="{{ ($nav ?? '')=='dash' ? 'on' : '' }}">Dashboard</a>
       <a href="{{ route('monitoring.tasks') }}" class="{{ ($nav ?? '')=='tugas' ? 'on' : '' }}">Tugas Saya</a>
       <a href="{{ route('monitoring.peta') }}" class="{{ ($nav ?? '')=='peta' ? 'on' : '' }}">Peta Progres</a>
@@ -55,17 +63,11 @@
         <a href="{{ route('monitoring.audit') }}" class="{{ ($nav ?? '')=='audit' ? 'on' : '' }}">Log Audit</a>
       @endif
       @if($u->role === 'admin')
-        <div class="nav-sep">1. Kuesioner (inti)</div>
-        <a href="{{ route('admin.metadata') }}" class="{{ ($nav ?? '')=='meta' ? 'on' : '' }}">Metadata Kuesioner</a>
-        <a href="{{ route('admin.impor') }}" class="{{ ($nav ?? '')=='impor' ? 'on' : '' }}">Impor Rincian</a>
-        <a href="{{ route('admin.aturan') }}" class="{{ ($nav ?? '')=='aturan' ? 'on' : '' }}">Aturan Validasi</a>
-        <div class="nav-sep">2. Siklus lapangan</div>
-        <a href="{{ route('admin.jadwal') }}" class="{{ ($nav ?? '')=='jadwal' ? 'on' : '' }}">Jadwal Lapangan</a>
-        <div class="nav-sep">3. Wilayah, petugas &amp; sampel</div>
-        <a href="{{ route('admin.impor.wilayah') }}" class="{{ ($nav ?? '')=='wil' ? 'on' : '' }}">Impor Wilkerstat</a>
+        {{-- Inc 154: Metadata, Impor Rincian, Aturan Validasi, Jadwal, Impor Sampel & Impor Isian
+             pindah ke dalam hub Periode Survei (tab per siklus). Yang tersisa: data lintas siklus. --}}
+        <div class="nav-sep">Data bersama</div>
+        <a href="{{ route('admin.impor.wilayah') }}" class="{{ ($nav ?? '')=='wil' ? 'on' : '' }}">Wilayah</a>
         <a href="{{ route('admin.pengguna') }}" class="{{ ($nav ?? '')=='pengguna' ? 'on' : '' }}">Pengguna</a>
-        <a href="{{ route('admin.impor.sampel') }}" class="{{ ($nav ?? '')=='imsampel' ? 'on' : '' }}">Impor Sampel</a>
-        <a href="{{ route('admin.impor.dokumen') }}" class="{{ ($nav ?? '')=='imdok' ? 'on' : '' }}">Impor Isian (CAPI)</a>
       @endif
     </nav>
     <main class="content">

@@ -1,9 +1,11 @@
 @extends('layouts.app')
-@php($nav = 'jadwal')
+@php($nav = 'periode')
 @section('title', "Siklus {$cycle->name} · Sistem SUSENAS")
 @section('content')
-<p class="no-print"><a class="btn-ghost" href="{{ route('admin.jadwal') }}">← Jadwal siklus</a>
-  <a class="btn-ghost" href="{{ route('admin.siklus.persiapan', $cycle) }}">Persiapan periode</a>
+<div class="no-print">
+@include('periode._hub_header', \App\Http\Controllers\PeriodeController::hubContext($cycle) + ['hubTab' => 'persiapan'])
+</div>
+<p class="no-print"><a class="btn-ghost" href="{{ route('admin.siklus.persiapan', $cycle) }}">Daftar periksa persiapan</a>
   <button type="button" class="btn-ghost" onclick="window.print()">Cetak laporan</button></p>
 <div class="print-doc">
 <h1>{{ $cycle->name }}

@@ -2,8 +2,9 @@
 @php($nav = 'meta')
 @section('title', "Rincian {$q->var_name} · Sistem SUSENAS")
 @section('content')
-<p><a class="btn-ghost" href="{{ route('admin.blok', $q->block_id) }}">← Blok</a></p>
+<x-back :href="route('admin.blok', $q->block_id)" label="Kembali ke Blok {{ $q->block->code }}" />
 <h1>Sunting rincian <span class="mono">{{ $q->var_name }}</span></h1>
+@include('admin.partials._ro_version', ['roQv' => $q->block->qversion])
 
 @if ($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
 

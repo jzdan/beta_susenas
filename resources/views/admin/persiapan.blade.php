@@ -1,10 +1,9 @@
 @extends('layouts.app')
-@php($nav = 'jadwal')
+@php($nav = 'periode')
 @section('title', "Persiapan {$cycle->name} · Sistem SUSENAS")
 @section('content')
-<p><a class="btn-ghost" href="{{ route('admin.jadwal') }}">← Siklus &amp; jadwal</a></p>
-<h1>Persiapan periode <small class="muted">{{ $cycle->name }}</small></h1>
-<p class="muted">Status sekarang: <strong>{{ Istilah::cycleStatus($cycle->status) }}</strong>
+@include('periode._hub_header', \App\Http\Controllers\PeriodeController::hubContext($cycle) + ['hubTab' => 'persiapan'])
+<p class="muted">Persiapan periode. Status sekarang: <strong>{{ Istilah::cycleStatus($cycle->status) }}</strong>
   ({{ Istilah::CYCLE_STATUS_HELP[$cycle->status] ?? '' }}).</p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif

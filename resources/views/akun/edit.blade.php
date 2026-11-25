@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Akun Saya · Sistem SUSENAS')
 @section('content')
+<x-back :href="route('monitoring.dashboard')" smart />
 <h1>Akun Saya</h1>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif

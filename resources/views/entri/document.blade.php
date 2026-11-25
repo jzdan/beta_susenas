@@ -2,7 +2,7 @@
 @php($nav = 'sampel')
 @section('title', "Entri sampel #{$doc->id} · Sistem SUSENAS")
 @section('content')
-<p><a class="btn-ghost" href="{{ route('monitoring.sample', $sample) }}">← Sampel</a>
+<p><x-back :href="route('monitoring.sample', $sample)" smart />
   <a class="btn-ghost" href="{{ route('entri.print', $doc) }}">Cetak / arsip</a></p>
 <h1>Entri Kuesioner <small class="muted">{{ $sample->cycle->name ?? '' }}</small></h1>
 <p class="muted mono">

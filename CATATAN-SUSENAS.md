@@ -2143,6 +2143,76 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   `test_admin_imports_block_rows_with_calorie_data_from_xlsx` (kolom harga/kalori
   diabaikan di impor baris). 238 tes lulus.
 
+### Increment 155 — keterhubungan kuesioner ↔ aturan, neraca, turunan
+
+- Permintaan user: dari aturan/neraca/turunan harus kelihatan blok kuesioner mana yang dipakai.
+- `App\Services\BlockLinks::for($qv)`: nama di rumus dibaca (`ExpressionEvaluator::referencedNames`) lalu
+  dipetakan ke blok asal — rincian → bloknya (+ akhiran ringkasan daftar anggota `__n` dst.), agregat →
+  `block_code`, turunan → blok semua nama di rumusnya (turunan bertingkat ditelusuri, aman dari putaran),
+  aturan per-baris → `row_block` + rumus. Juga "dipakai oleh" (aturan/turunan yang memakai suatu agregat,
+  turunan, parameter) dan rangkuman per blok.
+- Tampilan: chip **Blok X** (tautan ke daftar aturan tersaring) di tiap aturan, agregat, turunan;
+  keterangan "dipakai oleh …" di agregat/turunan/parameter; filter **blok** di daftar aturan (`?blok=`, juga
+  menyaring agregat & turunan di tab Neraca; parameter disembunyikan saat tersaring); di tab Kuesioner tiap
+  blok: "Terhubung: N aturan · N agregat · N turunan".
+- Tes: `BlockLinksTest`.
+
+### Increment 154 — Periode Survei: tahun → triwulan → survei → hub (ala Google Classroom)
+
+- Rancangan disetujui user lewat prototipe `docs/rancangan-ui-periode-triwulan.html` (mode terang).
+  Keputusan: susun **waktu dulu, baru survei** (SERUTI tiap triwulan, SUSENAS TW I & III — petugas
+  sering sama, jadi beban gabungan per triwulan terlihat); Jan–Mar = TW1 dst.; akun & wilayah tetap
+  data bersama; nama aplikasi tetap; SERUTI masuk data contoh.
+- **Data**: kolom `survey_cycles.survey` (SUSENAS/SERUTI) & `instrument` (KOR/KP/INTI/MAK/MODUL).
+  Data lama diisi dari nama + kode versi (`SurveyCycle::inferIdentity`); siklus baru tanpa isian ini
+  ikut ditebak (event `creating`). `year()/quarter()/label()/monthName()`, scope `inQuarter()`.
+  Form buat siklus: `period` wajib `YYYY-MM`.
+- **Halaman** (`PeriodeController`, `role:pj,pml,admin`): `/periode` kartu tahun → `/periode/{tahun}`
+  4 kartu triwulan (kosong = "+ Siapkan triwulan ini") → `/periode/{tahun}/tw/{n}` kartu per survei +
+  tabel beban petugas gabungan → hub `/periode/siklus/{cycle}` (Ringkasan: "Langkah berikutnya"
+  mengikuti status, angka, tahap sampel, aturan tersering) + `/periode/siklus/{cycle}/peserta`
+  (Pencacah, Pengawas, Penanggung Jawab dari penugasan sampel, progres, dikembalikan).
+- **Tab hub memakai halaman lama**, tidak diduplikasi: Kuesioner (`admin.metadata?qv`), Aturan
+  (`admin.aturan?qv`), Sampel (`monitoring.samples?cycle`, + tombol Impor sampel/isian untuk admin),
+  Pengolahan (`pengolahan.index?cycle` — filter siklus baru di `CleaningController::scoped`),
+  Persiapan & Penutupan (persiapan saat persiapan/lapangan, laporan siklus saat pengolahan/selesai).
+  Kepala hub `periode/_hub_header` (jejak, pemilih survei sejawat, tab per peran via
+  `PeriodeController::hubTabs`) tampil di halaman-halaman itu bila terikat satu siklus; pemilih
+  versi lama `_qv_switch` hanya tampil bila versi tanpa siklus.
+- **Siapkan triwulan**: `POST /periode/{tahun}/tw/{n}/siapkan` (admin) — survei terpilih disalin dari
+  siklus terbaru survei+instrumen yang sama lewat `QuestionnairePackage` export→import (blok, rincian,
+  opsi, baris tetap + harga, parameter, agregat, turunan, aturan) ke **siklus baru** berstatus
+  persiapan; kode versi disarankan `PeriodeController::suggestCode` (mis. VSEN26.KP → VSEN26.KP-TW2).
+  Menutup celah lama: duplikasi versi selalu masuk siklus yang sama.
+- **Versi siklus terkunci = hanya-lihat**: trait `Models\Concerns\GuardsLockedVersion` pada Block,
+  Question, ResponseOption, BlockRow, ValidationRule, Parameter, Aggregate, DerivedField menolak
+  simpan/hapus (423) bila siklusnya `selesai`; toggle massal dicek manual. Tampilan: partial
+  `_ro_version` (catatan + formulir pengubah disembunyikan; yang tetap boleh diberi `.ro-allow`).
+- **Menu samping**: kotak "Triwulan berjalan" (siklus lapangan terbaru, view composer) + "Periode
+  Survei"; Metadata, Impor Rincian, Aturan Validasi, Jadwal, Impor Sampel, Impor Isian keluar dari
+  menu (alamat lama tetap jalan); tersisa "Data bersama": Wilayah, Pengguna. Petugas tak berubah.
+- Data contoh: `DatabaseSeeder` memanggil `Susenas2026CycleSeeder` (SERUTI TW1–TW4, SUSENAS
+  September) **kecuali saat tes** — dataset tes tetap 3 versi.
+- CSS: kotak centang tidak lagi teregang oleh aturan lebar penuh formulir; tab hub turun baris di
+  ≥600px, strip geser di HP. Cek 13 halaman × 9 ukuran: bersih.
+- Lanjutan (masukan user): halaman tahun memakai **baris triwulan** memanjang ke samping, tersusun
+  ke bawah (pita status di kiri); di tab Kuesioner hub, tabel versi hanya berisi versi siklus itu
+  (dulu semua versi semua siklus) dan duplikasi diganti tautan "Siapkan triwulan".
+- **Tombol kembali** seragam: komponen `<x-back href label [smart]>` (gaya `.back-link`, warna aksen
+  tema supaya kontras di terang/gelap). `smart` = kembali ke halaman sebelumnya di aplikasi bila ada
+  (filter ikut terbawa), selain itu ke halaman induk. Dipasang di tingkat Periode, kepala hub, Sunting
+  blok/rincian/aturan, Buku kode, Pratinjau, Impor Rincian/Sampel/Isian/Paket, Jadwal, Akun, Notifikasi,
+  Rincian sampel, Entri, Cetak, Pengolahan per sampel.
+- **Peta Progres per siklus**: pemilih siklus (`monitoring/_cycle_pick`, `MonitoringController::pickCycle`),
+  bawaan siklus lapangan terbaru; "Semua siklus (gabungan)" tetap ada. Dulu semua siklus dijumlah jadi satu.
+- Perbaikan dari uji coba user: tombol **Pratinjau** blok membuka blok yang dituju (dulu tetap
+  terlipat); lompatan ke jangkar tidak lagi menggeser `<body>` yang terkunci (tombol kembali tertutup
+  bilah atas, tak bisa digulir balik — penjaga di `app.js`); di tab Kuesioner, blok daftar baris tetap
+  menampilkan **Baris / rincian** (komoditas) + **Kolom isian** (dulu hanya kolom, label "Rincian"
+  menyesatkan); **tambah komoditas** langsung dari tab Harga & Kalori (`hargaAdd`, beserta harga &
+  kalori), petunjuk lama "Metadata → Blok IV.1" diganti tautan Sunting blok.
+- Tes: `PeriodeSurveiTest` (13).
+
 ### Increment 153 — Aturan Validasi lebih ringkas: formulir sendiri, periksa langsung, periksa ulang
 
 - **Halaman daftar** (`/admin/aturan`) kini hanya untuk pekerjaan harian: nyalakan/matikan, ubah ambang,

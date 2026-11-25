@@ -1,6 +1,7 @@
 {{-- Tab "Neraca & Turunan" di halaman Aturan Validasi (Inc 141).
      Berisi: Parameter, Agregat cek-silang (NERACA), Variabel turunan.
      Dipindah dari halaman Metadata supaya Metadata hanya untuk membuat kuesioner. --}}
+@if($fBlok === '')
 <section class="panel">
   <h2>Parameter <small class="muted">(nilai tetap per versi, dipakai aturan)</small></h2>
   @foreach ($params as $p)
@@ -15,6 +16,7 @@
       <button class="btn-ghost">Simpan</button>
     </form>
     <form method="post" action="{{ route('admin.parameter.del', $p) }}">@csrf<button class="btn-ghost">Hapus</button></form>
+    @include('admin.partials._used_by', ['who' => $links['usedBy'][$p->name] ?? []])
   </div>
   @endforeach
   <form method="post" action="{{ route('admin.parameter.save') }}" class="row-form mt">
@@ -49,6 +51,7 @@
     </div>
   </details>
 </section>
+@endif
 
 @php($opOpts = ['sum','weighted_sum','count','max','min'])
 @php($fopOpts = ['any','eq','in','ne'])
@@ -60,6 +63,8 @@
     <summary style="cursor:pointer">
       <span class="mono">{{ $a->name }}</span> = {{ $a->op }}(<span class="mono">{{ $a->value_var }}</span>) atas <span class="mono">{{ $a->block_code }}</span>
       <span class="muted small">{{ $a->filter_op === 'any' && !$a->filter_ref ? '' : '· filter' }}</span>
+      <span class="bchips">@include('admin.partials._block_chips', ['codes' => $links['aggregates'][$a->id] ?? [], 'qvId' => $qv->id])</span>
+      @include('admin.partials._used_by', ['who' => $links['usedBy'][$a->name] ?? []])
     </summary>
     <form method="post" action="{{ route('admin.agregat.save') }}" class="row-form mt">
       @csrf
@@ -130,6 +135,12 @@
     <form method="post" action="{{ route('admin.turunan.del', $d) }}" onsubmit="return confirm('Hapus turunan {{ $d->var_name }}?')">
       @csrf<button class="btn-ghost">Hapus</button>
     </form>
+    <div class="link-line">
+      @if(!empty($links['derived'][$d->id]))<span class="muted small">Dari:</span>
+        @include('admin.partials._block_chips', ['codes' => $links['derived'][$d->id], 'qvId' => $qv->id])
+      @else<span class="muted small">Tidak memakai rincian blok (hanya parameter/angka).</span>@endif
+      @include('admin.partials._used_by', ['who' => $links['usedBy'][$d->var_name] ?? []])
+    </div>
   </div>
   @endforeach
   <form method="post" action="{{ route('admin.turunan.save') }}" class="row-form mt">

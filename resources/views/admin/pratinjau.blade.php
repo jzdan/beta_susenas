@@ -2,7 +2,7 @@
 @php($nav = 'meta')
 @section('title', 'Pratinjau Tampilan Entri · Sistem SUSENAS')
 @section('content')
-<p><a class="btn-ghost" href="{{ route('admin.metadata', ['qv' => $qv->id]) }}">← Metadata Kuesioner</a></p>
+<x-back :href="route('admin.metadata', ['qv' => $qv->id])" label="Kembali ke Kuesioner" smart />
 <h1>Pratinjau Tampilan Entri</h1>
 <div class="alert" style="background:var(--accbg);border:1px solid var(--acc)">
   <strong>Pratinjau tampilan Pencacah Lapangan.</strong> Tampilannya dibuat dengan cara yang sama

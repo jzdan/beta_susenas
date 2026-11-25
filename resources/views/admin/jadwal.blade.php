@@ -2,6 +2,7 @@
 @php($nav = 'jadwal')
 @section('title', 'Siklus & Jadwal · Sistem SUSENAS')
 @section('content')
+<x-back :href="route('periode.index')" label="Kembali ke Periode Survei" />
 <h1>Siklus Survei &amp; Jadwal Lapangan</h1>
 <p class="muted">Alur siklus baru: buat siklus (status Persiapan), siapkan versi kuesioner dan sampel,
   lalu buka lapangan dari halaman <em>Persiapan periode</em>.</p>

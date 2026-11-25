@@ -2,7 +2,11 @@
 @php($nav = 'aturan')
 @section('title', 'Aturan Validasi · Sistem SUSENAS')
 @section('content')
+@if($qv->cycle)
+@include('periode._hub_header', \App\Http\Controllers\PeriodeController::hubContext($qv->cycle) + ['hubTab' => 'aturan'])
+@else
 <h1>Aturan Validasi</h1>
+@endif
 @if($tab === 'aturan')
 <p class="muted">Pemeriksaan yang berjalan tiap kali isian disimpan. <strong>{{ $activeCount }}</strong> dari {{ $total }} aturan menyala.
   Sehari-hari cukup menyalakan/mematikan aturan dan mengubah ambang.</p>
@@ -15,7 +19,10 @@
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if ($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
 
+@unless($qv->cycle)
 @include('admin.partials._qv_switch')
+@endunless
+@include('admin.partials._ro_version', ['roQv' => $qv])
 
 @if($nStale > 0)
 <div class="alert stale-box">
@@ -29,13 +36,19 @@
 @endif
 
 <nav class="row-form" style="margin:0 0 14px;gap:8px">
-  <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'aturan']) }}"
+  <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'aturan', 'blok' => $fBlok ?: null]) }}"
      style="{{ $tab === 'aturan' ? 'font-weight:700;border-color:var(--acc)' : '' }}">Aturan ({{ $total }})</a>
-  <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'neraca']) }}"
+  <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'neraca', 'blok' => $fBlok ?: null]) }}"
      style="{{ $tab === 'neraca' ? 'font-weight:700;border-color:var(--acc)' : '' }}">Neraca &amp; Turunan</a>
-  <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'harga']) }}"
+  <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'harga', 'blok' => $fBlok ?: null]) }}"
      style="{{ $tab === 'harga' ? 'font-weight:700;border-color:var(--acc)' : '' }}">Harga &amp; Kalori</a>
 </nav>
+
+@if($fBlok !== '' && $tab !== 'harga')
+<div class="alert blok-filter">Hanya menampilkan {{ $tab === 'neraca' ? 'agregat & turunan' : 'aturan' }} yang terhubung ke
+  <strong>Blok {{ $fBlok }}</strong>@if($blockCodes[$fBlok] ?? null) ({{ $blockCodes[$fBlok] }})@endif.
+  <a href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => $tab]) }}">Tampilkan semua</a></div>
+@endif
 
 @if($tab === 'neraca')
   @include('admin.partials._neraca')
@@ -55,6 +68,12 @@
       <option value="">aktif &amp; nonaktif</option>
       <option value="ya" @selected($filters['active'] === 'ya')>aktif saja</option>
       <option value="tidak" @selected($filters['active'] === 'tidak')>nonaktif saja</option>
+    </select>
+    <select name="blok">
+      <option value="">semua blok</option>
+      @foreach ($blockCodes as $code => $title)
+        <option value="{{ $code }}" @selected($fBlok === $code)>Blok {{ $code }} ({{ $links['byBlock'][$code]['rules'] ?? 0 }})</option>
+      @endforeach
     </select>
     <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="cari kode / pesan" style="min-width:220px">
     <button type="submit">Filter</button>
@@ -102,6 +121,7 @@
             <td>
               {{ $r->message }}
               <div class="mono muted small">{{ $r->code }}@if($r->target_var) · {{ $r->target_var }}@endif</div>
+              <div class="bchips">@include('admin.partials._block_chips', ['codes' => $links['rules'][$r->id] ?? [], 'qvId' => $qv->id])</div>
             </td>
             <td class="num">
               @php($n = (int) ($hits[$r->id] ?? 0))

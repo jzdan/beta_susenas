@@ -2,8 +2,11 @@
 @php($nav = 'peta')
 @section('title', 'Peta Progres · Sistem SUSENAS')
 @section('content')
-<h1>Peta Progres Pencacahan</h1>
-<p class="muted">Skematik per kecamatan → desa → blok sensus. Warna = persen rumah tangga selesai dicacah.
+<h1>Peta Progres Pencacahan
+  @if($cycle)<small class="muted">TW{{ $cycle->quarter() }} {{ $cycle->year() }} · {{ $cycle->label() }}</small>@else<small class="muted">semua siklus</small>@endif</h1>
+@include('monitoring._cycle_pick')
+<p class="muted">@if($cycle){{ $cycle->label() }} {{ $cycle->monthName() }} {{ $cycle->year() }} ({{ strtolower(Istilah::cycleStatus($cycle->status)) }}). @else Gabungan semua siklus, jadi blok sensus yang sama bisa berisi sampel dari beberapa periode. @endif
+  Warna = persen rumah tangga selesai dicacah per blok sensus.
   Total: {{ $done }}/{{ $total }} rumah tangga.</p>
 
 <div class="legend">
@@ -28,7 +31,7 @@
     </div>
     <div class="bs-strip">
       @foreach ($d['bs'] as $b)
-      <a class="tile lg {{ $b['bucket'] }}" href="{{ route('monitoring.samples', ['wil' => $d['code']]) }}"
+      <a class="tile lg {{ $b['bucket'] }}" href="{{ route('monitoring.samples', ['wil' => $d['code'], 'cycle' => $cycle?->id]) }}"
          title="Blok Sensus {{ $b['bs'] }} — {{ $b['d'] }}/{{ $b['t'] }} ({{ $b['rate'] }}%)">
         <span>{{ $b['bs'] }}</span><small>{{ $b['d'] }}/{{ $b['t'] }}</small>
       </a>

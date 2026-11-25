@@ -33,9 +33,37 @@
 <section class="panel">
   <h2>Daftar komoditas ({{ $komoditas->count() }})</h2>
   <p class="muted small">Ubah nama / kode / angka di baris, lalu klik <em>Simpan</em>. Kolom <span class="mono">kode</span>
-    = nomor rincian komoditas (mis. <span class="mono">002</span> = Beras). Menambah / menghapus komoditas
-    dilakukan di <strong>Metadata →
-    {{ $hargaBlocks->isNotEmpty() ? 'Blok '.$hargaBlocks->pluck('code')->implode(', ') : 'blok komoditas' }}</strong>.</p>
+    = nomor rincian komoditas (mis. <span class="mono">002</span> = Beras).
+    @foreach ($hargaBlocks as $hb)
+      Hapus komoditas atau ubah satuan &amp; batas konsumsi:
+      <a href="{{ route('admin.blok', $hb) }}">Sunting Blok {{ $hb->code }} →</a>
+    @endforeach</p>
+
+  @if($hargaBlocks->isNotEmpty())
+  <details class="add-kom" @if($errors->hasAny(['code', 'label', 'harga']) || old('label')) open @endif>
+    <summary>+ Tambah komoditas</summary>
+    <form method="post" action="{{ route('admin.harga.add') }}" class="stack-form mt">
+      @csrf
+      <input type="hidden" name="qv" value="{{ $qv->id }}">
+      @if($hargaBlocks->count() > 1)
+        <label>Blok
+          <select name="block_id">@foreach ($hargaBlocks as $hb)<option value="{{ $hb->id }}">Blok {{ $hb->code }}: {{ $hb->title }}</option>@endforeach</select>
+        </label>
+      @else
+        <input type="hidden" name="block_id" value="{{ $hargaBlocks->first()->id }}">
+      @endif
+      <div class="rule-grid">
+        <label>Kode (opsional) <input name="code" value="{{ old('code') }}" class="mono" placeholder="mis. 195"></label>
+        <label>Nama komoditas <input name="label" value="{{ old('label') }}" required placeholder="mis. Beras ketan (Kg)"></label>
+        <label>Harga min <input name="harga_min" value="{{ old('harga_min') }}" inputmode="decimal" class="mono"></label>
+        <label>Harga max <input name="harga_max" value="{{ old('harga_max') }}" inputmode="decimal" class="mono"></label>
+        <label>Kalori/satuan <input name="kalori" value="{{ old('kalori') }}" inputmode="decimal" class="mono"></label>
+      </div>
+      <div><button type="submit">Tambah komoditas</button>
+        <span class="muted small">Ditambahkan sebagai baris terakhir; harga &amp; kalori boleh diisi belakangan.</span></div>
+    </form>
+  </details>
+  @endif
 
   <input type="search" id="kom-cari" placeholder="cari nama komoditas / kode" style="min-width:280px;margin:6px 0">
 
@@ -69,7 +97,7 @@
       <tr><td colspan="6" class="muted">
         @if($hargaBlocks->isEmpty())
           Belum ada blok yang ditandai sebagai <em>blok harga &amp; kalori</em> di versi {{ $qv->code }} —
-          centang di <strong>Metadata → Sunting blok</strong> (blok daftar komoditas).
+          centang tanda <em>harga &amp; kalori</em> di Sunting blok (tab Kuesioner → blok daftar komoditas).
         @else
           Blok {{ $hargaBlocks->pluck('code')->implode(', ') }} belum punya daftar komoditas untuk versi {{ $qv->code }}.
         @endif

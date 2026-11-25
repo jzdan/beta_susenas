@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GuardsLockedVersion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Question extends Model
 {
+    use GuardsLockedVersion;
+
     protected $fillable = [
         'block_id', 'code_rincian', 'var_name', 'label', 'qtype',
         'unit', 'order', 'skip_expr', 'help_text',
@@ -21,5 +24,10 @@ class Question extends Model
     public function options(): HasMany
     {
         return $this->hasMany(ResponseOption::class)->orderBy('order');
+    }
+
+    public function guardQversionId(): ?int
+    {
+        return Block::whereKey($this->block_id)->value('qversion_id');
     }
 }

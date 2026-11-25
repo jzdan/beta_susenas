@@ -57,6 +57,20 @@
     });
   });
 
+  // datang lewat tautan ke blok tertentu (mis. tombol "Pratinjau" Blok IV.1 di Metadata → #blok-IV.1):
+  // blok itu dibuka & digulir ke sana — sebelumnya tetap terlipat sehingga pratinjau tampak "tertutup"
+  if (location.hash.length > 1) {
+    var target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    var targetBlock = target && target.closest(".block");
+    if (targetBlock) {
+      targetBlock.classList.remove("collapsed");
+      setTimeout(function () {
+        targetBlock.scrollIntoView({ block: "start" });
+        if (getComputedStyle(document.body).overflowY === "hidden") window.scrollTo(0, 0);
+      }, 0);
+    }
+  }
+
   // klik navigasi: pastikan blok terbuka lalu scroll
   document.querySelectorAll("[data-nav-block]").forEach(function (a) {
     a.addEventListener("click", function () {
@@ -509,4 +523,35 @@
     });
   });
   apply();
+})();
+
+// Tombol kembali "pintar" (komponen <x-back smart>): kembali ke halaman sebelumnya di aplikasi ini
+// bila ada & berbeda dari halaman sekarang; selain itu ikuti href (halaman induk).
+(function () {
+  document.querySelectorAll("[data-back-smart]").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      try {
+        var ref = document.referrer ? new URL(document.referrer) : null;
+        if (ref && ref.origin === location.origin && ref.pathname !== location.pathname
+            && ref.pathname !== "/login" && history.length > 1) {
+          e.preventDefault();
+          history.back();
+        }
+      } catch (err) {}
+    });
+  });
+})();
+
+// Tata letak desktop: <body> dikunci (overflow hidden, tinggi 100dvh) & yang digulir hanya .content.
+// Lompatan ke jangkar (#blok-IV.1) atau scrollIntoView() ikut menggeser DOKUMEN yang terkunci itu
+// beberapa piksel — lalu tak bisa digulir balik, bagian atas (tombol kembali) tertutup bilah atas.
+// Jaga: selama body terkunci, posisi gulir dokumen selalu dikembalikan ke 0.
+(function () {
+  function locked() { return getComputedStyle(document.body).overflowY === "hidden"; }
+  function reset() {
+    if (locked() && (window.scrollY || document.documentElement.scrollTop)) window.scrollTo(0, 0);
+  }
+  window.addEventListener("scroll", reset, { passive: true });
+  window.addEventListener("load", reset);
+  window.addEventListener("hashchange", function () { setTimeout(reset, 0); });
 })();

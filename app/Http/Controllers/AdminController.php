@@ -92,6 +92,7 @@ class AdminController extends Controller
             ->selectRaw('cycle_id, count(*) as n')->groupBy('cycle_id')->pluck('n', 'cycle_id');
 
         return view('admin.metadata', [
+            'links' => app(\App\Services\BlockLinks::class)->for($qv),
             'qv' => $qv,
             'activeId' => $this->activeQv()->id,
             'blocks' => $qv->blocks()->with('questions')->get(),
@@ -784,7 +785,13 @@ class AdminController extends Controller
         $fScope = (string) $request->query('scope', '');
         $fActive = (string) $request->query('active', '');
         $fQ = trim((string) $request->query('q', ''));
-        $rules = $all->filter(function ($r) use ($fSev, $fScope, $fActive, $fQ) {
+        // Inc 155: blok kuesioner yang dipakai tiap aturan/agregat/turunan + filter per blok
+        $links = app(\App\Services\BlockLinks::class)->for($qv);
+        $fBlok = (string) $request->query('blok', '');
+        $rules = $all->filter(function ($r) use ($fSev, $fScope, $fActive, $fQ, $fBlok, $links) {
+            if ($fBlok !== '' && ! in_array($fBlok, $links['rules'][$r->id] ?? [], true)) {
+                return false;
+            }
             if ($fSev && $r->severity !== $fSev) {
                 return false;
             }
@@ -844,12 +851,16 @@ class AdminController extends Controller
             'activeCount' => $all->where('active', true)->count(),
             'ruleErrs' => $rules->mapWithKeys(fn ($r) => [$r->id => $this->ev->checkSyntax($r->expr, RuleEngine::ROSTER_FUNCS)]),
             'scopes' => $all->pluck('scope')->unique()->filter()->sort()->values(),
-            'filters' => ['sev' => $fSev, 'scope' => $fScope, 'active' => $fActive, 'q' => $fQ],
+            'filters' => ['sev' => $fSev, 'scope' => $fScope, 'active' => $fActive, 'q' => $fQ, 'blok' => $fBlok],
+            'links' => $links, 'fBlok' => $fBlok,
+            'blockCodes' => $qv->blocks->pluck('title', 'code'),
             // data untuk tab "neraca" & "harga"
             'tab' => $tab,
             'params' => $qv->parameters,
-            'derived' => $qv->derived,
-            'aggregates' => $qv->aggregates,
+            'derived' => $fBlok === '' ? $qv->derived
+                : $qv->derived->filter(fn ($d) => in_array($fBlok, $links['derived'][$d->id] ?? [], true)),
+            'aggregates' => $fBlok === '' ? $qv->aggregates
+                : $qv->aggregates->filter(fn ($a) => in_array($fBlok, $links['aggregates'][$a->id] ?? [], true)),
             'repeatBlocks' => $qv->blocks->whereIn('repeat', ['art', 'list', 'list_art']),
             'hargaBlocks' => $hargaBlocks = $this->hargaBlocks($qv),
             'komoditas' => \App\Models\BlockRow::whereIn('block_id', $hargaBlocks->pluck('id'))
@@ -898,6 +909,7 @@ class AdminController extends Controller
             'ids' => 'required|array', 'ids.*' => 'integer',
             'aksi' => 'required|in:aktif,nonaktif',
         ]);
+        abort_if($this->selectedQv($request)->locked(), 423, 'Kuesioner ini milik siklus yang sudah dikunci, jadi hanya bisa dilihat.');
         $n = ValidationRule::where('qversion_id', $this->selectedQv($request)->id)
             ->whereIn('id', $d['ids'])
             ->update(['active' => $d['aksi'] === 'aktif']);
@@ -1581,6 +1593,50 @@ class AdminController extends Controller
         return back()->with('ok', "Komoditas \"{$row->label}\" diperbarui.");
     }
 
+    /**
+     * Tambah satu komoditas langsung dari tab Harga & Kalori (sebelumnya hanya lewat Sunting blok).
+     * Nomor baris = berikutnya; patokan harga & kalori ikut disimpan sekaligus.
+     */
+    public function hargaAdd(Request $request)
+    {
+        $qv = $this->selectedQv($request);
+        $d = $request->validate([
+            'block_id' => 'required|integer',
+            'code' => 'nullable|string|max:24',
+            'label' => 'required|string|max:300',
+            'harga_min' => 'nullable|numeric|min:0',
+            'harga_max' => 'nullable|numeric|min:0',
+            'kalori' => 'nullable|numeric|min:0',
+        ]);
+        $block = $this->hargaBlocks($qv)->firstWhere('id', (int) $d['block_id']);
+        abort_unless($block, 404, 'Blok komoditas tidak ditemukan di versi ini.');
+        if (($d['harga_min'] ?? null) !== null && ($d['harga_max'] ?? null) !== null
+            && (float) $d['harga_min'] > (float) $d['harga_max']) {
+            return back()->withInput()->withErrors(['harga' => 'Harga minimal lebih besar dari maksimal.']);
+        }
+        $code = trim($d['code'] ?? '');
+        if ($code !== '' && \App\Models\BlockRow::where('block_id', $block->id)->where('code', $code)->exists()) {
+            return back()->withInput()->withErrors(['code' => "Kode {$code} sudah dipakai komoditas lain."]);
+        }
+        $ref = [];
+        foreach (self::HARGA_REF_KEYS as $k) {
+            if (($d[$k] ?? null) !== null && $d[$k] !== '') {
+                $ref[$k] = (string) (0 + $d[$k]);
+            }
+        }
+        $row = \App\Models\BlockRow::create([
+            'block_id' => $block->id, 'code' => $code, 'label' => trim($d['label']),
+            'row_index' => (int) \App\Models\BlockRow::where('block_id', $block->id)->max('row_index') + 1,
+            'order' => (int) \App\Models\BlockRow::where('block_id', $block->id)->max('order') + 1,
+            'ref' => $ref ?: null,
+        ]);
+        QuestionnaireVersion::markRulesChanged($qv->id);
+        AuditLog::record('block_row', $block->code, 'tambah', "{$row->label} (baris {$row->row_index})");
+
+        return redirect()->route('admin.aturan', ['qv' => $qv->id, 'tab' => 'harga'])
+            ->with('ok', "Komoditas \"{$row->label}\" ditambahkan sebagai baris {$row->row_index}.");
+    }
+
     /** Impor massal harga (+kalori) dari Excel/CSV — cocokkan lewat kolom code. */
     public function hargaImport(Request $request)
     {
@@ -2173,7 +2229,7 @@ class AdminController extends Controller
     {
         $d = $request->validate([
             'name' => 'required|string|max:120',
-            'period' => 'required|string|max:16',   // mis. 2027-03
+            'period' => ['required', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],   // YYYY-MM, mis. 2027-03 (Inc 154: dipakai menghitung triwulan)
             'status' => 'required|in:'.implode(',', self::CYCLE_STATUS),
             'field_start' => 'nullable|date',
             'field_end' => 'nullable|date|after_or_equal:field_start',

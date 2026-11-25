@@ -59,6 +59,13 @@ class DatabaseSeeder extends Seeder
                 'returned_at' => now()->subDay(),
             ]);
         }
+
+        // Inc 154: kerangka 2026 (SERUTI TW1–TW4 + SUSENAS September) supaya halaman Periode
+        // Survei punya contoh beberapa survei per triwulan. TIDAK dimuat saat tes — dataset tes
+        // tetap 3 versi kuesioner (tes SERUTI memanggil seedernya sendiri).
+        if (! app()->runningUnitTests()) {
+            $this->call(Susenas2026CycleSeeder::class);
+        }
     }
 
     /**

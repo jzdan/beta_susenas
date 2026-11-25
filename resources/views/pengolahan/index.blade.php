@@ -2,7 +2,12 @@
 @php($nav = 'pengolahan')
 @section('title', 'Pengolahan · Sistem SUSENAS')
 @section('content')
+@php($hubC = $fCycle ? \App\Models\SurveyCycle::find($fCycle) : null)
+@if($hubC)
+@include('periode._hub_header', \App\Http\Controllers\PeriodeController::hubContext($hubC) + ['hubTab' => 'pengolahan'])
+@else
 <h1>Pengolahan Data</h1>
+@endif
 <p class="muted">Tinjau sampel berstatus <em>selesai</em>, koreksi isian bermasalah pada
   <strong>nilai bersih</strong> (nilai mentah tetap tersimpan), lalu tandai <em>bersih</em>.</p>
 
@@ -32,7 +37,7 @@
         <td class="small">{{ $ra->message }}</td>
         <td class="num">{{ $ra->n_doc }}</td>
         <td class="num">{{ $ra->n_hit }}</td>
-        <td class="right"><a class="btn-ghost" href="{{ route('pengolahan.index', ['rule' => $ra->code, 'status' => $fStatus]) }}">Lihat</a></td>
+        <td class="right"><a class="btn-ghost" href="{{ route('pengolahan.index', ['rule' => $ra->code, 'status' => $fStatus, 'cycle' => $fCycle]) }}">Lihat</a></td>
       </tr>
     @endforeach
     </tbody>
@@ -50,11 +55,12 @@
     <input type="search" name="q" value="{{ $fQ }}" placeholder="cari wilayah / blok sensus / rumah tangga / kepala rumah tangga / nomor isian" style="min-width:220px">
     <button type="submit">Cari</button>
     @if($fRule)<input type="hidden" name="rule" value="{{ $fRule }}">@endif
-    @if($fQ)<a class="btn-ghost" href="{{ route('pengolahan.index', ['status' => $fStatus, 'rule' => $fRule]) }}">✕</a>@endif
+    @if($fCycle)<input type="hidden" name="cycle" value="{{ $fCycle }}">@endif
+    @if($fQ)<a class="btn-ghost" href="{{ route('pengolahan.index', ['status' => $fStatus, 'rule' => $fRule, 'cycle' => $fCycle]) }}">✕</a>@endif
   </form>
-  @if($fRule)<a class="btn-ghost" href="{{ route('pengolahan.index', ['status' => $fStatus, 'q' => $fQ]) }}">✕ filter aturan: {{ $fRule }}</a>@endif
+  @if($fRule)<a class="btn-ghost" href="{{ route('pengolahan.index', ['status' => $fStatus, 'q' => $fQ, 'cycle' => $fCycle]) }}">✕ filter aturan: {{ $fRule }}</a>@endif
   @if(in_array(auth()->user()->role, ['pml','pj','admin']))
-  <form method="post" action="{{ route('pengolahan.revalidate', ['status' => $fStatus, 'rule' => $fRule, 'q' => $fQ]) }}"
+  <form method="post" action="{{ route('pengolahan.revalidate', ['status' => $fStatus, 'rule' => $fRule, 'q' => $fQ, 'cycle' => $fCycle]) }}"
         onsubmit="return confirm('Jalankan ulang semua aturan validasi untuk sampel non-bersih dalam cakupan Anda?')">
     @csrf
     <button type="submit" class="btn-ghost">↻ Jalankan ulang aturan</button>
@@ -64,7 +70,7 @@
 
 @php($canBulk = in_array(auth()->user()->role, ['pml','pj','admin']))
 @php($eligible = fn($r) => in_array($r['doc']->status, ['selesai','dikembalikan']) && $r['err'] === 0)
-<form method="post" action="{{ route('pengolahan.bulk-clean', ['status' => $fStatus, 'rule' => $fRule, 'q' => $fQ]) }}"
+<form method="post" action="{{ route('pengolahan.bulk-clean', ['status' => $fStatus, 'rule' => $fRule, 'q' => $fQ, 'cycle' => $fCycle]) }}"
       onsubmit="return confirm('Tandai bersih semua sampel terpilih?')">
 @csrf
 @if($canBulk && $rows->contains($eligible))

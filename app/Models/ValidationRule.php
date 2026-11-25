@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GuardsLockedVersion;
 use App\Models\Concerns\MarksRulesChanged;
 use Illuminate\Database\Eloquent\Model;
 
 class ValidationRule extends Model
 {
-    use MarksRulesChanged;
+    use GuardsLockedVersion, MarksRulesChanged;
 
     public $timestamps = false;
 
@@ -59,5 +60,10 @@ class ValidationRule extends Model
             '${1}'.$new,
             $this->expr,
         );
+    }
+
+    public function guardQversionId(): ?int
+    {
+        return $this->qversion_id;
     }
 }

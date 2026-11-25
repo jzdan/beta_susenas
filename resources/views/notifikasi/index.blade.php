@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Notifikasi · Sistem SUSENAS')
 @section('content')
+<x-back :href="route('monitoring.dashboard')" smart />
 <h1>Notifikasi</h1>
 
 @if($notifs->whereNull('read_at')->count())

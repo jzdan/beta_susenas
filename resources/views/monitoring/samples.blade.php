@@ -2,7 +2,18 @@
 @php($nav = 'sampel')
 @section('title', 'Daftar Sampel · Sistem SUSENAS')
 @section('content')
+@php($hubC = $fCycle && in_array(auth()->user()->role, ['pj', 'pml', 'admin'], true) ? \App\Models\SurveyCycle::find($fCycle) : null)
+@if($hubC)
+@include('periode._hub_header', \App\Http\Controllers\PeriodeController::hubContext($hubC) + ['hubTab' => 'sampel'])
+@if(auth()->user()->role === 'admin')
+<p class="row-form" style="margin:0 0 10px">
+  <a class="btn-ghost" href="{{ route('admin.impor.sampel', ['cycle' => $hubC->id]) }}">Impor sampel</a>
+  <a class="btn-ghost" href="{{ route('admin.impor.dokumen', ['cycle' => $hubC->id]) }}">Impor isian (CAPI)</a>
+</p>
+@endif
+@else
 <h1>Daftar Sampel Rumah Tangga</h1>
+@endif
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif

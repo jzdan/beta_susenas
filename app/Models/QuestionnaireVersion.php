@@ -15,6 +15,19 @@ class QuestionnaireVersion extends Model
         return ['is_active' => 'boolean', 'rules_changed_at' => 'datetime'];
     }
 
+    /** Versi milik siklus yang sudah dikunci (selesai) — kuesioner & aturannya hanya-lihat (Inc 154). */
+    public static function isLocked(int $qvId): bool
+    {
+        return \Illuminate\Support\Facades\DB::table('questionnaire_versions as qv')
+            ->join('survey_cycles as c', 'c.id', '=', 'qv.cycle_id')
+            ->where('qv.id', $qvId)->where('c.status', 'selesai')->exists();
+    }
+
+    public function locked(): bool
+    {
+        return self::isLocked($this->id);
+    }
+
     /** Tandai bahan pemeriksaan versi ini berubah (Inc 153, lihat Concerns\MarksRulesChanged). */
     public static function markRulesChanged(?int $qvId): void
     {

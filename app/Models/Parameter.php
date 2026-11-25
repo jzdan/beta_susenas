@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GuardsLockedVersion;
 use App\Models\Concerns\MarksRulesChanged;
 use Illuminate\Database\Eloquent\Model;
 
 class Parameter extends Model
 {
-    use MarksRulesChanged;
+    use GuardsLockedVersion, MarksRulesChanged;
 
     public $timestamps = false;
 
@@ -46,5 +47,10 @@ class Parameter extends Model
         $raw = trim((string) ($raw ?? self::SYSTEM[$name]['default'] ?? ''));
 
         return array_values(array_filter(array_map('trim', explode(',', $raw)), fn ($v) => $v !== ''));
+    }
+
+    public function guardQversionId(): ?int
+    {
+        return $this->qversion_id;
     }
 }

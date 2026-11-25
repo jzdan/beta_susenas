@@ -83,7 +83,9 @@ class CyclePrepTest extends TestCase
         $qv = QuestionnaireVersion::where('is_active', false)->firstOrFail();
         $this->actingAs($this->admin())->post("/admin/versi/{$qv->id}/aktifkan")->assertRedirect();
         $this->assertTrue($qv->fresh()->is_active);
-        $this->actingAs($this->admin())->get("/admin/metadata?qv={$qv->id}")->assertOk()
+        // tab Kuesioner versi lain (bukan bawaan) menawarkan "Jadikan bawaan", bukan "Jadikan aktif"
+        $other = QuestionnaireVersion::where('is_active', false)->firstOrFail();
+        $this->actingAs($this->admin())->get("/admin/metadata?qv={$other->id}")->assertOk()
             ->assertSee('Jadikan bawaan', false)->assertDontSee('Jadikan aktif');
     }
 }

@@ -235,9 +235,33 @@ class MonitoringController extends Controller
         ) + ['nDocs' => $docs->count(), 'nAll' => $all->count()]);
     }
 
+    /**
+     * Siklus yang dilihat di halaman pemantauan (Inc 154): ?cycle=<id>, ?cycle=semua (gabungan),
+     * atau bawaan = siklus lapangan terbaru (kalau tak ada, siklus terbaru). Pilihan siklus
+     * untuk petugas tanpa yang masih persiapan, sama dengan Daftar Sampel.
+     *
+     * @return array{0: ?SurveyCycle, 1: \Illuminate\Support\Collection}
+     */
+    private function pickCycle(Request $request): array
+    {
+        $choices = SurveyCycle::query()
+            ->when($request->user()->role === 'operator', fn ($q) => $q->where('status', '!=', 'persiapan'))
+            ->orderByDesc('period')->orderBy('survey')->orderBy('instrument')->get();
+        $want = $request->query('cycle');
+        if ($want === 'semua') {
+            return [null, $choices];
+        }
+        $cycle = ($want ? $choices->firstWhere('id', (int) $want) : null)
+            ?? $choices->firstWhere('status', 'lapangan') ?? $choices->first();
+
+        return [$cycle, $choices];
+    }
+
     public function peta(Request $request)
     {
-        $rows = $this->visibleSamples($request->user())->get()
+        [$cycle, $choices] = $this->pickCycle($request);
+        $rows = $this->visibleSamples($request->user())
+            ->when($cycle, fn ($q) => $q->where('cycle_id', $cycle->id))->get()
             ->where('status', '!=', 'ganti_sampel');
         $wil = Wilayah::pluck('name', 'code');
 
@@ -280,6 +304,7 @@ class MonitoringController extends Controller
         }
 
         return view('monitoring.peta', [
+            'cycle' => $cycle, 'choices' => $choices,
             'kecs' => $kecs, 'total' => $rows->count(),
             'done' => $rows->whereIn('status', self::DONE)->count(),
         ]);

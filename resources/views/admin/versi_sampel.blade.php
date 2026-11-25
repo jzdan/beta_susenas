@@ -2,7 +2,7 @@
 @php($nav = 'meta')
 @section('title', "Sampel {$qv->code} · Sistem SUSENAS")
 @section('content')
-<p><a class="btn-ghost" href="{{ route('admin.metadata', ['qv' => $qv->id]) }}">← Metadata Kuesioner</a></p>
+<x-back :href="route('admin.metadata', ['qv' => $qv->id])" label="Kembali ke Kuesioner" smart />
 <h1>Rincian Sampel — {{ $qv->code }}</h1>
 <p class="muted">Siklus <strong>{{ $cycle->name ?? '—' }}</strong>{{ $cycle?->period ? ' · periode '.$cycle->period : '' }}.
   Sampel diambil dari siklus versi ini; sampel yang sudah digantikan tidak dihitung.</p>

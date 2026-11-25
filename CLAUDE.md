@@ -62,6 +62,20 @@ petugas yang sedang di lapangan):
   `force=1` di tombol Buka periode lapangan = paksa (log audit). Di antarmuka `is_active` disebut
   **versi bawaan** ("Jadikan bawaan"), bukan "aktif".
 
+## Periode Survei (Inc 154)
+
+- Navigasi admin/pj/pml: `/periode` tahun → triwulan → survei → hub (`PeriodeController`).
+  Satu siklus = satu instrumen; `survey_cycles.survey` + `instrument`; triwulan dari `period` (YYYY-MM,
+  Jan–Mar = TW1). Hub **memakai halaman lama sebagai tab** — kalau halaman baru terikat satu siklus,
+  sertakan `@include('periode._hub_header', PeriodeController::hubContext($cycle) + ['hubTab' => …])`.
+  Tambah tab → `PeriodeController::hubTabs()`.
+- Metadata/Aturan/Jadwal/Impor Sampel/Impor Isian/Impor Rincian **tidak lagi di menu samping**
+  (masuk hub); route lama tetap ada.
+- Versi milik siklus `selesai` hanya-lihat: trait `GuardsLockedVersion` (423) di semua model metadata;
+  perubahan lewat query builder massal wajib cek `$qv->locked()` sendiri. Halaman sunting metadata
+  sertakan `admin.partials._ro_version`; formulir yang tetap boleh diberi `class="ro-allow"`.
+- "Siapkan triwulan" menyalin versi via `QuestionnairePackage` export→import ke siklus baru.
+
 ## Tahap sampel & label antarmuka (Inc 149–150)
 
 - **Satu tahap** per sampel = `App\Support\Tahap::of($sample, $doc)` (gabungan status sampel + isian):
@@ -94,6 +108,8 @@ petugas yang sedang di lapangan):
   `questionnaire_versions.rules_changed_at` (trait `MarksRulesChanged`; **update/delete massal lewat query
   builder tidak memicu event — panggil `QuestionnaireVersion::markRulesChanged()` sendiri**).
   `staleDocuments()` → kotak "belum diperiksa ulang" + tombol Periksa ulang sekarang.
+- Keterhubungan blok ↔ aturan/agregat/turunan: `App\Services\BlockLinks::for($qv)` (Inc 155) — dipakai
+  chip "Blok X", "dipakai oleh", filter `?blok=` di Aturan Validasi, dan "Terhubung:" di tab Kuesioner.
 - Aturan: `scope` = `dokumen`/`konsistensi`/`neraca`/`kalori`/`anomali`;
   `row_block` = kode blok utk aturan per-baris (konteks lokal + `_row_index` + `ref_<key>`).
 - `IV1-HARGA-MAHAL`/`IV1-HARGA-MURAH` & `KALORI-*` memakai `block_rows.ref`

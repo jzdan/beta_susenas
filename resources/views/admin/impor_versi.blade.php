@@ -2,7 +2,7 @@
 @php($nav = 'meta')
 @section('title', 'Impor Versi Kuesioner · Sistem SUSENAS')
 @section('content')
-<p><a class="btn-ghost" href="{{ route('admin.metadata') }}">← Metadata</a></p>
+<x-back :href="route('periode.index')" label="Kembali" smart />
 <h1>Impor Paket Versi Kuesioner</h1>
 <p class="muted">Tempel isi paket JSON (dari <span class="mono">Ekspor JSON</span> di instansi lain)
   atau unggah berkasnya. Paket diperiksa dulu sebelum diimpor sebagai versi baru.</p>

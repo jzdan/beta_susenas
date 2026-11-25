@@ -2,7 +2,7 @@
 @php($nav = 'pengolahan')
 @section('title', "Pengolahan sampel #{$doc->id} · Sistem SUSENAS")
 @section('content')
-<p><a class="btn-ghost" href="{{ route('pengolahan.index') }}">← Antrean</a>
+<p><x-back :href="route('pengolahan.index', ['cycle' => $sample->cycle_id])" label="Kembali ke antrean" />
   <a class="btn-ghost" href="{{ route('entri.print', $doc) }}">Cetak / arsip</a>
   @if($nextDoc)<a class="btn-ghost" href="{{ route('pengolahan.show', $nextDoc) }}">Lewati ke #{{ $nextDoc->id }} →</a>@endif</p>
 <h1>Pengolahan Sampel #{{ $doc->id }}</h1>

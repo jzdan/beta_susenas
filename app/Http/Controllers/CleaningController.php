@@ -30,6 +30,10 @@ class CleaningController extends Controller
         if ($scope = $request->user()->wilayah_scope) {
             $q->where('s.wilayah_code', 'like', $scope.'%');
         }
+        // Inc 154: tab Pengolahan di hub siklus = antrean yang sama, tersaring ke satu siklus
+        if ($cycle = (int) $request->input('cycle')) {
+            $q->where('s.cycle_id', $cycle);
+        }
         return $q;
     }
 
@@ -108,6 +112,7 @@ class CleaningController extends Controller
 
         return view('pengolahan.index', [
             'rows' => $rows, 'fStatus' => $fStatus, 'fRule' => $fRule, 'fQ' => $fQ,
+            'fCycle' => (int) $request->query('cycle') ?: null,
             'ruleAgg' => $ruleAgg, 'totalDocs' => $allDocIds->count(),
             'queueAge' => $queueAge, 'staleDays' => self::STALE_DAYS,
             // label sama dengan tahap di Daftar Sampel (App\Support\Tahap)
@@ -128,7 +133,7 @@ class CleaningController extends Controller
         }
         AuditLog::record('pengolahan', $request->user()->id, 'revalidasi', "{$n} sampel", $request->user()->id);
 
-        return redirect()->route('pengolahan.index', $request->only('status', 'rule', 'q'))
+        return redirect()->route('pengolahan.index', $request->only('status', 'rule', 'q', 'cycle'))
             ->with('ok', "Aturan validasi dijalankan ulang untuk {$n} sampel (di luar yang sudah bersih).");
     }
 
@@ -413,7 +418,7 @@ class CleaningController extends Controller
         AuditLog::record('pengolahan', $request->user()->id, 'bersih-massal',
             "{$done} bersih, {$skip} dilewati", $request->user()->id);
 
-        return redirect()->route('pengolahan.index', $request->only('status', 'rule', 'q'))
+        return redirect()->route('pengolahan.index', $request->only('status', 'rule', 'q', 'cycle'))
             ->with('ok', "{$done} sampel ditandai bersih".($skip ? ", {$skip} dilewati (masih ada kesalahan atau siklus terkunci)." : '.'));
     }
 

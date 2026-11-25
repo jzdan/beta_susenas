@@ -2,7 +2,7 @@
 @php($nav = 'meta')
 @section('title', "Buku Kode {$qv->code} · Sistem SUSENAS")
 @section('content')
-<p class="no-print"><a class="btn-ghost" href="{{ route('admin.metadata') }}">← Metadata</a>
+<p class="no-print"><x-back :href="route('admin.metadata', ['qv' => $qv->id])" label="Kembali ke Kuesioner" />
   <button class="btn-ghost" onclick="window.print()">Cetak</button>
   <a class="btn-ghost" href="{{ route('admin.versi.export', $qv) }}">Ekspor JSON</a></p>
 

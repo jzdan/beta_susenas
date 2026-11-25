@@ -2,8 +2,9 @@
 @php($nav = 'meta')
 @section('title', "Blok {$b->code} · Sistem SUSENAS")
 @section('content')
-<p><a class="btn-ghost" href="{{ route('admin.metadata') }}">← Metadata</a></p>
+<x-back :href="route('admin.metadata', ['qv' => $b->qversion_id])" label="Kembali ke Kuesioner" />
 <h1>Blok {{ $b->code }} — {{ $b->title }}</h1>
+@include('admin.partials._ro_version', ['roQv' => $b->qversion])
 <p class="muted">Tipe:
   @if($b->repeat === 'art') roster (baris dinamis per anggota rumah tangga)
   @elseif($b->repeat === 'list') daftar (baris tetap, mis. komoditas)

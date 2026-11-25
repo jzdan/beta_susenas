@@ -3,7 +3,7 @@
 @section('content')
 <div class="print-doc">
 <div class="no-print" style="margin-bottom:12px">
-  <a class="btn-ghost" href="{{ route('entri.form', $doc) }}">← Kembali</a>
+  <x-back :href="route('entri.form', $doc)" label="Kembali ke isian" />
   <button type="button" class="btn-ghost" onclick="window.print()">Cetak / simpan PDF</button>
 </div>
 

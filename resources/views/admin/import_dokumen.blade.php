@@ -2,6 +2,7 @@
 @php($nav = 'imdok')
 @section('title', 'Impor Isian Massal · Sistem SUSENAS')
 @section('content')
+<x-back :href="request('cycle') ? route('monitoring.samples', ['cycle' => request('cycle')]) : route('periode.index')" smart />
 <h1>Impor Isian Massal (format lebar)</h1>
 <p class="muted">Satu baris CSV = satu rumah tangga. Kolom kunci wajib:
   <span class="mono">wilayah_code, no_bs, no_ruta</span> (opsional <span class="mono">krt_name</span>).
@@ -50,7 +51,7 @@
     <label>Siklus survei
       <select name="cycle_id" required>
         @foreach (\App\Models\SurveyCycle::orderByDesc('id')->get() as $c)
-        <option value="{{ $c->id }}" @selected(($hasil['cycle_id'] ?? null) === $c->id)>{{ $c->name }} ({{ $c->period }})</option>
+        <option value="{{ $c->id }}" @selected(($hasil['cycle_id'] ?? (int) request('cycle')) === $c->id)>{{ $c->name }} ({{ $c->period }})</option>
         @endforeach
       </select>
     </label>

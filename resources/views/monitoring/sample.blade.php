@@ -2,7 +2,7 @@
 @php($nav = 'sampel')
 @section('title', "Sampel {$s->no_ruta} · Sistem SUSENAS")
 @section('content')
-<p><a class="btn-ghost" href="{{ route('monitoring.samples') }}">← Daftar sampel</a></p>
+<x-back :href="route('monitoring.samples', ['cycle' => $s->cycle_id])" label="Kembali ke Daftar Sampel" smart />
 <h1>{{ $s->krt_name ?: 'Rumah Tangga '.$s->no_ruta }} <small class="muted">{{ $s->cycle->name ?? '' }}</small></h1>
 <p class="muted mono">{{ $wilNames[$s->wilayah_code] ?? $s->wilayah_code }} ·
   {{ $s->wilayah_code }} · Blok Sensus {{ $s->no_bs }} · Rumah Tangga {{ $s->no_ruta }}</p>
