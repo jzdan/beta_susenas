@@ -15,7 +15,9 @@ use RuntimeException;
 /**
  * Login lewat SSO Bangdata. Akun Sistem SUSENAS tetap dikelola admin di /admin/pengguna (peran &
  * wilayah_scope per petugas) — SSO di sini HANYA mengautentikasi; tidak pernah membuat akun baru,
- * agar peran/wilayah tidak pernah ditebak dari profil SSO. Pencocokan ke akun lokal lewat username.
+ * agar peran/wilayah tidak pernah ditebak dari profil SSO. Pencocokan ke akun lokal lewat username
+ * (bila terisi di profil SSO — field ini kosong untuk akun internal/eksternal biasa) atau email
+ * (email institusi `email_bps` diutamakan, lalu email pribadi).
  */
 class SsoBangdataController extends Controller
 {
@@ -64,8 +66,14 @@ class SsoBangdataController extends Controller
                 ->first();
         }
 
+        if (! $user && $data['email']) {
+            $user = User::whereRaw('LOWER(email) = ?', [strtolower($data['email'])])
+                ->whereNull('sso_id')
+                ->first();
+        }
+
         if (! $user) {
-            AuditLog::record('auth', $data['username'] ?? $data['sso_id'], 'login-sso-tidak-dikenal', 'sso_id='.$data['sso_id']);
+            AuditLog::record('auth', $data['username'] ?? $data['email'] ?? $data['sso_id'], 'login-sso-tidak-dikenal', 'sso_id='.$data['sso_id']);
 
             return $gagal('Akun SSO Anda belum terdaftar di Sistem SUSENAS. Hubungi admin untuk didaftarkan.');
         }

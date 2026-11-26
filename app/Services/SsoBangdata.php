@@ -69,11 +69,15 @@ class SsoBangdata
             throw new RuntimeException('Data pengguna dari SSO Bangdata tidak memuat id.');
         }
 
+        // email_bps (institusi) diutamakan dari email pribadi — field "username" kosong
+        // untuk akun biasa (internal/eksternal), jadi email adalah pencocok utama di praktiknya.
+        $email = fn (string $k) => isset($d[$k]) && filter_var($d[$k], FILTER_VALIDATE_EMAIL) ? strtolower($d[$k]) : null;
+
         return [
             'sso_id' => (string) $id,
             'nama' => (string) ($d['name'] ?? $d['nama'] ?? $d['username'] ?? 'Pengguna SSO'),
             'username' => isset($d['username']) && $d['username'] !== '' ? (string) $d['username'] : null,
-            'email' => isset($d['email']) && filter_var($d['email'], FILTER_VALIDATE_EMAIL) ? strtolower($d['email']) : null,
+            'email' => $email('email_bps') ?? $email('email'),
         ];
     }
 
