@@ -133,7 +133,10 @@ TLS tetap diterminasi di reverse proxy di depan `web` (port 8080); set
 
 ## Login SSO Bangdata (Inc 156)
 
-Tersedia sebagai tambahan di samping login lokal (`AuthController`), bukan pengganti.
+**Saat aktif, SSO adalah satu-satunya jalan masuk** — form login lokal (`AuthController`)
+disembunyikan dan `POST /login` membalas 404, bukan sekadar UI yang disembunyikan. Katup
+darurat bila ada akun yang gagal tertaut: kosongkan `SSO_CLIENT_ID`/`BANGDATA_CLIENT_ID` di
+`.env` + `php artisan config:cache` → form lokal langsung muncul lagi, tanpa redeploy kode.
 Login server terpusat `sso.bangdata.web.id` (Laravel Passport, dipakai bersama app lain
 di platform "bangdata" ini). Isi di `.env` untuk mengaktifkan:
 

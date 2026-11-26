@@ -26,8 +26,10 @@ class AuthController extends Controller
 
     private const LOCK_THRESHOLD = 5;
 
-    public function login(Request $request)
+    public function login(Request $request, SsoBangdata $sso)
     {
+        abort_if($sso->aktif(), 404);
+
         $data = $request->validate([
             'username' => 'required|string',
             'password' => 'required|string',

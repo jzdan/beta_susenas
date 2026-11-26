@@ -2159,9 +2159,15 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   mencocokkan ke akun lokal lewat `username` (case-insensitive, hanya bila `sso_id` akun itu
   masih kosong), lalu menautkan `sso_id` secara permanen. Username SSO tak dikenal → ditolak
   dengan pesan "hubungi admin", bukan dibuatkan akun baru.
-- Migrasi `add_sso_id_to_users_table` (`sso_id` nullable unik). Halaman login: tombol "Masuk
-  dengan SSO Bangdata" muncul hanya bila SSO aktif, login lokal tetap ada di bawahnya sebagai
-  cadangan (dipakai juga untuk akun demo & admin saat SSO belum terpasang di semua akun).
+- Migrasi `add_sso_id_to_users_table` (`sso_id` nullable unik).
+- **Permintaan user: SSO jadi satu-satunya jalan masuk** (bukan sekadar tambahan) selama aktif —
+  halaman login hanya menampilkan tombol "Masuk dengan SSO Bangdata" (form lokal & akun demo
+  disembunyikan lewat `@if($ssoAktif) … @else …`), dan `AuthController::login` (POST `/login`)
+  membalas 404 bila SSO aktif — bukan cuma UI yang disembunyikan, submit langsung pun ditolak.
+  **Katup darurat**: mengosongkan `SSO_CLIENT_ID`/`BANGDATA_CLIENT_ID` di `.env` server + `config:cache`
+  langsung memunculkan lagi form lokal tanpa redeploy kode — dipakai bila penautan akun gagal.
+  Konsekuensinya: akun lokal yang belum tertaut `sso_id` (atau belum punya `username` yang cocok
+  dengan SSO) **tidak bisa login sama sekali** sampai ditautkan — lihat katup darurat di atas.
 - 290 tes lulus (tidak ada tes baru untuk alur SSO — butuh mock HTTP ke server SSO sungguhan;
   jalur penolakan "akun tak dikenal" & "SSO nonaktif" sudah tercakup lewat guard `aktif()`/404).
 

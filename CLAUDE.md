@@ -189,12 +189,16 @@ lebar `var__n`, pratinjau dry-run, alias kolom, ekspor round-trip).
 
 ## Login SSO Bangdata (Inc 156)
 
-Login SSO opsional lewat `sso.bangdata.web.id` (platform bersama, dipakai juga app lain di
-akun hosting ini) — **tambahan** di samping login lokal, bukan pengganti; aktif bila
-`BANGDATA_CLIENT_ID`/`SSO_CLIENT_ID` terisi di `.env`. SSO **hanya mengautentikasi** — akun
-(peran + `wilayah_scope`) tetap dikelola admin di `/admin/pengguna`, dicocokkan ke profil SSO
-lewat `username`; username tak dikenal ditolak, **tidak** auto-provisioning (beda dari pola
-AKSARA di platform yang sama — di sana peran generik, di SUSENAS peran kritis-keamanan).
+Login lewat `sso.bangdata.web.id` (platform bersama, dipakai juga app lain di akun hosting
+ini); aktif bila `BANGDATA_CLIENT_ID`/`SSO_CLIENT_ID` terisi di `.env`. **Saat aktif, SSO jadi
+satu-satunya jalan masuk** — form login lokal disembunyikan dan `POST /login` membalas 404
+(bukan cuma UI yang disembunyikan). **Katup darurat**: kosongkan `SSO_CLIENT_ID`/
+`BANGDATA_CLIENT_ID` di `.env` + `php artisan config:cache` → form lokal langsung muncul lagi,
+tanpa redeploy. SSO **hanya mengautentikasi** — akun (peran + `wilayah_scope`) tetap dikelola
+admin di `/admin/pengguna`, dicocokkan ke profil SSO lewat `username`; username tak dikenal
+ditolak, **tidak** auto-provisioning (beda dari pola AKSARA di platform yang sama — di sana
+peran generik, di SUSENAS peran kritis-keamanan). Konsekuensi: akun yang `username`-nya belum
+cocok dengan SSO tidak bisa login sampai ditautkan.
 `App\Services\SsoBangdata` + `App\Http\Controllers\Auth\SsoBangdataController`; detail env &
 alur di `docs/deployment.md`. Deploy produksi pertama: `susenas.bangdata.web.id` (Hostinger
 shared hosting, pola `<nama>-app/` + symlink `public_html/<nama>` yang dipakai app lain di
