@@ -187,7 +187,20 @@ lebar `var__n`, pratinjau dry-run, alias kolom, ekspor round-trip).
 - `scripts/` — `pdftext.php`, `xlsx_sheet.php` (baca PDF/xlsx referensi), `build_iv2_csv.php`.
 - Materi referensi asli: `c:\Users\User\OneDrive\Documents\susenas\WTF Susenas Seruti\`.
 
-## Belum: modul Seruti, ~16 aturan Sidona ambigu, input sisi BPS (SSO, format ekspor
+## Login SSO Bangdata (Inc 156)
+
+Login SSO opsional lewat `sso.bangdata.web.id` (platform bersama, dipakai juga app lain di
+akun hosting ini) — **tambahan** di samping login lokal, bukan pengganti; aktif bila
+`BANGDATA_CLIENT_ID`/`SSO_CLIENT_ID` terisi di `.env`. SSO **hanya mengautentikasi** — akun
+(peran + `wilayah_scope`) tetap dikelola admin di `/admin/pengguna`, dicocokkan ke profil SSO
+lewat `username`; username tak dikenal ditolak, **tidak** auto-provisioning (beda dari pola
+AKSARA di platform yang sama — di sana peran generik, di SUSENAS peran kritis-keamanan).
+`App\Services\SsoBangdata` + `App\Http\Controllers\Auth\SsoBangdataController`; detail env &
+alur di `docs/deployment.md`. Deploy produksi pertama: `susenas.bangdata.web.id` (Hostinger
+shared hosting, pola `<nama>-app/` + symlink `public_html/<nama>` yang dipakai app lain di
+akun yang sama).
+
+## Belum: modul Seruti, ~16 aturan Sidona ambigu, input sisi BPS (format ekspor
 CAPI, deploy PDN, UAT, penimbang kalibrasi, wilayah/sampel/harga referensi asli).
 
 ## graphify

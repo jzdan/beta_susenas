@@ -131,9 +131,31 @@ TLS tetap diterminasi di reverse proxy di depan `web` (port 8080); set
   dan mendeteksi dokumen tanpa snapshot / aturan dengan sintaks rusak.
 - Log aplikasi: `storage/logs/laravel-*.log` (channel `daily`).
 
+## Login SSO Bangdata (Inc 156)
+
+Tersedia sebagai tambahan di samping login lokal (`AuthController`), bukan pengganti.
+Login server terpusat `sso.bangdata.web.id` (Laravel Passport, dipakai bersama app lain
+di platform "bangdata" ini). Isi di `.env` untuk mengaktifkan:
+
+```
+BANGDATA_SSO_URL=https://sso.bangdata.web.id
+BANGDATA_CLIENT_ID=
+BANGDATA_CLIENT_SECRET=
+BANGDATA_REDIRECT_URI=https://<domain-susenas>/auth/sso/callback
+```
+
+(nama `SSO_BASE_URL`/`SSO_CLIENT_ID`/`SSO_CLIENT_SECRET`/`SSO_REDIRECT_URI` diterima sebagai
+cadangan — itu yang dicontohkan panel admin SSO). Path callback **harus** persis
+`/auth/sso/callback`, sesuai redirect URI yang didaftarkan di panel SSO.
+
+SSO di sini **hanya mengautentikasi**, tidak pernah membuat akun baru: akun (peran +
+`wilayah_scope`) tetap dikelola admin di `/admin/pengguna`, dicocokkan ke profil SSO lewat
+`username` (case-insensitive). Username SSO yang belum ada sebagai akun lokal ditolak dengan
+pesan untuk menghubungi admin — supaya peran tak pernah ditebak dari profil SSO.
+Lihat `App\Services\SsoBangdata` + `App\Http\Controllers\Auth\SsoBangdataController`.
+
 ## Yang belum & perlu keputusan BPS
 
-- **SSO**: integrasi Keycloak/SSO BPS menggantikan `AuthController` login lokal.
 - **Alokasi sampel & master wilayah** nyata (impor Wilkerstat & DSRT).
 - **Garis kemiskinan** kabupaten resmi per periode (kini parameter dummy).
 - **Penimbang kalibrasi** untuk estimasi (kini design weight dummy).

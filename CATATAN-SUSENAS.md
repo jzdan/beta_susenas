@@ -2143,6 +2143,28 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   `test_admin_imports_block_rows_with_calorie_data_from_xlsx` (kolom harga/kalori
   diabaikan di impor baris). 238 tes lulus.
 
+### Increment 156 — login SSO Bangdata
+
+- Deploy pertama ke produksi: `susenas.bangdata.web.id` (Hostinger shared hosting, pola
+  `susenas-app/` + symlink `public_html/susenas`, mengikuti konvensi app lain di akun yang sama).
+  MySQL (`u978319107_susenas`), `QUEUE_CONNECTION=sync` (aplikasi tidak memakai queue).
+- Login SSO Bangdata (OAuth2, server Passport di `sso.bangdata.web.id`, dipakai bersama app lain
+  di platform ini) — `App\Services\SsoBangdata` (klien: redirect ke `/oauth/authorize`, tukar kode
+  di `/oauth/token`, ambil profil dari `/api/user`) + `Auth\SsoBangdataController` (route tetap
+  `auth/sso` + `auth/sso/callback` — path kedua dipatok karena sudah didaftarkan sebagai redirect URI
+  di panel SSO). Nonaktif selama `BANGDATA_CLIENT_ID`/`SSO_CLIENT_ID` kosong di `.env`.
+- **SSO hanya mengautentikasi, tidak pernah membuat akun** — beda dari pola AKSARA (yang
+  auto-provisioning dengan peran default). Di SUSENAS peran & `wilayah_scope` per petugas kritis
+  untuk keamanan (Inc 121, 148), jadi akun tetap dikelola admin di `/admin/pengguna`; SSO
+  mencocokkan ke akun lokal lewat `username` (case-insensitive, hanya bila `sso_id` akun itu
+  masih kosong), lalu menautkan `sso_id` secara permanen. Username SSO tak dikenal → ditolak
+  dengan pesan "hubungi admin", bukan dibuatkan akun baru.
+- Migrasi `add_sso_id_to_users_table` (`sso_id` nullable unik). Halaman login: tombol "Masuk
+  dengan SSO Bangdata" muncul hanya bila SSO aktif, login lokal tetap ada di bawahnya sebagai
+  cadangan (dipakai juga untuk akun demo & admin saat SSO belum terpasang di semua akun).
+- 290 tes lulus (tidak ada tes baru untuk alur SSO — butuh mock HTTP ke server SSO sungguhan;
+  jalur penolakan "akun tak dikenal" & "SSO nonaktif" sudah tercakup lewat guard `aktif()`/404).
+
 ### Increment 155 — keterhubungan kuesioner ↔ aturan, neraca, turunan
 
 - Permintaan user: dari aturan/neraca/turunan harus kelihatan blok kuesioner mana yang dipakai.

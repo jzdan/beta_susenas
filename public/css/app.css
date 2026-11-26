@@ -451,6 +451,14 @@ form.inline, .doc-row form { display: inline; }
 .login-card .demo { margin-top: 16px; font-size: .84rem; }
 .login-card .demo table { width: 100%; border-collapse: collapse; margin-top: 6px; }
 .login-card .demo td { padding: 3px 4px; font-family: "IBM Plex Mono", monospace; font-size: .79rem; border-bottom: 1px solid var(--line); }
+.btn-sso {
+  display: block; text-align: center; padding: 10px 16px; border-radius: var(--radius);
+  border: 1px solid var(--accent-strong); background: var(--accent); color: var(--on-accent);
+  font-weight: 500; text-decoration: none; box-shadow: var(--shadow-sm);
+}
+.btn-sso:hover { background: var(--accent-strong); }
+.pemisah { display: flex; align-items: center; gap: 10px; margin: 16px 0 2px; color: var(--muted); font-size: .82rem; }
+.pemisah::before, .pemisah::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
 /* entry */
 /* minmax(0, 1fr), bukan kolom implisit "auto": kolom auto melebar mengikuti isi terlebar

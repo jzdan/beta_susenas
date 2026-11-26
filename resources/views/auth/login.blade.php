@@ -8,6 +8,10 @@
     @if ($errors->any())
       <div class="alert err">{{ $errors->first() }}</div>
     @endif
+    @if ($ssoAktif)
+      <a class="btn-sso" href="{{ route('sso.bangdata') }}">Masuk dengan SSO Bangdata</a>
+      <div class="pemisah"><span>atau masuk dengan akun lokal</span></div>
+    @endif
     <form method="post" action="{{ route('login') }}">
       @csrf
       <input type="hidden" name="next" value="{{ $next }}">
