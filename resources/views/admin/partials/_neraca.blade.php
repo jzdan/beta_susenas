@@ -1,4 +1,4 @@
-{{-- Tab "Neraca & Turunan" di halaman Aturan Validasi (Inc 141).
+{{-- Tab "Bahan hitungan" (dulu "Neraca & Turunan", Inc 141; diganti nama Inc 156) di halaman Aturan Validasi.
      Berisi: Parameter, Agregat cek-silang (NERACA), Variabel turunan.
      Dipindah dari halaman Metadata supaya Metadata hanya untuk membuat kuesioner. --}}
 @if($fBlok === '')

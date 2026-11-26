@@ -144,6 +144,7 @@ class QuestionnairePackage
                 'code' => $r->code, 'scope' => $r->scope, 'row_block' => $r->row_block,
                 'target_var' => $r->target_var, 'expr' => $r->expr, 'severity' => $r->severity,
                 'message' => $r->message, 'active' => (bool) $r->active,
+                'note' => $r->note, 'test_cases' => $r->test_cases,
             ])->values()->all(),
         ];
     }
@@ -223,6 +224,7 @@ class QuestionnairePackage
                     'row_block' => $r['row_block'] ?? '', 'target_var' => $r['target_var'] ?? '',
                     'expr' => $r['expr'] ?? '', 'severity' => $r['severity'] ?? 'warning',
                     'message' => $r['message'] ?? '', 'active' => $r['active'] ?? true,
+                    'note' => $r['note'] ?? null, 'test_cases' => $r['test_cases'] ?? null,
                 ]);
             }
 

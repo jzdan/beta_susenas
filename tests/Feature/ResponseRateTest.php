@@ -42,7 +42,7 @@ class ResponseRateTest extends TestCase
         $this->freshCycleSamples();
         $admin = User::where('username', 'admin')->firstOrFail();
 
-        $res = $this->actingAs($admin)->get('/monitoring')->assertOk();
+        $res = $this->actingAs($admin)->get('/monitoring?cycle=semua')->assertOk();
         $r = $res->viewData('response');
 
         // seed lain juga ada; batasi asersi pada delta yang kita tambahkan
@@ -60,7 +60,7 @@ class ResponseRateTest extends TestCase
         $this->freshCycleSamples();
         $admin = User::where('username', 'admin')->firstOrFail();
 
-        $before = $this->actingAs($admin)->get('/monitoring')->viewData('total');
+        $before = $this->actingAs($admin)->get('/monitoring?cycle=semua')->viewData('total');
 
         // menambah satu sampel yang langsung diganti tidak menaikkan total aktif
         $c = SurveyCycle::where('name', 'Uji Respons')->first();
@@ -69,7 +69,7 @@ class ResponseRateTest extends TestCase
         SampleHousehold::create(['cycle_id' => $c->id, 'wilayah_code' => '3526010001',
             'no_bs' => '077', 'no_ruta' => '011P', 'krt_name' => 'x', 'status' => 'belum', 'replaces_id' => $asal->id]);
 
-        $after = $this->actingAs($admin)->get('/monitoring')->viewData('total');
+        $after = $this->actingAs($admin)->get('/monitoring?cycle=semua')->viewData('total');
         $this->assertSame($before + 1, $after, 'hanya pengganti yang menambah total, bukan sampel asal');
     }
 }

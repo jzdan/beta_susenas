@@ -39,17 +39,19 @@
           <th class="{{ $row['label'] ? 'row-label' : '' }}">{{ $row['label'] ?? $row['idx'] }}</th>
           @foreach ($row['cells'] as $ci => $cell)
           @php($col = $b['columns'][$ci])
-          <td class="rcell @if(!empty($cell['warnings'])) has-{{ $cell['warnings'][0]['status'] }} @endif"
-              data-qid="{{ $cell['qid'] }}" data-art="{{ $row['idx'] }}" data-var="{{ $cell['var'] }}">
+          <td class="rcell @if(!empty($cell['warnings'])) has-{{ $cell['warnings'][0]['status'] }} @endif {{ !empty($cell['skipped']) ? 'is-skipped' : '' }}"
+              data-qid="{{ $cell['qid'] }}" data-art="{{ $row['idx'] }}" data-var="{{ $cell['var'] }}"
+              @if(!empty($cell['skipped'])) title="Dilewati (syarat lewati) — tidak diisi" @endif>
             @if(!empty($col['options']))
-            <select class="answer" @disabled(!$canEdit)>
+            <select class="answer" @disabled(!$canEdit || !empty($cell['skipped']))>
               <option value="">—</option>
               @foreach ($col['options'] as $o)
               <option value="{{ $o['code'] }}" @selected($cell['value'] === $o['code'])>{{ $o['code'] }} · {{ $o['label'] }}</option>
               @endforeach
             </select>
             @else
-            <input class="answer" value="{{ $cell['value'] }}" @disabled(!$canEdit)>
+            <input class="answer" value="{{ $cell['value'] }}" @disabled(!$canEdit || !empty($cell['skipped']))
+                   @if(!empty($cell['skipped'])) placeholder="tidak berlaku" @endif>
             @endif
           </td>
           @endforeach

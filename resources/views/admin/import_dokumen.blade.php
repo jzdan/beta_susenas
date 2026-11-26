@@ -19,10 +19,16 @@
   @else
     <strong>{{ $hasil['dibuat'] }}</strong> isian baru, <strong>{{ $hasil['diperbarui'] }}</strong> diperbarui.
   @endif
-  Hasil validasi: {{ $hasil['totErr'] }} kesalahan, {{ $hasil['totWarn'] }} peringatan.
+  @if(!empty($hasil['deferred']))
+  Aturan untuk {{ number_format($hasil['deferred'], 0, ',', '.') }} isian dihitung di latar belakang — lihat kemajuannya di bawah.
+  @else
+  Hasil validasi{{ !empty($hasil['ruleSampled']) ? ' (perkiraan dari 200 isian pertama)' : '' }}: {{ $hasil['totErr'] }} kesalahan, {{ $hasil['totWarn'] }} peringatan.
+  @endif
   @if($hasil['dilewati'])<br>Dilewati {{ count($hasil['dilewati']) }}:
     <ul>@foreach ($hasil['dilewati'] as $x)<li class="small">{{ $x }}</li>@endforeach</ul>@endif
 </div>
+
+@include('admin.partials._tasks', ['tasks' => $tasks ?? collect()])
 
 <div class="grid2">
   <section class="panel">

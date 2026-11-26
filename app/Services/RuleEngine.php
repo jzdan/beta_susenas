@@ -168,6 +168,96 @@ class RuleEngine
             $rowRefs[$r->blk_code][(int) $r->row_index] = $r->ref ?? [];
         }
 
+        $aggs = \App\Models\Aggregate::where('qversion_id', $qvId)->orderBy('order')->get();
+        $derivs = DerivedField::where('qversion_id', $qvId)->orderBy('order')->get();
+
+        // --- syarat "lewati" per baris (Inc 157): rincian di blok art/list/list_art yang ber-skip_expr
+        // dievaluasi per baris dengan konteks dokumen lengkap + isian baris itu. Sel yang dilewati
+        // DIABAIKAN: dibuang dari nilai berulang sebelum agregat/turunan dihitung ulang, dan aturan
+        // per-baris yang merujuknya tidak diperiksa untuk baris itu (lihat run()).
+        $this->lastSkipped = [];
+        $skipQs = $questions->filter(fn ($q) => $q->blk_repeat !== 'ruta' && trim((string) $q->skip_expr) !== '');
+        if ($skipQs->isNotEmpty()) {
+            $full = $this->finishContext($ctx, $repeatByVar, $rosterVars, $rowRefs, $blockRepeatByCode, $aggs, $derivs);
+            $varsByBlock = [];
+            foreach ($questions as $q) {
+                if ($q->blk_repeat !== 'ruta') {
+                    $varsByBlock[$q->blk_code][] = $q->var_name;
+                }
+            }
+            foreach ($skipQs as $q) {
+                $isLA = $q->blk_repeat === 'list_art';
+                $rowIdxs = [];
+                foreach ($varsByBlock[$q->blk_code] ?? [] as $v) {
+                    $rowIdxs += array_fill_keys(array_keys($repeatByVar[$v] ?? []), true);
+                }
+                foreach (array_keys($rowIdxs) as $ri) {
+                    $vals = [];
+                    foreach ($varsByBlock[$q->blk_code] as $v) {
+                        $vals[$v] = $repeatByVar[$v][$ri] ?? null;
+                    }
+                    $com = $isLA ? Block::unpackRowArt((int) $ri)[0] : (int) $ri;
+                    $rc = self::rowCtx($full, $vals, $rowRefs[$q->blk_code][$com] ?? [], null, (int) $ri, $isLA);
+                    if ($this->skipFires($q->skip_expr, $rc)) {
+                        $this->lastSkipped[$q->var_name][(int) $ri] = true;
+                    }
+                }
+            }
+            foreach ($this->lastSkipped as $v => $rows) {
+                foreach (array_keys($rows) as $ri) {
+                    unset($repeatByVar[$v][$ri]);
+                }
+            }
+        }
+
+        return $this->finishContext($ctx, $repeatByVar, $rosterVars, $rowRefs, $blockRepeatByCode, $aggs, $derivs);
+    }
+
+    /** Sel berulang yang dilewati pada buildContext terakhir: [var_name => [art_index => true]]. */
+    private array $lastSkipped = [];
+
+    public function lastSkipped(): array
+    {
+        return $this->lastSkipped;
+    }
+
+    /** true bila syarat lewati menyala; ekspresi rusak = tidak dilewati (dilaporkan VersionChecker). */
+    public function skipFires(string $expr, array $ctx): bool
+    {
+        try {
+            return ExpressionEvaluator::truthy($this->ev->evaluate($expr, $ctx, self::rosterFuncs($this->lastRepeat)));
+        } catch (RuleException) {
+            return false;
+        }
+    }
+
+    /**
+     * Konteks satu baris blok berulang: konteks dokumen + isian baris + ref_<kunci> + penanda baris.
+     * Dipakai aturan per-baris, syarat lewati per baris, dan layar entri.
+     */
+    public static function rowCtx(array $base, array $vals, array $ref, ?string $label, int $rowIdx, bool $isListArt): array
+    {
+        [$com, $art] = $isListArt ? Block::unpackRowArt($rowIdx) : [$rowIdx, 0];
+        $rc = $base;
+        foreach ($vals as $var => $v) {
+            $rc[$var] = $v;
+        }
+        foreach ($ref as $k => $v) {
+            $rc["ref_{$k}"] = $v;
+        }
+        $rc['baris_label'] = $label ?? (string) $com;
+        $rc['_row_index'] = (float) $com;
+        if ($isListArt) {
+            $rc['_art_no'] = (float) $art;
+        }
+
+        return $rc;
+    }
+
+    /** Agregat roster, NERACA, dan turunan di atas konteks dasar (jawaban ruta + parameter + sampel). */
+    private function finishContext(array $ctx, array $repeatByVar, array $rosterVars, array $rowRefs,
+        array $blockRepeatByCode, $aggs, $derivs): array
+    {
         // --- agregat roster (blok repeat='art') ---
         $artTerisi = 0;
         foreach (array_keys($rosterVars) as $var) {
@@ -187,12 +277,12 @@ class RuleEngine
         $rf = self::rosterFuncs($repeatByVar);
 
         // --- agregat cek-silang (NERACA): agregasi terkelompok atas blok berulang ---
-        foreach (\App\Models\Aggregate::where('qversion_id', $qvId)->orderBy('order')->get() as $agg) {
+        foreach ($aggs as $agg) {
             $isListArt = ($blockRepeatByCode[$agg->block_code] ?? '') === 'list_art';
             $ctx[$agg->name] = $this->computeAggregate($agg, $repeatByVar, $rowRefs[$agg->block_code] ?? [], $isListArt);
         }
 
-        foreach (DerivedField::where('qversion_id', $qvId)->orderBy('order')->get() as $d) {
+        foreach ($derivs as $d) {
             try {
                 $ctx[$d->var_name] = $this->ev->evaluate($d->expr, $ctx, $rf);
             } catch (RuleException) {
@@ -276,7 +366,11 @@ class RuleEngine
             // aturan per-baris: dievaluasi untuk setiap baris blok row_block
             if ($rule->row_block !== '') {
                 $rowCtxCache[$rule->row_block] ??= $this->rowContexts($doc, $rule->row_block, $ctx);
+                $refs = $this->lastSkipped ? $this->skipSensitive($rule) : [];
                 foreach ($rowCtxCache[$rule->row_block] as $rowIdx => $rc) {
+                    if ($this->rowSkippedFor($refs, (int) $rowIdx)) {
+                        continue;   // rincian yang dirujuk aturan dilewati di baris ini → tidak diperiksa
+                    }
                     [$status, $msg] = $this->evalRule($rule, $rc, $rf);
                     if ($status === 'error') {
                         $nErr++;
@@ -320,6 +414,32 @@ class RuleEngine
         );
 
         return ['errors' => $nErr, 'warnings' => $nWarn, 'context' => $ctx];
+    }
+
+    /** Nama variabel (yang pernah dilewati) yang dirujuk aturan: target + isi ekspresi. */
+    private function skipSensitive(ValidationRule $rule): array
+    {
+        try {
+            $names = $this->ev->referencedNames($rule->expr);
+        } catch (RuleException) {
+            $names = [];
+        }
+        if ($rule->target_var) {
+            $names[] = $rule->target_var;
+        }
+
+        return array_values(array_filter(array_unique($names), fn ($n) => isset($this->lastSkipped[$n])));
+    }
+
+    private function rowSkippedFor(array $vars, int $rowIdx): bool
+    {
+        foreach ($vars as $v) {
+            if (isset($this->lastSkipped[$v][$rowIdx])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return array{0:string,1:string}  [status, message] */
@@ -406,7 +526,12 @@ class RuleEngine
             $rowsHit = [];
             try {
                 if ($rowBlock !== '') {
+                    $refs = $this->lastSkipped
+                        ? $this->skipSensitive(new ValidationRule(['expr' => $expr, 'target_var' => ''])) : [];
                     foreach ($this->rowContexts($doc, $rowBlock, $ctx) as $rowIdx => $rc) {
+                        if ($this->rowSkippedFor($refs, (int) $rowIdx)) {
+                            continue;
+                        }
                         if (ExpressionEvaluator::truthy($this->ev->evaluate($expr, $rc, $rf))) {
                             $hit = true;
                             $fireRows++;
@@ -470,22 +595,15 @@ class RuleEngine
         $out = [];
         foreach ($byRow as $rowIdx => $vals) {
             // list_art: art_index = row_index_komoditas * 1000 + no_art
-            [$comRow, $artNo] = $isListArt ? Block::unpackRowArt((int) $rowIdx) : [(int) $rowIdx, 0];
+            $comRow = $isListArt ? Block::unpackRowArt((int) $rowIdx)[0] : (int) $rowIdx;
             $refRow = $refByRow[$comRow] ?? null;
-
-            $rc = $baseCtx;
-            foreach ($vals as $var => $v) {
-                $rc[$var] = $v;
+            // sel yang dilewati (syarat lewati per baris) diabaikan = dianggap kosong
+            foreach (array_keys($vals) as $var) {
+                if (isset($this->lastSkipped[$var][(int) $rowIdx])) {
+                    $vals[$var] = null;
+                }
             }
-            foreach (($refRow->ref ?? []) as $k => $v) {
-                $rc["ref_{$k}"] = $v;
-            }
-            $rc['baris_label'] = $refRow->label ?? (string) $comRow;
-            $rc['_row_index'] = (float) $comRow;
-            if ($isListArt) {
-                $rc['_art_no'] = (float) $artNo;
-            }
-            $out[$rowIdx] = $rc;
+            $out[$rowIdx] = self::rowCtx($baseCtx, $vals, $refRow->ref ?? [], $refRow->label ?? null, (int) $rowIdx, $isListArt);
         }
         return $out;
     }

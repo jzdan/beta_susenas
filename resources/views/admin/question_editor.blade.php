@@ -21,6 +21,11 @@
     </div>
     <label>Label <input name="label" value="{{ $q->label }}" required></label>
     <label>Lewati bila <input name="skip_expr" value="{{ $q->skip_expr }}" class="mono"></label>
+    @if($q->block->repeat !== 'ruta')
+    <p class="muted small">Blok ini berulang per baris, jadi syarat dihitung <strong>per baris</strong>: boleh memakai isian lain di baris yang sama
+      (mis. <span class="mono">n({{ $q->block->questions->first()?->var_name ?? 'umur' }}) &lt; 5</span>), data patokan baris
+      <span class="mono">ref_…</span>, dan nomor baris <span class="mono">_row_index</span>. Sel yang dilewati dikunci, tidak diperiksa aturan, dan tidak ikut dihitung.</p>
+    @endif
     <label>Teks bantuan <input name="help_text" value="{{ $q->help_text }}"></label>
     <div class="row-form">
       <button type="submit">Simpan</button>

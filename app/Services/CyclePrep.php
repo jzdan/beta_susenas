@@ -102,6 +102,16 @@ class CyclePrep
                 : 'Dipakai dashboard untuk target kemajuan harian.',
             route('admin.jadwal'), 'Jadwal');
 
+        // Inc 163: jadwal harus jatuh di periodenya (wajib); triwulan yang belum mulai = peringatan saja
+        $why = $cycle->scheduleIssue();
+        $add('jadwal_periode', 'Jadwal lapangan sesuai periode', $why === null, true,
+            $why ?? 'Tanggal lapangan berada di triwulan periode ini.', route('admin.jadwal'), 'Jadwal');
+        $belum = $cycle->quarterNotStarted();
+        $range = SurveyCycle::quarterRange((string) $cycle->period);
+        $add('triwulan_mulai', 'Triwulan periode ini sudah dimulai', ! $belum, false,
+            $belum ? 'Triwulan ini baru mulai '.$range[0]->format('d-m-Y').'. Membuka lapangan sekarang berarti petugas bisa mengisi lebih awal.'
+                : 'Sesuai kalender.');
+
         $siap = collect($items)->every(fn ($i) => $i['ok'] || ! $i['wajib']);
 
         return ['items' => $items, 'siap' => $siap, 'version' => $qv, 'versionErrors' => $versionErrors];

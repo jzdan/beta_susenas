@@ -93,6 +93,77 @@ class SurveyCycle extends Model
         return $m ? (int) ceil($m / 3) : null;
     }
 
+    // ---------------------------------------------------------------- kalender (Inc 163)
+
+    /** Lapangan boleh selesai paling lambat sekian bulan sesudah triwulannya berakhir (mis. SERUTI Maret s.d. 15 April). */
+    public const FIELD_END_GRACE_MONTHS = 2;
+
+    /** [awal, akhir] triwulan sebuah period YYYY-MM, atau null bila formatnya tidak dikenal. */
+    public static function quarterRange(string $period): ?array
+    {
+        if (! preg_match('/^(\d{4})-(\d{2})$/', $period, $m) || (int) $m[2] < 1 || (int) $m[2] > 12) {
+            return null;
+        }
+        $q = (int) ceil((int) $m[2] / 3);
+        $start = \Illuminate\Support\Carbon::create((int) $m[1], $q * 3 - 2, 1)->startOfDay();
+
+        return [$start, $start->copy()->addMonths(3)->subDay()->endOfDay()];
+    }
+
+    /**
+     * Masalah jadwal lapangan terhadap periodenya, atau null bila wajar:
+     * tanggal mulai harus di dalam triwulan periode; tanggal selesai paling lambat
+     * FIELD_END_GRACE_MONTHS bulan sesudah triwulan berakhir.
+     */
+    public static function scheduleProblem(string $period, $start, $end): ?string
+    {
+        $r = self::quarterRange($period);
+        if (! $r || (! $start && ! $end)) {
+            return null;
+        }
+        [$qs, $qe] = $r;
+        $q = (int) ceil($qs->month / 3);
+        $fmt = fn ($d) => $d->day.' '.self::MONTHS[$d->month].' '.$d->year;
+        $start = $start ? \Illuminate\Support\Carbon::parse($start) : null;
+        $end = $end ? \Illuminate\Support\Carbon::parse($end) : null;
+        if ($start && ($start->lt($qs) || $start->gt($qe))) {
+            return "Periode {$period} termasuk triwulan {$q} {$qs->year} ({$fmt($qs)} – {$fmt($qe)}), "
+                ."jadi tanggal mulai lapangan harus di antara tanggal itu (sekarang {$fmt($start)}).";
+        }
+        $latest = $qe->copy()->addMonthsNoOverflow(self::FIELD_END_GRACE_MONTHS)->endOfMonth();
+        if ($end && ($end->gt($latest) || $end->lt($qs))) {
+            return "Tanggal selesai lapangan ({$fmt($end)}) di luar periode {$period}: paling cepat {$fmt($qs)}, "
+                ."paling lambat {$fmt($latest)}.";
+        }
+
+        return null;
+    }
+
+    public function scheduleIssue(): ?string
+    {
+        return self::scheduleProblem((string) $this->period, $this->field_start, $this->field_end);
+    }
+
+    /** Triwulan periode ini belum dimulai (menurut kalender hari ini). */
+    public function quarterNotStarted(): bool
+    {
+        $r = self::quarterRange((string) $this->period);
+
+        return $r !== null && now()->lt($r[0]);
+    }
+
+    /** Masih berstatus lapangan padahal jadwal lapangannya sudah lewat. */
+    public function fieldOverdue(): bool
+    {
+        return $this->status === 'lapangan' && $this->field_end && $this->field_end->lt(today());
+    }
+
+    /** Masih persiapan padahal tanggal mulai lapangan sudah tiba. */
+    public function fieldShouldHaveStarted(): bool
+    {
+        return $this->status === 'persiapan' && $this->field_start && $this->field_start->lte(today());
+    }
+
     /** "SUSENAS KP", "SERUTI INTI", atau "SUSENAS" bila instrumen tak diketahui. */
     public function label(): string
     {

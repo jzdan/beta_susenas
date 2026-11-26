@@ -35,7 +35,7 @@ class MonitoringScheduleTest extends TestCase
         }
 
         $admin = User::where('username', 'admin')->firstOrFail();
-        $res = $this->actingAs($admin)->get('/monitoring');
+        $res = $this->actingAs($admin)->get('/monitoring?cycle=semua');
         $res->assertOk();
         $res->assertSee('Jadwal &amp; kecepatan pencacahan', false);
         $res->assertSee('Uji Jadwal');
@@ -52,7 +52,7 @@ class MonitoringScheduleTest extends TestCase
     public function test_dashboard_shows_processing_funnel_and_top_rules(): void
     {
         $admin = \App\Models\User::where('username', 'admin')->firstOrFail();
-        $res = $this->actingAs($admin)->get('/monitoring')->assertOk();
+        $res = $this->actingAs($admin)->get('/monitoring?cycle=semua')->assertOk();
 
         // satu tabel tahap = semua sampel dalam cakupan, masing-masing tepat satu tahap
         $tahap = $res->viewData('tahap');

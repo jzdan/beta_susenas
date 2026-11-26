@@ -108,6 +108,9 @@ class SerutiSeeder extends Seeder
         }
 
         $this->sampleData($cycle, $qv);
+
+        // Inc 156: blok III, IV.2.B, IV.3, V, VI, VII dari PDF VSERUTI26.INTI
+        $this->call(SerutiIntiLengkapSeeder::class);
     }
 
     private function sampleData(SurveyCycle $cycle, QuestionnaireVersion $qv): void

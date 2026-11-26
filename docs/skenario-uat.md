@@ -1,73 +1,107 @@
 # Skenario UAT — Sistem SUSENAS
 
-Data awal: `php artisan migrate:fresh --seed`. Akun demo lihat halaman login.
+Data awal: `php artisan migrate:fresh --seed` (memuat juga kerangka 2026: SUSENAS KOR/KP/Modul,
+SERUTI INTI/MAK per triwulan). Akun demo lihat halaman login. Diperbarui November 2026 (Inc 148–163).
 
 ## A. Autentikasi & akses
 
 | # | Langkah | Hasil diharapkan |
 |---|---|---|
-| A1 | Login `ppl_ani` / `operator123` | Masuk ke dashboard; menu Admin & Pengolahan tidak tampil |
-| A2 | Sebagai operator buka `/admin/metadata` langsung | HTTP 403 |
-| A3 | Salah kata sandi 9× berturut-turut | Ditolak; setelah batas → "Too Many Attempts" (rate limit) |
-| A4 | Login `rahmawati` (wilayah 3526) | Hanya melihat sampel berkode 3526… |
+| A1 | Masuk `ppl_ani` / `operator123` | Menu hanya Dashboard, Tugas Saya, Peta Progres, Daftar Sampel; tanpa Periode Survei & menu admin |
+| A2 | Sebagai petugas buka `/admin/metadata` atau `/periode` langsung | HTTP 403 |
+| A3 | Salah kata sandi berulang kali | Ditolak; setelah batas → dikunci sementara (tercatat di Log Audit) |
+| A4 | Masuk `pj_kamal` (Penanggung Jawab, cakupan 3526010) | Hanya melihat sampel berkode 3526010… |
+| A5 | Sebagai `ppl_ani` buka `/entri/{id}` milik petugas lain (ubah nomor di alamat) | HTTP 403 |
 
-## B. Monitoring
-
-| # | Langkah | Hasil diharapkan |
-|---|---|---|
-| B1 | Dashboard sebagai admin | Response rate, status, progres per desa & petugas tampil |
-| B2 | Buka Peta Progres | Petak BS berwarna sesuai persen selesai; klik → daftar sampel desa |
-| B3 | Admin → Impor Sampel, tempel CSV berisi 1 baris valid + 1 duplikat + 1 desa tak dikenal | "1 ditambahkan, dilewati 2" dengan alasan tepat |
-| B4 | PML ubah status sebuah sampel `belum` → `non_respons` | Status berubah; tercatat di Log Audit |
-
-## C. Entri & validasi
+## B. Periode Survei (admin / pengawas / penanggung jawab)
 
 | # | Langkah | Hasil diharapkan |
 |---|---|---|
-| C1 | Operator buka entri dok #1 | Blok Pokok, roster ART, IV.2, IV.1 (16 komoditas), Blok V tampil |
-| C2 | Kosongkan "Banyaknya ART" | Error "Jumlah ART belum diisi" muncul langsung di sisi field |
-| C3 | Isi roster ART dengan 2 baris `hubungan = 1` | Error "Harus tepat satu kepala rumah tangga" |
-| C4 | IV.1 baris Beras: isi nilai beli, kosongkan kuantitas | Error per-baris "Nilai terisi tapi kuantitas kosong" |
-| C5 | IV.1 baris Rokok: nilai/kuantitas → harga satuan > batas | Warning per-baris "Harga satuan Rp… kemahalan — batas wajar Rp…–Rp…" |
-| C6 | Isi kuantitas seluruh komoditas | Nilai turunan "Kalori per kapita per hari" ter-update |
-| C7 | Coba Finalisasi saat masih ada error | Ditolak dengan pesan jumlah error |
-| C8 | Perbaiki semua error, Finalisasi | Dokumen → `selesai`; sampel → `selesai` |
+| B1 | Menu Periode Survei | Kartu per tahun (2027, 2026) dengan status & progres |
+| B2 | Klik 2026 | Empat baris triwulan; warna pita kiri = status; TW1 berisi SUSENAS KOR, KP, SERUTI INTI |
+| B3 | Klik TW1 2026 | Kartu per survei + tabel beban petugas gabungan semua survei |
+| B4 | Klik SUSENAS KP | Hub: Ringkasan berisi "Langkah berikutnya", angka, tahap sampel; tab Kuesioner, Aturan Validasi, Peserta, Sampel, Pengolahan, Persiapan & Penutupan |
+| B5 | Di hub, klik pemilih survei SERUTI INTI | Pindah ke hub SERUTI di triwulan yang sama |
+| B6 | Tombol "← Kembali ke TW1 2026" | Kembali ke halaman triwulan |
+| B7 | Admin: 2027 → TW2 → "+ Siapkan triwulan ini", centang SUSENAS KP, salin dari `VSEN26.KP · 194 baris` | Siklus baru "SUSENAS Juni 2027 (KP)" berstatus Persiapan; kuesioner, aturan, harga tersalin (194 komoditas) |
+| B8 | Kunci sebuah siklus, lalu coba ubah aturan/blok kuesionernya | Ditolak (HTTP 423); halaman menampilkan catatan "hanya bisa dilihat" |
 
-## D. Cek-silang NERACA
-
-| # | Langkah | Hasil diharapkan |
-|---|---|---|
-| D1 | Dok #3: IV.1 ada konsumsi "produksi sendiri", Blok V R502 = 0 | Error "NERACA-PRODUKSI" |
-| D2 | Isi Blok V R502 ≥ nilai disetahunkan | Error hilang |
-| D3 | Dok dengan selisih penerimaan-pengeluaran > 5% | Warning "NERACA-BALANCE" |
-
-## E. Pengolahan (cleaning)
+## C. Persiapan & lapangan
 
 | # | Langkah | Hasil diharapkan |
 |---|---|---|
-| E1 | Login `siti_editor`; buka Pengolahan | Antrean dokumen dengan jumlah error/warning |
-| E2 | Buka dok #1 | Tabel rincian bermasalah (termasuk yang belum ada jawaban) |
-| E3 | Koreksi nilai bersih tanpa mengisi alasan | Ditolak (alasan wajib) |
-| E4 | Koreksi dengan alasan | Tersimpan; nilai mentah tetap; warning dihitung ulang |
-| E5 | Semua error hilang → "Tandai bersih" | Dokumen `bersih` & terkunci; `cleaned_by`/`cleaned_at` terisi |
-| E6 | Coba koreksi dokumen `bersih` | HTTP 409 (terkunci) |
-| E7 | Editor coba "Buka kunci" | HTTP 403 (hanya Admin) |
+| C1 | Hub siklus Persiapan → tab Persiapan & Penutupan | Daftar periksa; butir wajib ✕ bila ada sampel tanpa petugas |
+| C2 | Lengkapi butir wajib → "Buka periode lapangan" | Status Lapangan; tercatat di Log Audit |
+| C3 | Petugas pada siklus Lapangan: buka sampel, isi, kirim | Bisa mengisi & mengirim |
+| C4 | Siklus diubah ke Pengolahan; petugas buka isiannya | Hanya bisa dilihat (pemberitahuan "periode lapangan sudah ditutup") |
+| C6 | Jadwal Lapangan: siklus periode 2027-03 diberi tanggal mulai 6 September 2026 | Ditolak: tanggal mulai harus di triwulan 1 2027 |
+| C7 | Siklus masih Persiapan padahal tanggal mulai lapangan sudah lewat; jalankan `php artisan susenas:ingat-jadwal` | Kotak samping "Jadwal lapangan sudah mulai …, masih Persiapan"; admin dapat Notifikasi; status tidak berubah sendiri |
+| C5 | Pemeriksa mengembalikan isian; petugas membukanya saat Pengolahan | Isian yang dikembalikan tetap bisa diperbaiki & dikirim ulang |
 
-## F. Admin metadata
-
-| # | Langkah | Hasil diharapkan |
-|---|---|---|
-| F1 | Tambah blok, tambah rincian | Muncul di editor blok |
-| F2 | Impor daftar komoditas via CSV ke blok list | Baris bertambah; duplikat dilewati |
-| F3 | Tambah aturan dengan ekspresi `system('x')` | Ditolak "Ekspresi tidak valid" |
-| F4 | Uji ekspresi valid terhadap dokumen contoh | Menampilkan hasil + konteks variabel |
-| F5 | Duplikasi versi kuesioner | Versi baru berisi salinan lengkap; versi jadi aktif |
-
-## G. Tabulasi & ekspor
+## D. Pemantauan
 
 | # | Langkah | Hasil diharapkan |
 |---|---|---|
-| G1 | Tabulasi: `pengeluaran_per_kapita`, per kecamatan, rata-rata | Tabel angka per kecamatan |
-| G2 | Ekspor "Data datar (CSV)" | Unduhan CSV, 1 baris/dokumen, kolom variabel snapshot |
-| G3 | Ekspor "Daftar warning (CSV)" | 1 baris per temuan aturan |
-| G4 | Operator coba akses ekspor | HTTP 403 |
+| D1 | Dashboard, Peta Progres, Kinerja Tim | Bawaan = triwulan berjalan (judul menyebut TW & survei); pilihan siklus lain & "Semua siklus (gabungan)" tersedia |
+| D2 | Peta Progres: klik petak blok sensus | Daftar Sampel tersaring desa & siklus itu |
+| D3 | Daftar Sampel | Satu kolom "Tahap" (Belum dikunjungi → Sedang diisi → Menunggu pemeriksaan → Dikembalikan → Bersih) |
+| D4 | Pengawas: rincian sampel → "Tandai non-respons" dengan alasan | Tahap Non-respons; "Batalkan tanda" mengembalikan tahap otomatis |
+
+## E. Entri & validasi
+
+| # | Langkah | Hasil diharapkan |
+|---|---|---|
+| E1 | Petugas buka entri | Blok-blok tampil; Ringkasan menghitung kesalahan & peringatan |
+| E2 | Kosongkan "Banyaknya anggota rumah tangga" | Kesalahan muncul langsung di rincian |
+| E3 | IV.1 baris Beras: isi nilai beli, kosongkan kuantitas | Kesalahan per baris |
+| E4 | IV.1: harga satuan di atas batas wajar | Peringatan "Harga satuan Rp… kemahalan, batas wajar Rp…–Rp…" |
+| E5 | Kirim saat masih ada kesalahan | Ditolak dengan jumlah kesalahan |
+
+## F. Pengolahan
+
+| # | Langkah | Hasil diharapkan |
+|---|---|---|
+| F1 | Masuk `siti_editor` atau pengawas; hub → tab Pengolahan | Antrean tersaring ke siklus itu |
+| F2 | Koreksi nilai tanpa alasan | Ditolak (alasan wajib) |
+| F3 | Koreksi dengan alasan | Tersimpan; nilai mentah tetap |
+| F4 | Semua kesalahan hilang → "Tandai bersih" | Tahap Bersih & terkunci |
+| F5 | Coba koreksi isian bersih | HTTP 409 |
+
+## G. Kuesioner & Aturan Validasi (admin)
+
+| # | Langkah | Hasil diharapkan |
+|---|---|---|
+| G1 | Hub → tab Kuesioner | Hanya versi siklus ini; tiap blok "Terhubung: N aturan · N agregat · N turunan"; Blok IV.1 menampilkan Baris / rincian (komoditas) & Kolom isian |
+| G2 | Tombol Pratinjau pada Blok IV.1 | Pratinjau terbuka langsung di Blok IV.1 (tidak terlipat) |
+| G3 | Tab Aturan Validasi → filter Blok IV.1 | Hanya aturan yang memakai Blok IV.1; tiap aturan berchip blok |
+| G4 | Ubah aturan (Ubah) dengan rumus rusak | Tanda ✕ langsung saat mengetik; simpan ditolak dengan pesan |
+| G5 | Matikan sebuah aturan | Kotak "N sampel belum diperiksa ulang" → "Periksa ulang sekarang" menghilangkannya |
+| G6 | Tab Bahan hitungan | Tiap agregat/turunan berchip blok asal & keterangan "dipakai oleh" |
+| G7 | Tab Harga & Kalori → "+ Tambah komoditas" | Komoditas baru di baris terakhir; kode ganda / harga min > max ditolak |
+| G8 | Rincian di blok anggota rumah tangga: isi "Lewati bila" mis. `n(art_umur) < 5`; di entri isi umur 3 | Sel itu terarsir & terkunci, tidak diperiksa aturan, tidak ikut dihitung |
+| G9 | Ubah pesan aturan lalu buka lagi → Riwayat perubahan → "Kembalikan" pada keadaan awal | Pesan kembali seperti semula; riwayat mencatat "Dikembalikan" |
+| G10 | Daftar aturan: ubah angka ambang (belum disimpan) | Muncul "Dengan X: kena N sampel (sekarang M)" |
+| G11 | Ubah aturan → Contoh kasus uji: isi 2 contoh (harus menyala / tidak) → simpan; lalu rusak rumusnya | Contoh dinilai ✓/✕; saat mengetik rumus tampil "Contoh uji: 1 dari 2 sesuai"; daftar aturan bertanda "uji 1/2" |
+| G12 | Tab Kuesioner → "Bandingkan" pada versi triwulan ini | Daftar ditambah / dihapus / diubah dibanding triwulan sebelumnya |
+| G13 | Ubah aturan pada versi dengan > 50 sampel → "Periksa ulang sekarang" | Bilah kemajuan "Sedang berjalan … dari … sampel" sampai Selesai (server: `queue:work` harus jalan) |
+
+## H. Tabulasi & ekspor
+
+| # | Langkah | Hasil diharapkan |
+|---|---|---|
+| H1 | Tabulasi: `pengeluaran_per_kapita`, per kecamatan, rata-rata | Tabel angka per kecamatan |
+| H2 | Ekspor data datar (CSV) | Unduhan CSV, 1 baris per sampel |
+| H3 | Petugas coba akses ekspor | HTTP 403 |
+
+## I. Tampilan perangkat
+
+| # | Langkah | Hasil diharapkan |
+|---|---|---|
+| I1 | Buka di HP (360–412 px), HP miring, tablet, laptop, PC lebar | Tidak ada yang melebar keluar layar; menu jadi strip geser di HP |
+| I2 | Tema Terang / Gelap / Sistem | Tombol kembali & kartu tetap terbaca |
+| I3 | Android (Chrome), alamat https: masuk sebagai petugas | Pita "Pasang Sistem SUSENAS di HP" → Pasang → ikon di layar utama, terbuka layar penuh |
+| I4 | iPhone (Safari), alamat https | Petunjuk "ketuk Bagikan → Tambah ke Layar Utama"; setelah dipasang terbuka layar penuh dengan ikon SUSENAS |
+| I5 | Petugas: Tugas Saya → "Simpan untuk dibuka tanpa sinyal", lalu mode pesawat → buka sampel | Halaman entri terbuka dari salinan HP |
+| I6 | Mode pesawat: isi beberapa rincian | "tersimpan di HP — dikirim saat ada sinyal"; pita bawah "N isian menunggu dikirim"; kolom bergaris putus |
+| I7 | Matikan mode pesawat | Isian terkirim otomatis, pita hilang, nilai tersimpan di server (buka dari komputer lain) |
+| I8 | Mode pesawat: tekan "Kirim" / tombol formulir lain | Pesan "Tidak ada sinyal…", tidak muncul halaman galat peramban |

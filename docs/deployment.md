@@ -38,7 +38,10 @@ Root web server → `/var/www/susenas/public`. Semua request non-file diarahkan 
 
 ## Worker antrean & penjadwal
 
-Impor besar & (nanti) tabulasi terjadwal memakai antrean database.
+Pekerjaan berat memakai antrean database (Inc 161): **periksa ulang** lebih dari 50 sampel setelah aturan berubah, dan
+**hitung aturan sesudah impor isian** lebih dari 50 baris. Worker **wajib** berjalan terus di server produksi — tanpa worker,
+pekerjaan itu berhenti di status "Menunggu giliran" (halaman memberi tahu setelah 5 menit, `php artisan susenas:health`
+juga memperingatkan). Di komputer pengembang boleh `QUEUE_CONNECTION=sync` (pekerjaan langsung dijalankan).
 
 ```ini
 # /etc/supervisor/conf.d/susenas-worker.conf
@@ -60,6 +63,7 @@ Tugas terjadwal yang sudah terdaftar (`routes/console.php`, lihat `php artisan s
 | Jadwal | Perintah | Fungsi |
 |---|---|---|
 | harian 01:30 | `susenas:backup` | salin basis data SQLite ke `storage/app/backups/`, simpan 14 terbaru |
+| harian 07:00 | `susenas:ingat-jadwal` | notifikasi admin bila status siklus tidak cocok dengan jadwal lapangan |
 | mingguan Min 00:00 | prune-notifications | hapus notifikasi terbaca berumur > 30 hari |
 | mingguan Sen 06:00 | `susenas:health` | ringkasan kondisi data ke log |
 
@@ -67,6 +71,11 @@ Di Windows (Laragon/PDN tanpa cron), daftarkan Task Scheduler yang menjalankan
 `php artisan schedule:run` tiap menit.
 
 ## HTTPS & reverse proxy
+
+> **Wajib untuk aplikasi HP (Inc 162).** Pemasangan di layar utama Android/iPhone dan fitur "isian tetap tersimpan saat
+> sinyal hilang" memakai *service worker*, yang oleh peramban hanya diizinkan di `https` (atau `localhost`). Bila petugas
+> membuka lewat `http://` (mis. alamat IP kantor), aplikasi tetap berjalan tetapi tanpa fitur tanpa sinyal.
+> Setelah memperbarui `public/sw.js` secara besar, naikkan `VERSI` di dalamnya agar HP mengambil berkas baru.
 
 TLS diterminasi di nginx/HAProxy. Set di `.env`:
 

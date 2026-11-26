@@ -2,7 +2,9 @@
 @php($nav = 'kinerja')
 @section('title', 'Kinerja Tim · Sistem SUSENAS')
 @section('content')
-<h1>Kinerja Tim</h1>
+<h1>Kinerja Tim
+  @if($cycle)<small class="muted">TW{{ $cycle->quarter() }} {{ $cycle->year() }} · {{ $cycle->label() }}</small>@else<small class="muted">semua siklus</small>@endif</h1>
+@include('monitoring._cycle_pick')
 <p class="muted">Produktivitas entri &amp; pengolahan dalam cakupan wilayah Anda
   ({{ $totalDocs }} sampel). Angka indikatif untuk pembinaan, bukan penilaian formal.</p>
 

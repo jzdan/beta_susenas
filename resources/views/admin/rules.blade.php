@@ -11,7 +11,8 @@
 <p class="muted">Pemeriksaan yang berjalan tiap kali isian disimpan. <strong>{{ $activeCount }}</strong> dari {{ $total }} aturan menyala.
   Sehari-hari cukup menyalakan/mematikan aturan dan mengubah ambang.</p>
 @elseif($tab === 'neraca')
-<p class="muted">Nilai turunan dan agregat dihitung lebih dulu, lalu dipakai aturan dan tabulasi.</p>
+<p class="muted">Bahan hitungan: agregat (neraca), turunan, dan parameter. Semuanya dihitung lebih dulu,
+  lalu dipakai aturan dan tabulasi; tab ini sendiri tidak memunculkan kesalahan atau peringatan.</p>
 @else
 <p class="muted">Patokan harga wajar dan kalori per komoditas, dipakai aturan harga dan kalori.</p>
 @endif
@@ -24,7 +25,9 @@
 @endunless
 @include('admin.partials._ro_version', ['roQv' => $qv])
 
-@if($nStale > 0)
+@include('admin.partials._tasks', ['tasks' => $tasks])
+@php($recheckRunning = $tasks->contains(fn ($t) => $t->running()))
+@if($nStale > 0 && !$recheckRunning)
 <div class="alert stale-box">
   <div><strong>{{ $nStale }} dari {{ $nDocs }} sampel belum diperiksa ulang</strong> sejak aturan, neraca, atau patokan harga
     terakhir diubah. Hasil di Pengolahan dan Dashboard masih memakai aturan lama.</div>
@@ -39,7 +42,8 @@
   <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'aturan', 'blok' => $fBlok ?: null]) }}"
      style="{{ $tab === 'aturan' ? 'font-weight:700;border-color:var(--acc)' : '' }}">Aturan ({{ $total }})</a>
   <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'neraca', 'blok' => $fBlok ?: null]) }}"
-     style="{{ $tab === 'neraca' ? 'font-weight:700;border-color:var(--acc)' : '' }}">Neraca &amp; Turunan</a>
+     style="{{ $tab === 'neraca' ? 'font-weight:700;border-color:var(--acc)' : '' }}"
+     title="Agregat (neraca), variabel turunan, dan parameter: angka yang dihitung lebih dulu lalu dipakai aturan & tabulasi">Bahan hitungan <small class="muted">agregat · turunan · parameter</small></a>
   <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'harga', 'blok' => $fBlok ?: null]) }}"
      style="{{ $tab === 'harga' ? 'font-weight:700;border-color:var(--acc)' : '' }}">Harga &amp; Kalori</a>
 </nav>
@@ -117,6 +121,10 @@
             <td>
               <span class="flag {{ $r->severity }}">{{ Istilah::severity($r->severity) }}</span>
               @if($ruleErrs[$r->id])<span class="flag error" title="sintaks: {{ $ruleErrs[$r->id] }}">!</span>@endif
+              @if(isset($testRes[$r->id]) && $testRes[$r->id]['pass'] < $testRes[$r->id]['total'])
+                <a class="flag error" style="display:inline-block" href="{{ route('admin.aturan.edit', $r) }}#contoh-uji"
+                  title="Contoh uji tidak sesuai harapan">uji {{ $testRes[$r->id]['pass'] }}/{{ $testRes[$r->id]['total'] }}</a>
+              @endif
             </td>
             <td>
               {{ $r->message }}
@@ -137,8 +145,11 @@
               @if($r->soleThreshold() !== null)
                 <label class="small muted">ambang
                   <input form="qc{{ $r->id }}" name="threshold" value="{{ $r->soleThreshold() }}"
-                    inputmode="decimal" class="mono" style="width:88px">
+                    inputmode="decimal" class="mono thr-live" style="width:88px"
+                    data-expr="{{ $r->expr }}" data-old="{{ $r->soleThreshold() }}" data-rb="{{ $r->row_block }}"
+                    data-now="{{ (int) ($hits[$r->id] ?? 0) }}">
                 </label>
+                <div class="small muted thr-out" aria-live="polite"></div>
               @endif
             </td>
             <td class="right nowrap">
@@ -160,6 +171,33 @@
 @push('scripts')
 <script>
 (function () {
+  // Inc 158: dampak ambang langsung — ubah angka, lihat berapa sampel yang akan kena sebelum menyimpan
+  var csrf = document.querySelector('meta[name=csrf-token]').content;
+  var nf = function (n) { return Number(n).toLocaleString("id-ID"); };
+  document.querySelectorAll(".thr-live").forEach(function (inp) {
+    var out = inp.closest("td").querySelector(".thr-out"), timer = null, seq = 0;
+    var reOld = inp.dataset.old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    inp.addEventListener("input", function () {
+      clearTimeout(timer);
+      var v = inp.value.trim().replace(",", ".");
+      if (v === inp.dataset.old || !/^-?\d+(\.\d+)?$/.test(v)) { out.textContent = ""; return; }
+      timer = setTimeout(function () {
+        var my = ++seq;
+        var expr = inp.dataset.expr.replace(new RegExp("((?:>=|<=|>|<)\\s*)" + reOld + "(?![\\d.])", "g"), "$1" + v);
+        out.textContent = "menghitung…";
+        fetch("{{ route('admin.aturan.pratinjau') }}", {
+          method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-TOKEN": csrf },
+          body: new URLSearchParams({ qv: "{{ $qv->id }}", expr: expr, row_block: inp.dataset.rb })
+        }).then(function (r) { return r.json(); }).then(function (d) {
+          if (my !== seq) return;
+          if (!d.ok) { out.textContent = "✕ " + d.error; return; }
+          out.innerHTML = "Dengan " + v + ": kena <strong>" + nf(d.fire_docs) + "</strong> sampel"
+            + " (sekarang " + nf(inp.dataset.now) + ")" + (d.truncated ? ", dari " + nf(d.docs) + " sampel pertama" : "");
+        }).catch(function (e) { if (my === seq) out.textContent = e.message; });
+      }, 500);
+    });
+  });
+
   var all = document.getElementById("rule-all");
   if (all) all.addEventListener("change", function () {
     document.querySelectorAll(".rule-pick").forEach(function (c) { c.checked = all.checked; });

@@ -6,6 +6,16 @@
   <meta name="color-scheme" content="light dark">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>@yield('title', 'Sistem SUSENAS')</title>
+  {{-- Inc 162: aplikasi terpasang (PWA) — Android (manifest) & iPhone (apple-*) --}}
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#172032">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SUSENAS">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  @auth<meta name="app-user" content="{{ auth()->id() }}">@endauth
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -41,9 +51,19 @@
     @php($navKey = in_array($nav ?? '', ['periode', 'meta', 'impor', 'aturan', 'jadwal', 'imsampel', 'imdok'], true) ? 'periode' : ($nav ?? ''))
     <nav class="side">
       @if(in_array($u->role, ['pml','pj','admin']))
-        @if($currentCycle ?? null)
-        <a class="now" href="{{ route('periode.triwulan', [$currentCycle->year(), $currentCycle->quarter()]) }}">
-          <small>Triwulan berjalan</small><b>TW{{ $currentCycle->quarter() }} {{ $currentCycle->year() }} · Lapangan</b></a>
+        @if($runningQuarter ?? null)
+        <a class="now" href="{{ route('periode.triwulan', [$runningQuarter['year'], $runningQuarter['q']]) }}">
+          <small>Triwulan berjalan</small>
+          <b>TW{{ $runningQuarter['q'] }} {{ $runningQuarter['year'] }} · {{ $runningQuarter['status'] ? Istilah::cycleStatus($runningQuarter['status']) : 'belum disiapkan' }}</b>
+          @foreach ($runningQuarter['notes'] ?? [] as $note)<span class="now-note">⚠ {{ $note }}</span>@endforeach
+        </a>
+        @if(!empty($otherField))
+        <div class="now-also">Juga di lapangan:
+          @foreach ($otherField as $g)
+            <a href="{{ route('periode.triwulan', [$g['year'], $g['q']]) }}">TW{{ $g['q'] }} {{ $g['year'] }}</a>@if($g['note']) <span class="{{ $g['warn'] ? 'now-warn' : '' }}">({{ $g['note'] }})</span>@endif{{ $loop->last ? '' : ' ·' }}
+          @endforeach
+        </div>
+        @endif
         @endif
         <a href="{{ route('periode.index') }}" class="{{ $navKey=='periode' ? 'on' : '' }}">Periode Survei</a>
       @endif

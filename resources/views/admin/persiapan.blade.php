@@ -42,7 +42,7 @@
   @elseif($siap)
     <p>Semua butir wajib beres. Setelah dibuka, petugas langsung melihat dan bisa mengisi sampelnya.</p>
     <form method="post" action="{{ route('admin.siklus.buka-lapangan', $cycle) }}"
-      onsubmit="return confirm('Buka periode lapangan {{ $cycle->name }}?')">
+      onsubmit="return confirm('{{ $cycle->quarterNotStarted() ? 'Triwulan periode ini belum dimulai. Petugas akan bisa mengisi lebih awal. ' : '' }}Buka periode lapangan {{ $cycle->name }}?')">
       @csrf<button type="submit">Buka periode lapangan</button>
     </form>
   @else

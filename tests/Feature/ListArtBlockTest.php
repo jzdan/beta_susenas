@@ -159,7 +159,7 @@ class ListArtBlockTest extends TestCase
     {
         $op = User::where('username', 'ppl_ani')->firstOrFail();
 
-        foreach (['VSEN26.KP' => 'banyak_art', 'VSEN26.K' => 'r301', 'VSEN27.KP' => 'banyak_art'] as $code => $var) {
+        foreach (['VSEN26.KP' => 'banyak_art', 'VSEN26.K' => 'r301', 'VSEN'.now()->format('y').'.KP-CONTOH' => 'banyak_art'] as $code => $var) {
             $qv = QuestionnaireVersion::where('code', $code)->firstOrFail();
             $doc = Document::where('qversion_id', $qv->id)->where('status', '!=', 'bersih')->first();
             if (! $doc) {

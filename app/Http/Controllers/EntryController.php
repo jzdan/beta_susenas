@@ -382,6 +382,7 @@ class EntryController extends Controller
             $answers["{$a->question_id}:{$a->art_index}"] = $a;
         }
         $ctx = $this->engine->buildContext($doc);
+        $skippedCells = $this->engine->lastSkipped();
         $rosterQids = [];
         foreach ($blocks as $blk) {
             if ($blk->repeat === 'art') {
@@ -480,10 +481,36 @@ class EntryController extends Controller
                 }
                 $rows = [];
                 $lastGroup = null;
+                $skipCols = $b->questions->filter(fn ($q) => trim((string) $q->skip_expr) !== '');
+                $refByRow = $b->rows->keyBy('row_index');
+                $isLA = $b->repeat === 'list_art';
                 foreach ($rowDefs as $rd) {
                     if (($rd['group'] ?? null) && $rd['group'] !== $lastGroup) {
                         $rows[] = ['group_header' => $rd['group']];
                         $lastGroup = $rd['group'];
+                    }
+                    // syarat lewati per baris (Inc 157): baris yang sudah berisi → hasil mesin aturan;
+                    // baris kosong → dihitung di sini dengan isian baris kosong
+                    $skipHere = [];
+                    if ($skipCols->isNotEmpty()) {
+                        $vals = [];
+                        $anyVal = false;
+                        foreach ($b->questions as $q) {
+                            $a = $answers["{$q->id}:{$rd['idx']}"] ?? null;
+                            $v = $a ? (($a->clean_value !== null && $a->clean_value !== '') ? $a->clean_value : $a->raw_value) : null;
+                            $vals[$q->var_name] = $v;
+                            $anyVal = $anyVal || $a !== null;
+                        }
+                        $com = $isLA ? Block::unpackRowArt((int) $rd['idx'])[0] : (int) $rd['idx'];
+                        $rc = null;
+                        foreach ($skipCols as $q) {
+                            if ($anyVal) {
+                                $skipHere[$q->var_name] = isset($skippedCells[$q->var_name][(int) $rd['idx']]);
+                            } else {
+                                $rc ??= RuleEngine::rowCtx($ctx, $vals, $refByRow[$com]->ref ?? [], null, (int) $rd['idx'], $isLA);
+                                $skipHere[$q->var_name] = $this->engine->skipFires($q->skip_expr, $rc);
+                            }
+                        }
                     }
                     $cells = [];
                     $rowWarn = [];
@@ -493,13 +520,17 @@ class EntryController extends Controller
                         $rowWarn = array_merge($rowWarn, $w);
                         $tally($w);
                         $cells[] = ['qid' => $q->id, 'var' => $q->var_name,
-                            'value' => $a->raw_value ?? '', 'warnings' => $w];
+                            'value' => $a->raw_value ?? '', 'warnings' => $w,
+                            'skipped' => $skipHere[$q->var_name] ?? false];
                     }
                     $rows[] = ['idx' => $rd['idx'], 'label' => $rd['label'],
                         'cells' => $cells, 'warnings' => $rowWarn];
                     // roster ART masuk hitungan kelengkapan; blok daftar (komoditas) opsional
                     if ($b->repeat === 'art') {
                         foreach ($cells as $cell) {
+                            if ($cell['skipped']) {
+                                continue;
+                            }
                             $expTotal++;
                             if (trim((string) $cell['value']) !== '') {
                                 $expFilled++;

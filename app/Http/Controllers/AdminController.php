@@ -743,8 +743,33 @@ class AdminController extends Controller
      */
     public function ruleEditor(Request $request, ValidationRule $rule)
     {
-        return view('admin.rule_form', ['edit' => $rule, 'qv' => $rule->qversion, 'mode' => 'rumus']
-            + $this->ruleFormData($rule->qversion));
+        // Inc 158: riwayat perubahan (terbaru di atas) + ringkasan beda dari revisi sebelumnya
+        $revs = $rule->revisions()->with('user')->orderBy('id')->get();
+        $prev = null;
+        $history = [];
+        foreach ($revs as $rv) {
+            $history[] = ['rev' => $rv, 'diff' => $rv->diffFrom($prev)];
+            $prev = $rv;
+        }
+
+        return view('admin.rule_form', ['edit' => $rule, 'qv' => $rule->qversion, 'mode' => 'rumus',
+            'history' => array_reverse($history),
+            'tests' => app(\App\Services\RuleTester::class)->forRule($rule),
+        ] + $this->ruleFormData($rule->qversion));
+    }
+
+    /** Simpan contoh kasus uji sebuah aturan (Inc 159). */
+    public function ruleTests(Request $request, ValidationRule $rule)
+    {
+        $d = $request->validate(['cases' => 'nullable|array|max:30', 'cases.*.name' => 'nullable|string|max:120',
+            'cases.*.isian' => 'nullable|string|max:1000', 'cases.*.expect' => 'nullable|in:0,1']);
+        $cases = \App\Services\RuleTester::normalize($d['cases'] ?? []);
+        $rule->update(['test_cases' => $cases ?: null]);
+        $res = app(\App\Services\RuleTester::class)->forRule($rule);
+        AuditLog::record('rule', $rule->id, 'contoh-uji', "{$rule->code}: {$res['pass']}/{$res['total']} sesuai");
+
+        return redirect()->to(route('admin.aturan.edit', $rule).'#contoh-uji')
+            ->with('ok', $res['total'] ? "Contoh uji disimpan: {$res['pass']} dari {$res['total']} sesuai harapan." : 'Contoh uji dikosongkan.');
     }
 
     /** Buat aturan baru: dibuka dengan formulir terpandu; ?mode=rumus = tulis rumus sendiri. */
@@ -847,9 +872,12 @@ class AdminController extends Controller
             'hits' => $hits,
             'nDocs' => Document::where('qversion_id', $qv->id)->count(),
             'nStale' => $qv->staleDocuments()->count(),
+            'tasks' => \App\Models\BackgroundTask::visibleFor($qv->id, 'periksa-ulang'),
             'total' => $all->count(),
             'activeCount' => $all->where('active', true)->count(),
             'ruleErrs' => $rules->mapWithKeys(fn ($r) => [$r->id => $this->ev->checkSyntax($r->expr, RuleEngine::ROSTER_FUNCS)]),
+            'testRes' => $rules->filter(fn ($r) => ! empty($r->test_cases))
+                ->mapWithKeys(fn ($r) => [$r->id => app(\App\Services\RuleTester::class)->forRule($r)]),
             'scopes' => $all->pluck('scope')->unique()->filter()->sort()->values(),
             'filters' => ['sev' => $fSev, 'scope' => $fScope, 'active' => $fActive, 'q' => $fQ, 'blok' => $fBlok],
             'links' => $links, 'fBlok' => $fBlok,
@@ -872,15 +900,34 @@ class AdminController extends Controller
     public function rulesRecheck(Request $request)
     {
         $qv = $this->selectedQv($request);
-        $n = 0;
-        foreach ($qv->staleDocuments()->orderBy('documents.id')->get() as $doc) {
-            $this->engine->run($doc);
-            $n++;
+        $back = redirect()->route('admin.aturan', ['qv' => $qv->id, 'tab' => $request->input('tab', 'aturan')]);
+        $ids = $qv->staleDocuments()->orderBy('documents.id')->pluck('documents.id')->all();
+        // Inc 161: banyak sampel → antrean latar belakang (halaman tidak menunggu / kehabisan waktu)
+        if (count($ids) > \App\Models\BackgroundTask::$inlineMax) {
+            if (\App\Models\BackgroundTask::where('qversion_id', $qv->id)->where('kind', 'periksa-ulang')
+                ->whereIn('status', ['antre', 'berjalan'])->exists()) {
+                return $back->with('ok', 'Pemeriksaan ulang untuk kuesioner ini masih berjalan.');
+            }
+            $t = \App\Models\BackgroundTask::recheck('periksa-ulang', 'Periksa ulang setelah aturan berubah', $qv->id, $ids);
+            AuditLog::record('qversion', $qv->id, 'revalidasi', count($ids).' sampel (latar belakang)');
+
+            return $back->with('ok', $t->status === 'selesai'
+                ? count($ids).' sampel sudah diperiksa ulang dengan aturan terbaru.'
+                : 'Pemeriksaan ulang '.count($ids).' sampel berjalan di latar belakang. Halaman ini boleh ditinggal.');
         }
+        foreach (Document::whereIn('id', $ids)->get() as $doc) {
+            $this->engine->run($doc);
+        }
+        $n = count($ids);
         AuditLog::record('qversion', $qv->id, 'revalidasi', "{$n} sampel (setelah aturan berubah)");
 
-        return redirect()->route('admin.aturan', ['qv' => $qv->id, 'tab' => $request->input('tab', 'aturan')])
-            ->with('ok', "{$n} sampel sudah diperiksa ulang dengan aturan terbaru.");
+        return $back->with('ok', "{$n} sampel sudah diperiksa ulang dengan aturan terbaru.");
+    }
+
+    /** Status pekerjaan latar belakang (dipanggil berkala oleh halaman). */
+    public function taskStatus(\App\Models\BackgroundTask $task)
+    {
+        return response()->json($task->toStatus());
     }
 
     /**
@@ -898,6 +945,13 @@ class AdminController extends Controller
         }
         $report = $this->engine->previewExpression($expr, trim((string) $request->input('row_block', '')),
             $this->selectedQv($request)->id, (string) $request->input('message', ''));
+        // contoh uji aturan yang sedang diubah, dijalankan atas rumus yang sedang diketik
+        if (($rid = (int) $request->input('rule_id')) && ($rule = ValidationRule::find($rid)) && $rule->test_cases) {
+            $t = app(\App\Services\RuleTester::class)->run($rule->qversion_id, $expr,
+                trim((string) $request->input('row_block', '')), $rule->test_cases);
+            $report['tests'] = ['total' => $t['total'], 'pass' => $t['pass'],
+                'fails' => collect($t['results'])->where('pass', false)->pluck('name')->values()->all()];
+        }
 
         return response()->json(['ok' => true] + $report);
     }
@@ -1082,13 +1136,21 @@ class AdminController extends Controller
             $rule->update($payload);
             AuditLog::record('rule', $rule->id, 'ubah', $d['code']);
             $qvId = $rule->qversion_id;
+            if ($rule->test_cases) {
+                $t = app(\App\Services\RuleTester::class)->forRule($rule);
+                if ($t['pass'] < $t['total']) {
+                    return redirect()->to(route('admin.aturan.edit', $rule).'#contoh-uji')->with('ok',
+                        "Aturan {$payload['code']} disimpan, tetapi ".($t['total'] - $t['pass'])." dari {$t['total']} contoh uji tidak sesuai harapan — periksa di bawah.");
+                }
+            }
         } else {
             $qvId = $this->selectedQv($request)->id;
             if (ValidationRule::where('qversion_id', $qvId)->where('code', $payload['code'])->exists()) {
                 return back()->withInput()->withErrors(['code' => 'Kode aturan sudah dipakai.']);
             }
-            ValidationRule::create($payload + ['qversion_id' => $qvId, 'active' => true]);
-            AuditLog::record('rule', 'baru', 'tambah', $d['code']);
+            $new = ValidationRule::create($payload + ['qversion_id' => $qvId, 'active' => true]);
+            \App\Models\RuleRevision::record($new, 'buat');
+            AuditLog::record('rule', $new->id, 'tambah', $d['code']);
         }
 
         return redirect()->route('admin.aturan', ['qv' => $qvId])->with('ok', "Aturan {$payload['code']} disimpan.");
@@ -1108,10 +1170,27 @@ class AdminController extends Controller
                 $payload['expr'] = $newExpr;
             }
         }
-        $rule->update($payload);
+        \App\Models\RuleRevision::as('sunting-cepat', fn () => $rule->update($payload));
         AuditLog::record('rule', $rule->id, 'sunting-cepat', $rule->code);
 
         return back()->with('ok', "Aturan {$rule->code} diperbarui.");
+    }
+
+    /** Kembalikan aturan ke keadaan salah satu revisinya (Inc 158). */
+    public function ruleRestore(ValidationRule $rule, \App\Models\RuleRevision $rev)
+    {
+        abort_unless($rev->rule_id === $rule->id, 404);
+        $data = array_intersect_key($rev->data, array_flip(\App\Models\RuleRevision::FIELDS));
+        if (ValidationRule::where('qversion_id', $rule->qversion_id)->where('code', $data['code'] ?? '')
+            ->where('id', '!=', $rule->id)->exists()) {
+            return back()->withErrors(['code' => "Kode {$data['code']} sekarang dipakai aturan lain — ubah kodenya dulu."]);
+        }
+        $data['note'] = ($data['note'] ?? '') === '' ? null : $data['note'];
+        \App\Models\RuleRevision::as('kembalikan', fn () => $rule->update($data));
+        AuditLog::record('rule', $rule->id, 'kembalikan', "{$rule->code} ke revisi #{$rev->id}");
+
+        return redirect()->route('admin.aturan.edit', $rule)
+            ->with('ok', 'Aturan dikembalikan ke keadaan '.$rev->at->format('d/m/Y H:i').'.');
     }
 
     public function delRule(ValidationRule $rule)
@@ -1211,6 +1290,21 @@ class AdminController extends Controller
         return redirect()->route('admin.metadata', ['qv' => $qv->id])->with('ok', "Versi '{$qv->code}' diimpor.");
     }
 
+    /** Bandingkan versi ini dengan versi lain — bawaan: versi triwulan sebelumnya (Inc 160). */
+    public function versionCompare(Request $request, QuestionnaireVersion $qv)
+    {
+        $other = $request->query('dengan')
+            ? QuestionnaireVersion::findOrFail((int) $request->query('dengan'))
+            : \App\Services\VersionDiff::previousOf($qv);
+        $diff = $other ? app(\App\Services\VersionDiff::class)->compare($other, $qv) : null;
+
+        return view('admin.version_compare', [
+            'qv' => $qv, 'other' => $other, 'diff' => $diff,
+            'totals' => $diff ? \App\Services\VersionDiff::totals($diff) : null,
+            'choices' => QuestionnaireVersion::where('id', '!=', $qv->id)->with('cycle')->orderByDesc('id')->get(),
+        ]);
+    }
+
     /** Buku kode (codebook) satu versi kuesioner — halaman referensi & cetak. */
     public function codebook(QuestionnaireVersion $qv)
     {
@@ -1294,7 +1388,8 @@ class AdminController extends Controller
         foreach ($src->rules as $r) {
             ValidationRule::create(['qversion_id' => $dst->id, 'code' => $r->code, 'scope' => $r->scope,
                 'row_block' => $r->row_block, 'target_var' => $r->target_var, 'expr' => $r->expr,
-                'severity' => $r->severity, 'message' => $r->message, 'active' => $r->active]);
+                'severity' => $r->severity, 'message' => $r->message, 'active' => $r->active,
+                'note' => $r->note, 'test_cases' => $r->test_cases]);
         }
         AuditLog::record('qversion', $dst->id, 'duplikat', "{$src->code} -> {$d['new_code']}");
         return redirect()->route('admin.metadata', ['qv' => $dst->id])->with('ok', "Versi \"{$dst->code}\" dibuat.");
@@ -1808,6 +1903,12 @@ class AdminController extends Controller
         $unknownCols = [];   // kolom => berapa baris memuat nilai
         $usedVars = [];      // var dikenal yang benar-benar terpakai
         $nRows = 0;
+        // Inc 161: impor besar — aturan dihitung di latar belakang sesudah data tersimpan;
+        // pratinjau besar hanya menghitung aturan untuk sebagian baris pertama (perkiraan)
+        $bigRows = substr_count($d['data'], "
+") > \App\Models\BackgroundTask::$inlineMax;
+        $deferIds = [];
+        $ruleSampled = false;
 
         DB::beginTransaction();
         try {
@@ -1870,9 +1971,15 @@ class AdminController extends Controller
                     continue;
                 }
 
-                $sum = $engine->run($doc);
-                $totErr += $sum['errors'];
-                $totWarn += $sum['warnings'];
+                if ($bigRows && ! $preview) {
+                    $deferIds[] = $doc->id;
+                } elseif (! $preview || $dibuat + $diperbarui < 200) {
+                    $sum = $engine->run($doc);
+                    $totErr += $sum['errors'];
+                    $totWarn += $sum['warnings'];
+                } else {
+                    $ruleSampled = true;
+                }
                 $isNew ? $dibuat++ : $diperbarui++;
             }
 
@@ -1882,6 +1989,10 @@ class AdminController extends Controller
                 DB::commit();
                 AuditLog::record('document', $cycle->period, 'impor-massal',
                     "{$dibuat} baru, {$diperbarui} diperbarui", $request->user()->id);
+                if ($deferIds) {
+                    $task = \App\Models\BackgroundTask::recheck('impor-isian',
+                        "Hitung aturan untuk {$cycle->name} sesudah impor", $qv->id, $deferIds);
+                }
             }
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -1896,7 +2007,9 @@ class AdminController extends Controller
             'aliases' => \App\Models\ColumnAlias::with('qversion:id,code')
                 ->orderBy('qversion_id')->orderBy('source_col')->get()
                 ->groupBy(fn ($a) => $a->qversion?->code ?? $a->qversion_id),
-            'hasil' => compact('dibuat', 'diperbarui', 'dilewati', 'totErr', 'totWarn', 'preview', 'nRows')
+            'tasks' => \App\Models\BackgroundTask::visibleFor($qv->id, 'impor-isian'),
+            'hasil' => compact('dibuat', 'diperbarui', 'dilewati', 'totErr', 'totWarn', 'preview', 'nRows', 'ruleSampled')
+                + ['deferred' => count($deferIds)]
                 + ['unknown' => $unknownCols, 'used' => array_keys($usedVars), 'alias_used' => $aliasUsed,
                     'cycle' => $cycle->name, 'data' => $d['data'], 'cycle_id' => $cycle->id],
         ]);
@@ -2234,6 +2347,9 @@ class AdminController extends Controller
             'field_start' => 'nullable|date',
             'field_end' => 'nullable|date|after_or_equal:field_start',
         ]);
+        if ($why = SurveyCycle::scheduleProblem($d['period'], $d['field_start'] ?? null, $d['field_end'] ?? null)) {
+            return back()->withInput()->withErrors(['field_start' => $why]);   // Inc 163: jadwal harus di dalam periodenya
+        }
         if ($d['status'] === 'lapangan') {
             return back()->withInput()->withErrors(['status' => 'Siklus baru belum punya versi kuesioner dan sampel. '
                 .'Buat dulu dengan status Persiapan, lalu buka lapangan dari halaman Persiapan periode.']);
@@ -2365,6 +2481,9 @@ class AdminController extends Controller
             'field_end' => 'nullable|date|after_or_equal:field_start',
             'status' => 'required|in:'.implode(',', self::CYCLE_STATUS),
         ]);
+        if ($why = SurveyCycle::scheduleProblem((string) $cycle->period, $d['field_start'] ?? null, $d['field_end'] ?? null)) {
+            return back()->withErrors(['field_start' => "\"{$cycle->name}\": {$why}"]);   // Inc 163
+        }
         if ($d['status'] === 'lapangan' && $cycle->status !== 'lapangan') {
             $prep = app(\App\Services\CyclePrep::class)->check($cycle);
             if (! $prep['siap']) {

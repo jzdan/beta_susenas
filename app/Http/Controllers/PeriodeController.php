@@ -327,8 +327,11 @@ class PeriodeController extends Controller
     // ------------------------------------------------------------ siapkan triwulan
 
     /**
-     * Pilihan survei untuk "Siapkan triwulan ini": setiap pasangan survei+instrumen yang pernah
-     * ada, dengan sumber = siklus terbaru sebelum triwulan ini yang punya versi kuesioner.
+     * Pilihan survei untuk "Siapkan triwulan ini": setiap pasangan survei+instrumen yang pernah ada
+     * sebelum triwulan ini (dan belum ada di triwulan ini), beserta SEMUA versi kuesionernya sebagai
+     * calon sumber salinan (Inc 156) — dengan jumlah blok/baris/aturan supaya admin bisa memilih,
+     * mis. VSEN26.KP lengkap (194 komoditas) alih-alih versi contoh yang hanya subset.
+     * Bawaan: versi terbaru yang tidak kosong.
      */
     private function candidates(int $year, int $q, Collection $existing): Collection
     {
@@ -336,13 +339,25 @@ class PeriodeController extends Controller
         $have = $existing->map(fn ($c) => $c->survey.'|'.$c->instrument)->flip();
         $expected = $this->expectedPairs($year, $q)->flip();
 
-        return SurveyCycle::where('period', '<', $target)->orderByDesc('period')->orderByDesc('id')->get()
-            ->filter(fn ($c) => CyclePrep::versionFor($c) !== null)
-            ->unique(fn ($c) => $c->survey.'|'.$c->instrument)
-            ->reject(fn ($c) => isset($have[$c->survey.'|'.$c->instrument]))
-            ->map(fn ($c) => ['source' => $c, 'version' => CyclePrep::versionFor($c),
-                'checked' => isset($expected[$c->survey.'|'.$c->instrument])])
-            ->sortBy(fn ($x) => $x['source']->survey.$x['source']->instrument)->values();
+        return QuestionnaireVersion::with('cycle')->get()
+            ->filter(fn ($v) => $v->cycle && $v->cycle->period < $target)
+            ->groupBy(fn ($v) => $v->cycle->survey.'|'.$v->cycle->instrument)
+            ->reject(fn ($vs, $key) => isset($have[$key]))
+            ->map(function ($vs, $key) use ($expected) {
+                $opts = $vs->sortByDesc(fn ($v) => $v->cycle->period.sprintf('%08d', $v->id))->values()
+                    ->map(function ($v) {
+                        $blockIds = \App\Models\Block::where('qversion_id', $v->id)->pluck('id');
+
+                        return ['version' => $v, 'blocks' => $blockIds->count(),
+                            'rows' => \App\Models\BlockRow::whereIn('block_id', $blockIds)->count(),
+                            'rules' => \App\Models\ValidationRule::where('qversion_id', $v->id)->count()];
+                    });
+                $default = $opts->first(fn ($o) => $o['blocks'] > 0) ?? $opts->first();
+
+                return ['key' => $key, 'label' => $vs->first()->cycle->label(), 'options' => $opts,
+                    'default' => $default['version']->id, 'checked' => isset($expected[$key])];
+            })
+            ->sortBy('key')->values();
     }
 
     /** Kode versi baru: tahun di kode diganti, akhiran -TWn diganti triwulan tujuan. */
@@ -363,16 +378,19 @@ class PeriodeController extends Controller
     {
         abort_unless($tw >= 1 && $tw <= 4, 404);
         $d = $request->validate([
-            'pick' => 'required|array|min:1', 'pick.*' => 'integer|exists:survey_cycles,id',
+            'pick' => 'required|array|min:1', 'pick.*' => 'string',
+            'src' => 'required|array', 'src.*' => 'integer|exists:questionnaire_versions,id',
             'month' => 'required|integer|min:'.($tw * 3 - 2).'|max:'.($tw * 3),
             'field_start' => 'nullable|date', 'field_end' => 'nullable|date|after_or_equal:field_start',
         ]);
         $pkg = app(QuestionnairePackage::class);
         $made = [];
         DB::transaction(function () use ($d, $tahun, $tw, $pkg, &$made) {
-            foreach (SurveyCycle::whereIn('id', $d['pick'])->get() as $src) {
-                $qv = CyclePrep::versionFor($src);
-                abort_unless($qv, 422, "Siklus {$src->name} tidak punya versi kuesioner untuk disalin.");
+            foreach ($d['pick'] as $key) {
+                $qv = QuestionnaireVersion::with('cycle')->find($d['src'][$key] ?? 0);
+                abort_unless($qv && $qv->cycle && $qv->cycle->survey.'|'.$qv->cycle->instrument === $key, 422,
+                    "Versi sumber untuk {$key} tidak cocok.");
+                $src = $qv->cycle;
                 $bulan = SurveyCycle::MONTHS[(int) $d['month']];
                 $cycle = SurveyCycle::create([
                     'name' => trim("{$src->survey} {$bulan} {$tahun}".($src->instrument ? " ({$src->instrument})" : '')),
@@ -383,8 +401,8 @@ class PeriodeController extends Controller
                 // salin lewat paket metadata (sama dengan Ekspor/Impor JSON): blok, rincian, opsi,
                 // baris tetap + patokan harga, parameter, agregat, turunan, aturan
                 $new = $pkg->import($pkg->export($qv), $cycle->id, self::suggestCode($qv->code, $tahun, $tw));
-                AuditLog::record('cycle', $cycle->id, 'siapkan-triwulan', "{$cycle->name} dari {$qv->code} → {$new->code}");
-                $made[] = $cycle->label();
+                AuditLog::record('cycle', $cycle->id, 'siapkan-triwulan', "{$cycle->name} dari {$qv->code} -> {$new->code}");
+                $made[] = $cycle->label()." (dari {$qv->code})";
             }
         });
 

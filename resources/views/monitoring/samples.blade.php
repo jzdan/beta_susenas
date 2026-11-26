@@ -33,8 +33,12 @@
   </select>
   <select name="cycle">
     <option value="">Semua siklus</option>
-    @foreach ($cycles as $c)
-    <option value="{{ $c->id }}" @selected((string) $fCycle === (string) $c->id)>{{ $c->name }}</option>
+    @foreach ($cycles->groupBy(fn ($c) => $c->year().' TW'.$c->quarter()) as $grp => $cs)
+      <optgroup label="{{ $grp }}">
+        @foreach ($cs as $c)
+          <option value="{{ $c->id }}" @selected((string) $fCycle === (string) $c->id)>TW{{ $c->quarter() }} {{ $c->year() }} · {{ $c->label() }} ({{ Istilah::cycleStatus($c->status) }})</option>
+        @endforeach
+      </optgroup>
     @endforeach
   </select>
   @if($canAssign)

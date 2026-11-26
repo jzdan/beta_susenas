@@ -143,6 +143,15 @@ class HealthCheck extends Command
             $problems += $dupePj->count();
         }
 
+        // 10b. pekerjaan latar belakang macet (Inc 161): antre lama = queue:work tidak berjalan
+        $stuck = \App\Models\BackgroundTask::where('status', 'antre')
+            ->where('created_at', '<', now()->subMinutes(\App\Models\BackgroundTask::STUCK_MINUTES))->count();
+        if ($stuck) {
+            $this->warn("• {$stuck} pekerjaan latar belakang menunggu lebih dari ".\App\Models\BackgroundTask::STUCK_MINUTES
+                .' menit — pastikan `php artisan queue:work` berjalan di server.');
+            $problems++;
+        }
+
         // 11. keutuhan versi aktif (Inc 145): aturan/agregat/turunan/parameter yang putus
         if ($active = QuestionnaireVersion::where('is_active', true)->first()) {
             $vc = app(\App\Services\VersionChecker::class)->check($active);

@@ -46,7 +46,7 @@ class PeriodeSurveiTest extends TestCase
     {
         $kp = $this->kp();
         foreach (['admin', 'rahmawati'] as $who) {
-            $this->actingAs($this->u($who))->get('/periode')->assertOk()->assertSee('2026')->assertSee('2027');
+            $this->actingAs($this->u($who))->get('/periode')->assertOk()->assertSee('2026')->assertSee((string) now()->year);
             $this->actingAs($this->u($who))->get('/periode/2026')->assertOk()->assertSee('TW1')->assertSee('TW4');
             $this->actingAs($this->u($who))->get('/periode/2026/tw/1')->assertOk()
                 ->assertSee('SUSENAS KP')->assertSee('SUSENAS KOR')->assertSee('Beban petugas');
@@ -103,7 +103,7 @@ class PeriodeSurveiTest extends TestCase
 
         $this->actingAs($this->u('admin'))->get('/periode/2026/tw/2')->assertOk()->assertSee('Siapkan triwulan ini');
         $this->actingAs($this->u('admin'))->post('/periode/2026/tw/2/siapkan', [
-            'pick' => [$kp->id], 'month' => 6,
+            'pick' => ['SUSENAS|KP'], 'src' => ['SUSENAS|KP' => $src->id], 'month' => 6,
         ])->assertRedirect('/periode/2026/tw/2');
 
         $new = SurveyCycle::where('period', '2026-06')->firstOrFail();
@@ -115,10 +115,16 @@ class PeriodeSurveiTest extends TestCase
         $this->assertSame(ValidationRule::where('qversion_id', $src->id)->count(), ValidationRule::where('qversion_id', $qv->id)->count());
 
         // bulan harus di dalam triwulan
-        $this->actingAs($this->u('admin'))->post('/periode/2026/tw/2/siapkan', ['pick' => [$kp->id], 'month' => 9])
+        $this->actingAs($this->u('admin'))->post('/periode/2026/tw/2/siapkan', ['pick' => ['SUSENAS|KP'], 'src' => ['SUSENAS|KP' => $src->id], 'month' => 9])
             ->assertSessionHasErrors('month');
+        // versi sumber harus milik survei yang dipilih
+        $kor = QuestionnaireVersion::where('code', 'VSEN26.K')->firstOrFail();
+        $this->actingAs($this->u('admin'))->post('/periode/2026/tw/3/siapkan', ['pick' => ['SUSENAS|KP'], 'src' => ['SUSENAS|KP' => $kor->id], 'month' => 9])
+            ->assertStatus(422);
+        // pilihan versi sumber tampil lengkap dengan bulan & jumlah blok
+        $this->actingAs($this->u('admin'))->get('/periode/2026/tw/3')->assertOk()->assertSee('VSEN26.KP · Maret 2026');
         // hanya admin
-        $this->actingAs($this->u('rahmawati'))->post('/periode/2026/tw/3/siapkan', ['pick' => [$kp->id], 'month' => 9])
+        $this->actingAs($this->u('rahmawati'))->post('/periode/2026/tw/3/siapkan', ['pick' => ['SUSENAS|KP'], 'src' => ['SUSENAS|KP' => $src->id], 'month' => 9])
             ->assertForbidden();
     }
 
@@ -154,6 +160,59 @@ class PeriodeSurveiTest extends TestCase
         $all = $this->actingAs($admin)->get('/monitoring/peta?cycle=semua')->assertOk();
         $this->assertNull($all->viewData('cycle'));
         $this->assertGreaterThan($res->viewData('total'), $all->viewData('total'));
+    }
+
+    public function test_dashboard_and_kinerja_default_to_the_running_cycle(): void
+    {
+        $admin = $this->u('admin');
+        $lapangan = SurveyCycle::where('status', 'lapangan')->orderByDesc('period')->firstOrFail();
+
+        $dash = $this->actingAs($admin)->get('/monitoring')->assertOk();
+        $this->assertSame($lapangan->id, $dash->viewData('cycle')->id);
+        $this->assertSame($lapangan->samples()->count(), $dash->viewData('nAll'));
+        $this->assertGreaterThan($dash->viewData('nAll'), $this->actingAs($admin)->get('/monitoring?cycle=semua')->viewData('nAll'));
+
+        $kin = $this->actingAs($admin)->get('/monitoring/kinerja')->assertOk();
+        $this->assertSame($lapangan->id, $kin->viewData('cycle')->id);
+        $this->assertSame(Document::whereHas('sample', fn ($q) => $q->where('cycle_id', $lapangan->id))->count(),
+            $kin->viewData('totalDocs'));
+
+        // Daftar Sampel tetap bawaan semua siklus
+        $this->assertSame('', $this->actingAs($admin)->get('/monitoring/sampel')->viewData('fCycle'));
+    }
+
+    public function test_running_quarter_box_follows_the_calendar(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::create(2026, 11, 25));
+        // siklus lapangan di triwulan lain: yang belum mulai & yang jadwalnya sudah lewat diberi catatan (Inc 163)
+        SurveyCycle::create(['name' => 'SUSENAS Maret 2027 (KP)', 'period' => '2027-03', 'status' => 'lapangan',
+            'field_start' => '2027-03-01', 'field_end' => '2027-03-31']);
+        SurveyCycle::create(['name' => 'SERUTI Juni 2026 (INTI)', 'period' => '2026-06', 'status' => 'lapangan',
+            'field_start' => '2026-06-01', 'field_end' => '2026-06-30']);
+        SurveyCycle::create(['name' => 'SERUTI November 2026 (MAK)', 'period' => '2026-11', 'status' => 'persiapan',
+            'field_start' => '2026-11-01', 'field_end' => '2026-11-30']);
+        $res = $this->actingAs($this->u('admin'))->get('/monitoring')->assertOk();
+        $res->assertSee('TW4 2026')->assertSee(route('periode.triwulan', [2026, 4]), false);
+        $res->assertSee('Juga di lapangan')->assertSee('belum waktunya')->assertSee('jadwal selesai, belum ditutup')
+            ->assertSee('Jadwal lapangan sudah mulai 1 November', false);
+    }
+
+    public function test_schedule_must_fall_in_its_period(): void
+    {
+        $this->assertNull(SurveyCycle::scheduleProblem('2026-03', '2026-03-01', '2026-04-15'));   // SERUTI Maret s.d. April: wajar
+        $this->assertNotNull(SurveyCycle::scheduleProblem('2027-03', '2026-09-06', '2026-10-06'));
+        $this->assertNotNull(SurveyCycle::scheduleProblem('2026-03', '2026-03-01', '2026-07-01'));
+        $admin = $this->u('admin');
+        $this->actingAs($admin)->post('/admin/jadwal', ['name' => 'SUSENAS Maret 2027 (KP)', 'period' => '2027-03',
+            'status' => 'persiapan', 'field_start' => '2026-09-06', 'field_end' => '2026-10-06'])
+            ->assertSessionHasErrors('field_start');
+        $c = SurveyCycle::create(['name' => 'SERUTI Juni 2027 (INTI)', 'period' => '2027-06', 'status' => 'persiapan']);
+        $this->actingAs($admin)->post("/admin/jadwal/{$c->id}", ['name' => $c->name, 'status' => 'persiapan',
+            'field_start' => '2027-09-01', 'field_end' => '2027-09-30'])->assertSessionHasErrors('field_start');
+        $prep = app(\App\Services\CyclePrep::class)->check($c->fresh());
+        $item = collect($prep['items'])->firstWhere('key', 'triwulan_mulai');
+        $this->assertFalse($item['ok']);
+        $this->assertFalse($item['wajib']);
     }
 
     public function test_pages_reached_from_other_pages_have_a_back_button(): void

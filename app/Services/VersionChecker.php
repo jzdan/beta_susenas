@@ -148,7 +148,15 @@ class VersionChecker
         // --- skip (lompatan) rincian ---
         foreach ($blocks as $b) {
             foreach ($b->questions as $q) {
-                if (trim((string) $q->skip_expr) !== '' && ($miss = $unknown($q->skip_expr))) {
+                // blok berulang: syarat dihitung per baris (Inc 157) → nama konteks baris juga sah
+                $extra = [];
+                if ($b->repeat !== 'ruta') {
+                    $extra = array_fill_keys(self::ROW_CTX, true);
+                    foreach (array_keys($refKeysByBlock[$b->code] ?? []) as $k) {
+                        $extra["ref_{$k}"] = true;
+                    }
+                }
+                if (trim((string) $q->skip_expr) !== '' && ($miss = $unknown($q->skip_expr, $extra))) {
                     $warnings[] = "Rincian {$q->var_name} (Blok {$b->code}): syarat lompatan merujuk variabel yang tidak ada — "
                         .implode(', ', $miss).'.';
                 }

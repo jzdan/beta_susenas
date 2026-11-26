@@ -174,6 +174,7 @@
     </div>
     <input name="label" placeholder="Label / pertanyaan" required>
     <input name="skip_expr" placeholder="Lewati bila (opsional), mis. n(status_rumah) != 1" class="mono">
+    @if($b->repeat !== 'ruta')<p class="muted small" style="margin:0">Di blok berulang, syarat lewati dihitung per baris (boleh memakai isian lain di baris yang sama). Sel yang dilewati dikunci dan diabaikan aturan &amp; hitungan.</p>@endif
     <input name="help_text" placeholder="Teks bantuan (opsional)">
     <button type="submit">Tambah rincian</button>
   </form>

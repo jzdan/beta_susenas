@@ -7,6 +7,21 @@
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 
+{{-- Inc 162: simpan halaman entri ke HP sebelum berangkat ke lokasi minim sinyal --}}
+@if($isOperator)
+@php($offlineUrls = $pending->pluck('doc')->merge($returned->pluck('doc'))->filter()->unique('id')
+    ->map(fn ($d) => route('entri.form', $d, false))->values()->prepend(route('monitoring.tasks', [], false)))
+<section class="panel offline-prep">
+  <div style="flex:1;min-width:220px">
+    <strong>Mau ke lokasi yang sinyalnya lemah?</strong>
+    <div class="small muted">Simpan dulu {{ $offlineUrls->count() - 1 }} sampel yang sudah pernah dibuka ke HP ini, supaya tetap bisa dibuka dan diisi tanpa sinyal.
+      Isian dikirim otomatis begitu sinyal kembali. Sampel yang belum pernah dibuka perlu dibuka sekali saat ada sinyal.</div>
+    <div class="small" id="prep-offline-out" aria-live="polite"></div>
+  </div>
+  <button type="button" id="prep-offline" data-urls="{{ $offlineUrls->toJson() }}">Simpan untuk dibuka tanpa sinyal</button>
+</section>
+@endif
+
 @if($returned->isEmpty() && $noteRows->isEmpty() && $pending->isEmpty())
 <section class="panel"><p class="muted">Tidak ada yang perlu ditindaklanjuti saat ini.</p></section>
 @endif

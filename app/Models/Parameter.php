@@ -19,7 +19,7 @@ class Parameter extends Model
      * Nilainya daftar nama variabel dipisah koma — yang pertama ada di versi itu yang dipakai.
      * Bila parameter belum dibuat di suatu versi, dipakai `default` (= perilaku lama),
      * jadi versi lama tetap jalan tanpa diubah. Ganti nama variabel di kuesioner baru →
-     * cukup buat/ubah parameter ini di tab Neraca & Turunan, tanpa ubah program.
+     * cukup buat/ubah parameter ini di tab Bahan hitungan (Aturan Validasi), tanpa ubah program.
      */
     public const SYSTEM = [
         'var_jumlah_art' => [

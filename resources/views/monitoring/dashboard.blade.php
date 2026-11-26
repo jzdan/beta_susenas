@@ -2,7 +2,9 @@
 @php($nav = 'dash')
 @section('title', 'Dashboard · Sistem SUSENAS')
 @section('content')
-<h1>Dashboard Monitoring</h1>
+<h1>Dashboard Monitoring
+  @if($cycle)<small class="muted">TW{{ $cycle->quarter() }} {{ $cycle->year() }} · {{ $cycle->label() }}</small>@else<small class="muted">semua siklus</small>@endif</h1>
+@include('monitoring._cycle_pick')
 <p class="muted">Cakupan sesuai peran &amp; wilayah Anda.</p>
 
 <div class="kpis">

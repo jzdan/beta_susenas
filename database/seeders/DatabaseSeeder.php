@@ -60,11 +60,17 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Inc 154: kerangka 2026 (SERUTI TW1–TW4 + SUSENAS September) supaya halaman Periode
-        // Survei punya contoh beberapa survei per triwulan. TIDAK dimuat saat tes — dataset tes
-        // tetap 3 versi kuesioner (tes SERUTI memanggil seedernya sendiri).
+        // Inc 164: kerangka Periode Survei 2026 & 2027 (status mengikuti kalender) + sampel contoh.
+        // TIDAK dimuat saat tes — dataset tes tetap 3 versi kuesioner (tes memanggil seedernya sendiri).
         if (! app()->runningUnitTests()) {
-            $this->call(Susenas2026CycleSeeder::class);
+            // Inc 165: 18 kecamatan + 281 desa Bangkalan dan tim lapangan per kecamatan
+            $this->call(WilayahBangkalanSeeder::class);
+            $this->call(PetugasBangkalanSeeder::class);
+            $this->call(PeriodeSurveiSeeder::class);
+            // SEED_ATURAN=false di .env → aturan validasi dikosongkan (admin menyusun sendiri dari awal)
+            if (! filter_var(env('SEED_ATURAN', true), FILTER_VALIDATE_BOOL)) {
+                $this->call(KosongkanAturanSeeder::class);
+            }
         }
     }
 
@@ -949,14 +955,20 @@ class DatabaseSeeder extends Seeder
 
     private function questionnaire(): array
     {
+        // Inc 163: siklus contoh selalu di triwulan BERJALAN (periode = bulan ini) dan jadwalnya di dalam
+        // periode itu. Dulu periode tetap "Maret 2027" dengan jadwal relatif hari ini → di November 2026
+        // tampil sebagai "TW1 2027 · lapangan, jadwal lewat".
+        [$qStart] = SurveyCycle::quarterRange(now()->format('Y-m'));
         $cycle = SurveyCycle::create([
-            'name' => 'SUSENAS Maret 2027 (contoh)', 'period' => '2027-03', 'status' => 'lapangan',
-            // jadwal contoh: pencacahan sedang berjalan (relatif terhadap tanggal hari ini)
-            'field_start' => now()->subDays(16)->toDateString(),
+            'name' => 'SUSENAS '.SurveyCycle::MONTHS[now()->month].' '.now()->year.' (contoh)',
+            'period' => now()->format('Y-m'), 'status' => 'lapangan', 'survey' => 'SUSENAS', 'instrument' => 'KP',
+            // pencacahan sedang berjalan: mulai ≤ 16 hari lalu (tidak sebelum awal triwulan), selesai 14 hari lagi
+            'field_start' => now()->subDays(16)->max($qStart)->toDateString(),
             'field_end' => now()->addDays(14)->toDateString(),
         ]);
         $qv = QuestionnaireVersion::create([
-            'cycle_id' => $cycle->id, 'code' => 'VSEN27.KP', 'effective_date' => '2027-01-05',
+            // Inc 164: kode VSEN27.KP dipakai SUSENAS Maret 2027 (PeriodeSurveiSeeder) — contoh punya kode sendiri
+            'cycle_id' => $cycle->id, 'code' => 'VSEN'.now()->format('y').'.KP-CONTOH', 'effective_date' => $qStart->toDateString(),
         ]);
 
         $bAwal = Block::create(['qversion_id' => $qv->id, 'code' => 'POKOK',

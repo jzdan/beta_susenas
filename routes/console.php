@@ -22,5 +22,8 @@ Schedule::call(function () {
         ->delete();
 })->weekly()->name('prune-notifications');
 
+// Inc 163: pengingat jadwal lapangan vs status siklus (ke Notifikasi admin), tiap pagi
+Schedule::command('susenas:ingat-jadwal')->dailyAt('07:00');
+
 // Ringkasan kondisi data mingguan (ke log)
 Schedule::command('susenas:health')->weeklyOn(1, '06:00');

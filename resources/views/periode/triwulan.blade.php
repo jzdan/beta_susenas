@@ -68,11 +68,19 @@
     @csrf
     <div class="pick-list">
       @foreach ($candidates as $cand)
-        <label class="pick">
-          <input type="checkbox" name="pick[]" value="{{ $cand['source']->id }}" @checked($cand['checked'])>
-          <span><strong>{{ $cand['source']->label() }}</strong>
-            <span class="small muted">salin dari {{ $cand['source']->monthName() }} {{ $cand['source']->year() }} · <span class="mono">{{ $cand['version']->code }}</span></span></span>
-        </label>
+        <div class="pick">
+          <input type="checkbox" name="pick[]" value="{{ $cand['key'] }}" id="pk{{ $loop->index }}" @checked($cand['checked'])>
+          <span>
+            <label for="pk{{ $loop->index }}"><strong>{{ $cand['label'] }}</strong></label>
+            <label class="small muted">salin dari
+              <select name="src[{{ $cand['key'] }}]">
+                @foreach ($cand['options'] as $o)
+                  <option value="{{ $o['version']->id }}" @selected($o['version']->id === $cand['default'])>{{ $o['version']->code }} · {{ $o['version']->cycle->monthName() }} {{ $o['version']->cycle->year() }} · {{ $o['blocks'] }} blok{{ $o['rows'] ? ' · '.$o['rows'].' baris' : '' }} · {{ $o['rules'] }} aturan{{ $o['blocks'] ? '' : ' (kosong)' }}</option>
+                @endforeach
+              </select>
+            </label>
+          </span>
+        </div>
       @endforeach
     </div>
     <div class="rule-grid">

@@ -2143,6 +2143,129 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   `test_admin_imports_block_rows_with_calorie_data_from_xlsx` (kolom harga/kalori
   diabaikan di impor baris). 238 tes lulus.
 
+### Increment 163 — jadwal lapangan mengikuti kalender
+
+- Masalah: kotak samping menampilkan "TW1 2027 (jadwal lewat)" di November 2026 — siklus contoh berperiode Maret 2027
+  tetapi berjadwal relatif hari ini & sudah berstatus Lapangan. Sistem tidak mencegah jadwal di luar periodenya.
+- `SurveyCycle::quarterRange()`, `scheduleProblem()` (mulai harus di triwulan periode; selesai paling lambat
+  `FIELD_END_GRACE_MONTHS`=2 bulan sesudah triwulan berakhir — SERUTI Maret s.d. 15 April tetap sah), `quarterNotStarted()`,
+  `fieldOverdue()`, `fieldShouldHaveStarted()`. Dicek di `cycleCreate`/`jadwalSave`; butir wajib "Jadwal lapangan sesuai
+  periode" + butir peringatan "Triwulan periode ini sudah dimulai" di Persiapan periode (konfirmasi buka lapangan ikut menyebut).
+- Kotak "Triwulan berjalan": catatan "Jadwal lapangan sudah mulai …, masih Persiapan" / "N siklus jadwalnya selesai, belum
+  ditutup"; "Juga di lapangan" menandai "belum waktunya" atau "jadwal selesai, belum ditutup".
+- `php artisan susenas:ingat-jadwal` (terjadwal 07:00) → Notifikasi admin `CycleScheduleReminder`; tidak dobel selama belum
+  dibaca; status TIDAK diubah otomatis.
+- Data contoh `DatabaseSeeder`: siklus "SUSENAS <bulan ini> (contoh)" berperiode bulan berjalan, jadwal di dalam triwulannya.
+  Basis data pengembangan disesuaikan untuk baris contoh itu saja (tercatat di Log Audit).
+- Waktu relatif ("1 menit yang lalu") kini berbahasa Indonesia (`Carbon::setLocale('id')`).
+- Tes: `PeriodeSurveiTest` (+1, kotak samping diperluas), `ScheduleReminderTest` (2).
+
+### Increment 165 — data contoh: 18 kecamatan Bangkalan, tim lapangan, semua sampel berisi isian lengkap
+
+- `database/data/wilayah_bangkalan.csv` (format Impor Wilayah) + `WilayahBangkalanSeeder`: 1 kabupaten, 18 kecamatan (kode
+  statistik BPS 010 Kamal … 180 Klampis), 281 desa/kelurahan — nama dari GADM 4.1 (`scripts/build_wilayah_bangkalan.php`).
+  **Kode desa sementara** (urut abjad per kecamatan); timpa dengan master BPS lewat Admin → Wilayah → Impor.
+- `PetugasBangkalanSeeder`: 18 Penanggung Jawab (satu per kecamatan), 6 Pengawas (3 kecamatan masing-masing), 36 Pencacah
+  (2 per kecamatan; akun bawaan ppl_ani/dodi/eka, rahmawati/santoso, pj_kamal ikut dipakai). Nama rekaan, sandi pola lama.
+- `PeriodeSurveiSeeder`: kerangka per kecamatan — SUSENAS 2 blok sensus × 10 rumah tangga (360/siklus), SERUTI 1 × 10
+  (180/siklus); satu blok sensus = satu Pencacah. Semua sampel berisi isian kecuali ±3% non-respons (dengan alasan);
+  siklus contoh November yang dulu 28/32 "belum dikunjungi" ikut diisi.
+- `IsianSintetis`: melengkapi blok yang tidak punya isian sumber (SERUTI III–VII, IV.1M, dll.) — pilihan sah, rupiah menurut
+  kata kunci label, roster sebanyak anggota rumah tangga dengan hubungan/umur/jenis kelamin konsisten, baris subtotal
+  `[453 + 454]`/TOTAL = jumlah rinciannya; syarat lewati dihormati (sel yang dilewati dihapus lagi).
+- Dataset tes tidak berubah (4 desa, 3 petugas). `WilayahPetugasBangkalanTest` (2), `PeriodeSurveiSeederTest` (+1).
+
+### Increment 164 — seeder Periode Survei 2026 & 2027 + sampel contoh; opsi kosongkan aturan
+
+- `PeriodeSurveiSeeder` menggantikan `Susenas2026CycleSeeder` (dan tesnya). Pola tiap tahun: Maret SUSENAS KOR/KP + SERUTI INTI,
+  Juni SERUTI INTI/MAK, September SUSENAS Modul/KP + SERUTI INTI, November SERUTI INTI/MAK — 2026 & 2027 (`YEARS`).
+- Jadwal sebulan penuh di dalam triwulannya (SERUTI Maret s.d. 15 April). Status dihitung dari kalender saat seeding
+  (`calendarStatus`): belum mulai → persiapan, dalam jadwal → lapangan, lewat ≤ 2 bulan → pengolahan, > 2 bulan → selesai.
+  Tiga siklus Maret 2026 bawaan (data contoh utama) tidak diubah statusnya.
+- Versi disalin lewat paket metadata dari versi instrumen yang sama sebelumnya (kode `VSEN27.KP`, `VSERUTI27.INTI-TW2`, …);
+  Modul & MAK tetap kosong. Kode versi siklus contoh diganti `VSEN26.KP-CONTOH` (dulu `VSEN27.KP`, bentrok dengan Maret 2027).
+- Sampel contoh (desa × 2 blok sensus × 3 rumah tangga) untuk siklus yang sudah mulai lapangan & kuesionernya berisi; isian
+  disalin dari isian Maret 2026 instrumen yang sama, rupiah dikali satu faktor per isian (jumlah = rincian tetap cocok). Tahap
+  mengikuti status siklus (selesai = semua bersih; pengolahan = menunggu pemeriksaan/bersih/dikembalikan; lapangan = campur).
+- `.env` `SEED_ATURAN=false` → `KosongkanAturanSeeder` dipanggil sesudah seeding: semua aturan validasi + hasil, riwayat,
+  konfirmasi peringatan dihapus, isian dihitung ulang. Blok, parameter, agregat, turunan, patokan Harga & Kalori tetap.
+- DB pengembangan dimuat ulang (cadangan `storage/app/backups/susenas-20261126-041950.sqlite`). `PeriodeSurveiSeederTest` (7).
+
+### Increment 162 — aplikasi terpasang (PWA) Android & iPhone + isian tanpa sinyal
+
+- `public/manifest.webmanifest`, ikon `public/icons/` (192/512/maskable + `apple-touch-icon` 180), tag `apple-mobile-web-app-*`
+  di `layouts/app`. Android: pita "Pasang" (beforeinstallprompt). iPhone: petunjuk Bagikan → Tambah ke Layar Utama.
+- `public/sw.js`: CSS/JS/ikon/huruf = stale-while-revalidate; halaman petugas (`/monitoring`, `/monitoring/tugas`,
+  `/monitoring/sampel/{id}`, `/entri/{id}`) = jaringan dulu, salinan terakhir bila tanpa sinyal, `offline.html` bila belum pernah
+  dibuka. POST tidak pernah lewat cache. Keluar akun → salinan halaman dihapus (`clear-pages`).
+- Antrean isian di HP (`window.SusenasOutbox`, localStorage per pengguna): isian yang gagal terkirim (tanpa sinyal / sesi habis)
+  disimpan, ditandai garis putus, dikirim ulang otomatis saat `online` / tiap 20 dtk / saat aplikasi dibuka lagi. Ditolak server
+  (periode ditutup, isian bersih) → daftar "ditolak" yang bisa dilihat petugas, tidak diulang. Pita status di bawah layar.
+- Tugas Saya (petugas): tombol **Simpan untuk dibuka tanpa sinyal** — menyimpan halaman entri sampel yang sudah pernah dibuka.
+- Formulir POST saat tanpa sinyal ditahan dengan pesan. Keluar akun saat antrean belum kosong → konfirmasi.
+- **Syarat**: service worker hanya jalan di `https` (atau localhost). Lewat `http://192.168.x.x` di HP fitur tanpa sinyal tidak aktif.
+- Diuji ujung-ke-ujung (Playwright + Edge): antre saat putus, tampil lagi setelah muat ulang, terkirim saat sinyal kembali,
+  halaman tersimpan terbuka tanpa jaringan, petunjuk iPhone muncul. `PwaTest` (3).
+
+### Increment 161 — periksa ulang & impor besar lewat antrean latar belakang
+
+- Tabel `background_tasks` + `App\Models\BackgroundTask` + job `App\Jobs\RecheckDocuments` (kemajuan tiap 20 sampel).
+- Periksa ulang > `BackgroundTask::$inlineMax` (50) sampel → antrean; ≤ 50 tetap langsung. Impor isian CAPI > 50 baris:
+  data disimpan langsung, aturan dihitung di latar belakang; pratinjau besar menghitung aturan 200 isian pertama (perkiraan).
+- Partial `admin.partials._tasks` (bilah kemajuan, diperbarui tiap 3 dtk lewat `/admin/tugas-latar/{task}`) di Aturan Validasi
+  & Impor Isian. Antre > 5 menit → pesan "jalankan `php artisan queue:work`"; `susenas:health` ikut memperingatkan.
+- `.env` pengembang `QUEUE_CONNECTION=sync` (langsung jalan); produksi `database` + worker (docs/deployment.md).
+
+### Increment 160 — bandingkan versi kuesioner
+
+- `App\Services\VersionDiff`: tambah/hapus/ubah per blok, rincian, pilihan jawaban, baris tetap, aturan, parameter, agregat,
+  turunan — dicocokkan lewat kode/nama, jadi versi salinan bisa dibandingkan. Bawaan pembanding = versi siklus survei &
+  instrumen sama yang periodenya tepat sebelumnya (`previousOf`).
+- Halaman `/admin/versi/{qv}/bandingkan?dengan=` (tombol **Bandingkan** di tab Kuesioner).
+
+### Increment 159 — contoh kasus uji per aturan
+
+- Kolom `validation_rules.test_cases` (JSON `[{name, isian:"var=nilai; …", expect}]`), `App\Services\RuleTester`
+  (di atas parameter versi saja, tanpa menyentuh sampel). Panel **Contoh kasus uji** di halaman ubah aturan; periksa langsung
+  saat mengetik rumus ikut menjalankan contoh; simpan aturan yang membuat contoh gagal → diberi tahu; daftar aturan
+  menampilkan tanda "uji x/y" bila ada yang gagal.
+- Paket versi (ekspor/impor, "Siapkan triwulan") & duplikasi versi kini ikut membawa `note` (keterangan — sebelumnya hilang
+  saat disalin) dan `test_cases`.
+
+### Increment 158 — riwayat aturan + kembalikan, dampak ambang langsung
+
+- Tabel `rule_revisions` + `App\Models\RuleRevision`; event model `ValidationRule` merekam setiap perubahan (buat, ubah,
+  sunting cepat, nyalakan/matikan, kembalikan). Aturan bawaan dapat revisi `awal` sebelum perubahan pertama.
+  Update massal query builder (nyalakan massal, ganti kode blok) tidak terekam.
+- Panel **Riwayat perubahan** (beda per kolom) + tombol **Kembalikan** di halaman ubah aturan.
+- Daftar aturan: mengubah angka ambang langsung menampilkan "Dengan X: kena N sampel (sekarang M)" sebelum disimpan.
+
+### Increment 157 — syarat "lewati" per baris (anggota rumah tangga / daftar)
+
+- `skip_expr` rincian di blok `art`/`list`/`list_art` kini dihitung **per baris** (konteks dokumen + isian baris itu +
+  `ref_*` + `_row_index`/`_art_no`). Sel yang dilewati: dikunci di layar entri (arsir), **diabaikan** — dibuang dari nilai
+  berulang sebelum agregat/turunan dihitung, dan aturan per-baris yang merujuknya tidak diperiksa di baris itu; tidak ikut
+  hitungan kelengkapan. `RuleEngine::rowCtx()` dipakai bersama aturan per-baris, syarat lewati, dan layar entri.
+- `VersionChecker` menerima nama konteks baris di syarat lewati blok berulang. `RowSkipTest` (3).
+
+### Increment 156 — pemantauan per siklus, versi sumber "Siapkan", Bahan hitungan, panduan, SERUTI INTI lengkap
+
+- **Dashboard & Kinerja Tim** memakai pemilih siklus (bawaan triwulan berjalan, `?cycle=semua` = gabungan,
+  `MonitoringController::pickCycle`); **Daftar Sampel** pilihan siklusnya diseragamkan (dikelompokkan per
+  tahun/TW) tapi bawaannya tetap semua siklus (petugas perlu melihat isian dikembalikan dari triwulan lalu).
+  Tes lama yang memeriksa angka gabungan kini memakai `?cycle=semua`.
+- **"Siapkan triwulan" memilih versi sumber**: tiap survei punya pilihan semua versinya (blok · baris ·
+  aturan), bawaan versi terbaru yang tidak kosong. Kiriman form: `pick[]=SURVEI|INSTRUMEN`,
+  `src[SURVEI|INSTRUMEN]=qversion_id` (ditolak 422 bila versi bukan milik survei itu).
+- Tab "Neraca & Turunan" → **"Bahan hitungan"** (agregat · turunan · parameter).
+- **Panduan admin** (`docs/panduan-admin.html` + PDF) ditulis ulang mengikuti alur Periode Survei;
+  **skenario UAT** (`docs/skenario-uat.md`) diperbarui (Periode, hub, akses petugas per siklus, tahap,
+  keterhubungan blok, tampilan perangkat).
+- **SERUTI INTI lengkap** dari PDF (Drive/OneDrive): Blok III, IV.2.B, IV.3, V.501–505, VI, VII lewat
+  `SerutiIntiLengkapSeeder` (idempoten, per versi dalam transaksi). Detail & hal yang perlu dicek di
+  `docs/modul-seruti.md`. Catatan: kolom `questions.unit/skip_expr/help_text` NOT NULL — isi `''`, bukan null.
+- Tes: `SerutiIntiLengkapTest`, tambahan di `PeriodeSurveiTest`.
+
 ### Increment 155 — keterhubungan kuesioner ↔ aturan, neraca, turunan
 
 - Permintaan user: dari aturan/neraca/turunan harus kelihatan blok kuesioner mana yang dipakai.

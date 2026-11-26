@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172032">
+  <title>Tidak ada sinyal · Sistem SUSENAS</title>
+  <style>
+    :root { color-scheme: light dark; --bg:#f5f6f8; --fg:#1c2430; --muted:#5b6575; --card:#fff; --line:#e3e6ec; --accent:#1f5aa8; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#10141b; --fg:#e6e9ef; --muted:#9aa4b2; --card:#171d27; --line:#2a313c; --accent:#7aa7e6; } }
+    body { margin:0; min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--fg);
+      font: 16px/1.5 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; padding:16px; box-sizing:border-box; }
+    .card { max-width:440px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:22px; }
+    h1 { font-size:1.25rem; margin:0 0 8px; }
+    p { color:var(--muted); margin:0 0 12px; }
+    button, a.btn { font:inherit; padding:10px 16px; border-radius:8px; border:0; background:var(--accent); color:#fff; cursor:pointer; text-decoration:none; display:inline-block; }
+    a.alt { color:var(--accent); margin-left:12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Tidak ada sinyal</h1>
+    <p>Halaman ini belum pernah dibuka di HP ini, jadi belum bisa ditampilkan tanpa sinyal.</p>
+    <p>Isian yang sudah Anda ketik tetap tersimpan di HP dan akan dikirim otomatis begitu sinyal kembali.</p>
+    <button type="button" onclick="location.reload()">Coba lagi</button>
+    <a class="alt" href="/monitoring/tugas">Ke Tugas Saya</a>
+  </div>
+</body>
+</html>

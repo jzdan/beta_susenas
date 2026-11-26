@@ -1,3 +1,205 @@
+// ===== Inc 162: aplikasi terpasang (PWA) & isian tanpa sinyal — Android dan iPhone =====
+// Antrean isian di HP: setiap isian yang gagal terkirim (tanpa sinyal / sesi habis) disimpan di
+// localStorage per pengguna, ditampilkan di layar, dan dikirim ulang otomatis saat sinyal kembali.
+window.SusenasOutbox = (function () {
+  var userMeta = document.querySelector('meta[name="app-user"]');
+  var KEY = "susenas-outbox-" + (userMeta ? userMeta.content : "anon");
+  var REJ = KEY + "-ditolak";
+  var CSRF = function () { return (document.querySelector('meta[name="csrf-token"]') || {}).content || ""; };
+  var flushing = false, needReload = false;
+
+  function load(k) { try { return JSON.parse(localStorage.getItem(k) || "{}"); } catch (e) { return {}; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function items() { var o = load(KEY); return Object.keys(o).map(function (k) { return o[k]; }); }
+
+  function put(docId, qid, art, value, label) {
+    var o = load(KEY);
+    o[docId + ":" + qid + ":" + (art || 0)] = { doc: String(docId), qid: String(qid), art: String(art || 0),
+      value: value, label: label || "", at: Date.now() };
+    save(KEY, o);
+    paint();
+  }
+  function forDoc(docId) { return items().filter(function (it) { return it.doc === String(docId); }); }
+  function drop(it) { var o = load(KEY); delete o[it.doc + ":" + it.qid + ":" + it.art]; save(KEY, o); }
+
+  function send(it) {
+    var body = new URLSearchParams({ question_id: it.qid, value: it.value, art_index: it.art });
+    return fetch("/entri/" + it.doc + "/jawaban", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-TOKEN": CSRF(),
+        "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
+      body: body.toString(),
+    });
+  }
+
+  function flush() {
+    if (flushing || !navigator.onLine) return Promise.resolve();
+    var queue = items().sort(function (a, b) { return a.at - b.at; });
+    if (!queue.length) return Promise.resolve();
+    flushing = true;
+    var i = 0;
+    function next() {
+      if (i >= queue.length) return Promise.resolve();
+      var it = queue[i++];
+      return send(it).then(function (r) {
+        if (r.status === 419 || r.status === 401 || r.redirected) { needReload = true; throw new Error("sesi"); }
+        if (r.ok) {
+          drop(it);
+          return r.json().then(function (d) {
+            document.dispatchEvent(new CustomEvent("susenas:sent", { detail: { doc: it.doc, state: d.state } }));
+          }).then(next);
+        }
+        // ditolak server (periode ditutup, isian sudah bersih, dsb.) — simpan sebagai catatan, jangan diulang
+        var rej = load(REJ);
+        rej[it.doc + ":" + it.qid + ":" + it.art] = Object.assign({ status: r.status }, it);
+        save(REJ, rej);
+        drop(it);
+        return next();
+      });
+    }
+    return next().catch(function () {}).then(function () { flushing = false; paint(); });
+  }
+
+  // ---- pita status koneksi + antrean (bawah layar)
+  var bar = null;
+  function paint() {
+    if (!document.body) return;
+    var n = items().length, rej = Object.keys(load(REJ)).length, off = !navigator.onLine;
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.className = "net-bar";
+      bar.setAttribute("role", "status");
+      document.body.appendChild(bar);
+    }
+    var parts = [];
+    if (off) parts.push("<strong>Tanpa sinyal.</strong> Isian tetap tersimpan di HP ini.");
+    if (n) parts.push(n + " isian menunggu dikirim" + (off ? "." : " — mengirim…"));
+    if (needReload && n) parts.push('Sesi masuk berakhir. <a href="' + location.pathname + '">Muat ulang halaman</a> (masuk lagi bila diminta) — isian tidak hilang.');
+    if (rej) parts.push(rej + ' isian ditolak server (mis. periode lapangan sudah ditutup). <button type="button" class="btn-ghost" data-rej-show>Lihat</button>');
+    bar.innerHTML = parts.join(" ");
+    bar.hidden = !parts.length;
+    bar.classList.toggle("off", off);
+    var b = bar.querySelector("[data-rej-show]");
+    if (b) b.addEventListener("click", function () {
+      var all = load(REJ);
+      var list = Object.keys(all).map(function (k) { var r = all[k];
+        return "Sampel #" + r.doc + " · " + (r.label || ("rincian " + r.qid)) + (r.art !== "0" ? " baris " + r.art : "") + " = " + r.value; });
+      if (confirm("Isian yang ditolak server:\n\n" + list.join("\n") + "\n\nCatat bila perlu, lalu tekan OK untuk menghapus daftar ini.")) {
+        save(REJ, {}); paint();
+      }
+    });
+  }
+
+  window.addEventListener("online", function () { paint(); flush(); });
+  window.addEventListener("offline", paint);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) flush(); });
+  setInterval(flush, 20000);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { paint(); flush(); });
+  else { paint(); flush(); }
+
+  return { put: put, forDoc: forDoc, flush: flush, count: function () { return items().length; }, paint: paint };
+})();
+
+// Daftarkan service worker + ajakan pasang aplikasi (Android: tombol; iPhone: petunjuk Bagikan → Tambah ke Layar Utama)
+(function () {
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+    navigator.serviceWorker.register("/sw.js").catch(function () {});
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+  }
+  var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  var DISMISS = "susenas-install-dismissed";
+  var dismissed = function () { try { return localStorage.getItem(DISMISS) === "1"; } catch (e) { return false; } };
+  if (standalone || !document.querySelector('meta[name="app-user"]')) return;
+
+  function banner(html, onInstall) {
+    if (dismissed() || document.querySelector(".install-bar")) return;
+    var el = document.createElement("div");
+    el.className = "install-bar";
+    el.innerHTML = '<img src="/icons/icon-192.png" alt="" width="36" height="36"><div class="install-text">' + html + "</div>"
+      + (onInstall ? '<button type="button" data-install>Pasang</button>' : "")
+      + '<button type="button" class="btn-ghost" data-close>Nanti</button>';
+    document.body.appendChild(el);
+    el.querySelector("[data-close]").addEventListener("click", function () {
+      try { localStorage.setItem(DISMISS, "1"); } catch (e) {}
+      el.remove();
+    });
+    if (onInstall) el.querySelector("[data-install]").addEventListener("click", function () { onInstall(el); });
+  }
+
+  // Android (Chrome / Edge / Samsung Internet)
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    var prompt = e;
+    banner("<strong>Pasang Sistem SUSENAS di HP</strong><br>Buka langsung dari layar utama, layar penuh, dan tetap bisa mengisi saat sinyal hilang.",
+      function (el) { prompt.prompt(); prompt.userChoice.finally(function () { el.remove(); }); });
+  });
+
+  // iPhone / iPad — Safari tidak punya tombol pasang otomatis, jadi beri petunjuk
+  var ua = navigator.userAgent;
+  var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var go = function () {
+    if (ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua)) {
+      banner("<strong>Pasang di iPhone:</strong> ketuk tombol <strong>Bagikan</strong> "
+        + "(kotak dengan panah ke atas) lalu pilih <strong>Tambah ke Layar Utama</strong>.");
+    } else if (ios) {
+      banner("<strong>Pasang di iPhone:</strong> buka alamat ini di <strong>Safari</strong>, ketuk <strong>Bagikan</strong>, lalu <strong>Tambah ke Layar Utama</strong>.");
+    }
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();
+
+// Keluar akun: peringatkan bila masih ada isian belum terkirim; hapus salinan halaman di HP.
+// Formulir POST saat tanpa sinyal: tahan dengan pesan (bukan halaman galat peramban).
+(function () {
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest('a[href$="/logout"]');
+    if (!a) return;
+    var n = window.SusenasOutbox ? window.SusenasOutbox.count() : 0;
+    if (n && !confirm(n + " isian belum terkirim dan masih tersimpan di HP ini. Isian itu akan dikirim saat Anda masuk lagi dengan akun yang sama. Tetap keluar?")) {
+      e.preventDefault();
+      return;
+    }
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage("clear-pages");
+  });
+  document.addEventListener("submit", function (e) {
+    var f = e.target;
+    if (navigator.onLine || (f.getAttribute("method") || "").toLowerCase() !== "post") return;
+    e.preventDefault();
+    alert("Tidak ada sinyal. Tindakan ini perlu sinyal — coba lagi setelah sinyal kembali. Isian yang sudah diketik tetap tersimpan di HP.");
+  }, true);
+})();
+
+// Tugas Saya: simpan halaman entri sampel ke HP supaya bisa dibuka tanpa sinyal
+(function () {
+  var btn = document.getElementById("prep-offline");
+  if (!btn) return;
+  var out = document.getElementById("prep-offline-out");
+  if (!("caches" in window) || !navigator.serviceWorker) {
+    btn.disabled = true;
+    out.textContent = "Belum tersedia di sini — perlu alamat https (server resmi).";
+    return;
+  }
+  btn.addEventListener("click", function () {
+    var urls = JSON.parse(btn.dataset.urls || "[]");
+    var done = 0;
+    btn.disabled = true;
+    out.textContent = "menyimpan 0 dari " + urls.length + "…";
+    caches.open("susenas-pages-v1").then(function (c) {
+      return urls.reduce(function (p, u) {
+        return p.then(function () {
+          return fetch(u, { credentials: "same-origin" }).then(function (r) {
+            if (r.ok && !r.redirected) return c.put(new URL(u, location.href).pathname, r);
+          }).catch(function () {}).then(function () { out.textContent = "menyimpan " + (++done) + " dari " + urls.length + "…"; });
+        });
+      }, Promise.resolve());
+    }).then(function () {
+      out.textContent = "✓ " + urls.length + " sampel siap dibuka tanpa sinyal (disimpan pukul "
+        + new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + ").";
+      btn.disabled = false;
+    });
+  });
+})();
+
 // Tombol tema: sistem -> terang -> gelap -> sistem
 (function () {
   var KEY = "susenas-theme";
@@ -319,6 +521,7 @@
       }
       inp.className = "answer";
       inp.value = cell.value || "";
+      if (cell.skipped) { td.classList.add("is-skipped"); inp.disabled = true; inp.placeholder = "tidak berlaku"; }
       td.appendChild(inp);
       bind(inp, cell.qid, artIdx);
       return td;
@@ -364,6 +567,13 @@
       b.rows.forEach(function (row) {
         (row.cells || []).forEach(function (cell) {
           root.querySelectorAll('.rcell[data-var="' + cell.var + '"][data-art="' + row.idx + '"]').forEach(function (td) {
+            // syarat lewati per baris: kunci/buka sel sesuai state terbaru
+            var ri = td.querySelector(".answer");
+            td.classList.toggle("is-skipped", !!cell.skipped);
+            if (ri && root.dataset.canEdit === "1") {
+              ri.disabled = !!cell.skipped;
+              ri.placeholder = cell.skipped ? "tidak berlaku" : "";
+            }
             if (cell.warnings && cell.warnings.length) {
               td.classList.add(cell.warnings[0].status === "error" ? "has-error" : "has-warning");
             }
@@ -416,13 +626,27 @@
   function schedule(key, qid, artIndex, input) {
     clearTimeout(timers[key]);
     timers[key] = setTimeout(function () {
+      var val = input.value.trim();
+      var holder = input.closest(".field, .rcell");
+      var label = holder ? (holder.dataset.var || "") : "";
+      var queueIt = function () {
+        window.SusenasOutbox.put(docId, qid, artIndex, val, label);
+        input.classList.add("pending-send");
+        flash("tersimpan di HP — dikirim saat ada sinyal", true);
+      };
+      if (!navigator.onLine) { queueIt(); return; }
       flash("menyimpan…", true);
-      post(qid, input.value.trim(), artIndex)
+      post(qid, val, artIndex)
         .then(function (res) {
+          input.classList.remove("pending-send");
           flash(res.saved ? "tersimpan" : "", true);
           repaint(res.state);
         })
-        .catch(function (e) { flash(e.message, false); });
+        .catch(function (e) {
+          // jaringan putus (TypeError) atau sesi habis (419/401) → antrekan di HP, jangan hilang
+          if (e instanceof TypeError || /\((419|401)\)/.test(e.message)) queueIt();
+          else flash(e.message, false);
+        });
     }, 450);
   }
 
@@ -434,6 +658,21 @@
       input.addEventListener("blur", function () { schedule(key, qid, artIndex, input); });
     }
   }
+
+  // isian yang masih antre di HP (mis. halaman dibuka dari salinan tanpa sinyal) ditampilkan di atas nilai lama
+  window.SusenasOutbox.forDoc(docId).forEach(function (it) {
+    var sel = it.art === "0" ? '.field[data-qid="' + it.qid + '"] .answer'
+      : '.rcell[data-qid="' + it.qid + '"][data-art="' + it.art + '"] .answer';
+    var inp = root.querySelector(sel);
+    if (inp) { inp.value = it.value; inp.classList.add("pending-send"); }
+  });
+  document.addEventListener("susenas:sent", function (e) {
+    if (e.detail.doc !== String(docId)) return;
+    if (!window.SusenasOutbox.forDoc(docId).length) {
+      root.querySelectorAll(".pending-send").forEach(function (i) { i.classList.remove("pending-send"); });
+    }
+    if (e.detail.state) repaint(e.detail.state);
+  });
 
   root.querySelectorAll(".field").forEach(function (field) {
     var input = field.querySelector(".answer");

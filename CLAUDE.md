@@ -12,7 +12,10 @@ tiap semester = `questionnaire_version` baru (data), bukan perubahan kode.
 - Tes: `php artisan test` (~13 dtk). Kelas tes pakai
   `protected $seed = true; protected $seeder = DatabaseSeeder::class;`
   (seed sekali per kelas) — **jangan** `$this->seed()` di `setUp`.
-  Seed manual: `php artisan migrate:fresh --seed`.
+  Seed manual: `php artisan migrate:fresh --seed` (di luar tes ikut `PeriodeSurveiSeeder` = siklus 2026–2027, status
+  mengikuti kalender, sampel contoh; `.env` `SEED_ATURAN=false` → aturan validasi dikosongkan lewat `KosongkanAturanSeeder`).
+  Juga `WilayahBangkalanSeeder` (18 kecamatan, 281 desa — kode desa sementara) + `PetugasBangkalanSeeder` (tim per kecamatan);
+  blok tanpa isian sumber diisi `IsianSintetis`. Dataset tes tetap kecil (4 desa).
   Seed produksi (tanpa dummy): `php artisan db:seed --class=MetadataSeeder`.
 - Cek kondisi data: `php artisan susenas:health`. Cadangan: `php artisan susenas:backup`.
   Jadwal (backup harian, prune notif, health mingguan) di `routes/console.php` —
@@ -89,6 +92,24 @@ petugas yang sedang di lapangan):
   "Nama pengguna"; tanpa "Inc NNN". Kolom teknis (nama variabel, rumus lewati) diberi `class="tech"`
   + `@include('admin.partials._tech_toggle')` — tersembunyi kecuali "Tampilkan detail teknis".
 - Huruf: satu keluarga IBM Plex Sans; `.mono` hanya untuk kode. Tanpa label kapital berjarak.
+
+## Jadwal vs kalender (Inc 163)
+
+- Jadwal lapangan wajib di dalam triwulan periodenya (`SurveyCycle::scheduleProblem`, selesai boleh +2 bulan). Siklus contoh
+  seed = bulan berjalan. Pengingat status vs jadwal: `susenas:ingat-jadwal` (notifikasi admin, tidak mengubah status).
+
+## Aplikasi HP & antrean (Inc 157–162)
+
+- Syarat lewati di blok berulang dihitung **per baris**; sel dilewati diabaikan aturan & agregat (`RuleEngine::lastSkipped()`,
+  `rowCtx()`). Riwayat aturan: `rule_revisions` lewat event model `ValidationRule` (update massal tidak terekam);
+  label aksi khusus → `RuleRevision::as('aksi', fn)`. Contoh uji aturan: `validation_rules.test_cases` + `RuleTester`.
+  Salin aturan antar-versi (paket, duplikasi) wajib membawa `note` & `test_cases`.
+- Bandingkan versi: `App\Services\VersionDiff` (`/admin/versi/{qv}/bandingkan`).
+- Pekerjaan berat → `BackgroundTask::recheck()` (job `RecheckDocuments`); batas langsung `BackgroundTask::$inlineMax`.
+  Tes memakai `QUEUE_CONNECTION=sync`.
+- PWA: `public/manifest.webmanifest`, `public/sw.js` (naikkan `VERSI` bila berkas inti berubah besar; daftar halaman
+  yang disalin = `PAGE_RE`), antrean isian `window.SusenasOutbox` di `public/js/app.js` (localStorage per pengguna).
+  Service worker hanya di https/localhost. CSP aplikasi melarang `eval` — `page.wait_for_function` Playwright gagal; pakai polling.
 
 ## Mesin ekspresi & aturan (kritis-keamanan)
 
@@ -183,11 +204,11 @@ lebar `var__n`, pratinjau dry-run, alias kolom, ekspor round-trip).
 - `CATATAN-SUSENAS.md` — log tiap increment (fitur, bug, keputusan).
 - `docs/deployment.md` — rilis PDN, Docker Compose, worker, backup.
 - `docs/pemetaan-aturan-sidona.md` — 92/108 aturan anomali Sidona diterjemahkan.
-- `docs/modul-seruti.md` — status modul SERUTI (VSERUTI26.INTI); Blok IV.2.A selesai, IV.2.B/V/VI belum.
+- `docs/modul-seruti.md` — status modul SERUTI (VSERUTI26.INTI): semua blok INTI ada (Inc 156, `SerutiIntiLengkapSeeder`); SERUTI MAK & SUSENAS Modul masih kosong (dokumen belum ada).
 - `scripts/` — `pdftext.php`, `xlsx_sheet.php` (baca PDF/xlsx referensi), `build_iv2_csv.php`.
 - Materi referensi asli: `c:\Users\User\OneDrive\Documents\susenas\WTF Susenas Seruti\`.
 
-## Belum: modul Seruti, ~16 aturan Sidona ambigu, input sisi BPS (SSO, format ekspor
+## Belum: SERUTI MAK & SUSENAS Modul (dokumen belum ada), ~16 aturan Sidona ambigu, input sisi BPS (SSO, format ekspor
 CAPI, deploy PDN, UAT, penimbang kalibrasi, wilayah/sampel/harga referensi asli).
 
 ## graphify

@@ -132,12 +132,15 @@ Route::middleware('role')->group(function () {
         Route::get('/aturan', [AdminController::class, 'rulesList'])->name('aturan');
         Route::get('/aturan-baru', [AdminController::class, 'ruleNew'])->name('aturan.baru');
         Route::post('/aturan-periksa-ulang', [AdminController::class, 'rulesRecheck'])->name('aturan.periksa-ulang');
+        Route::get('/tugas-latar/{task}', [AdminController::class, 'taskStatus'])->name('tugas.status');
         Route::post('/aturan-pratinjau', [AdminController::class, 'rulePreview'])->name('aturan.pratinjau');
         Route::get('/aturan/{rule}', [AdminController::class, 'ruleEditor'])->name('aturan.edit');
         Route::post('/aturan', [AdminController::class, 'saveRule'])->name('aturan.save');
         Route::post('/aturan/{rule}/hapus', [AdminController::class, 'delRule'])->name('aturan.del');
         Route::post('/aturan/{rule}/toggle', [AdminController::class, 'toggleRule'])->name('aturan.toggle');
         Route::post('/aturan/{rule}/cepat', [AdminController::class, 'quickRule'])->name('aturan.cepat');
+        Route::post('/aturan/{rule}/kembalikan/{rev}', [AdminController::class, 'ruleRestore'])->name('aturan.kembalikan');
+        Route::post('/aturan/{rule}/uji', [AdminController::class, 'ruleTests'])->name('aturan.uji');
         Route::post('/aturan-terpandu', [AdminController::class, 'buildRule'])->name('aturan.terpandu');
         Route::post('/aturan-terpandu/uji', [AdminController::class, 'wizardImpact'])->name('aturan.terpandu.uji');
         Route::post('/aturan-toggle-massal', [AdminController::class, 'bulkToggleRules'])->name('aturan.toggle-massal');
@@ -151,11 +154,11 @@ Route::middleware('role')->group(function () {
         Route::post('/versi/{qv}/hapus', [AdminController::class, 'deleteVersion'])->name('versi.hapus');
         Route::get('/versi/{qv}/ekspor', [AdminController::class, 'qversionExport'])->name('versi.export');
         Route::get('/versi/{qv}/kodebook', [AdminController::class, 'codebook'])->name('versi.codebook');
+        Route::get('/versi/{qv}/bandingkan', [AdminController::class, 'versionCompare'])->name('versi.bandingkan');
         Route::get('/versi-impor', [AdminController::class, 'qversionImportForm'])->name('versi.import');
         Route::post('/versi-impor', [AdminController::class, 'qversionImportRun'])->name('versi.import.run');
         // Pratinjau tampilan entri (renderer yang sama dengan halaman petugas) — Inc 143
         Route::get('/pratinjau/{qv}', [EntryController::class, 'previewForm'])->name('pratinjau');
-        // Demo UI (percobaan): wizard + grid padat + tooltip + filter, data contoh — tidak terhubung ke entri asli
         Route::get('/impor-wilayah', [AdminController::class, 'wilayahForm'])->name('impor.wilayah');
         Route::post('/impor-wilayah', [AdminController::class, 'wilayahImport'])->name('impor.wilayah.run');
         Route::post('/wilayah', [AdminController::class, 'wilayahStore'])->name('wilayah.simpan');

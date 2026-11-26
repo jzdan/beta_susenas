@@ -115,7 +115,10 @@ class MonitoringController extends Controller
 
     public function dashboard(Request $request)
     {
-        $all = $this->visibleSamples($request->user())->get();
+        // Inc 156: per siklus (bawaan = triwulan berjalan); "semua" = gabungan seperti dulu
+        [$cycle, $choices] = $this->pickCycle($request);
+        $all = $this->visibleSamples($request->user())
+            ->when($cycle, fn ($q) => $q->where('cycle_id', $cycle->id))->get();
         // sampel yang sudah digantikan tidak lagi menempati kuota — pengganti yang dihitung
         $rows = $all->where('status', '!=', 'ganti_sampel')->values();
         $total = $rows->count();
@@ -232,7 +235,7 @@ class MonitoringController extends Controller
         return view('monitoring.dashboard', compact(
             'total', 'done', 'rate', 'tahap', 'perWil', 'perPetugas',
             'nErrDocs', 'nWarnDocs', 'schedule', 'topRules', 'response'
-        ) + ['nDocs' => $docs->count(), 'nAll' => $all->count()]);
+        ) + ['nDocs' => $docs->count(), 'nAll' => $all->count(), 'cycle' => $cycle, 'choices' => $choices]);
     }
 
     /**
@@ -559,8 +562,12 @@ class MonitoringController extends Controller
     /** Ringkasan produktivitas entri & pengolahan per petugas/pemeriksa. */
     public function kinerja(Request $request)
     {
+        [$cycle, $choices] = $this->pickCycle($request);
         $scope = $request->user()->wilayah_scope;
         $docQ = Document::query()->join('sample_households as s', 's.id', '=', 'documents.sample_id');
+        if ($cycle) {
+            $docQ->where('s.cycle_id', $cycle->id);
+        }
         if ($scope) {
             $docQ->where('s.wilayah_code', 'like', $scope.'%');
         }
@@ -640,7 +647,7 @@ class MonitoringController extends Controller
 
         return view('monitoring.kinerja', [
             'entriRows' => $entriRows, 'olahRows' => $olahRows,
-            'totalDocs' => $docs->count(),
+            'totalDocs' => $docs->count(), 'cycle' => $cycle, 'choices' => $choices,
         ]);
     }
 

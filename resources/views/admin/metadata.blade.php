@@ -74,6 +74,7 @@
           @endif
           <form method="post" action="{{ route('admin.versi.periksa', $v) }}" class="ro-allow"
             title="Cek aturan, agregat, turunan & parameter yang menunjuk blok/variabel yang tidak ada">@csrf<button class="btn-ghost">Periksa</button></form>
+          <a class="btn-ghost" href="{{ route('admin.versi.bandingkan', $v) }}" title="Apa saja yang berbeda dari triwulan sebelumnya">Bandingkan</a>
           <a class="btn-ghost" href="{{ route('admin.versi.codebook', $v) }}">Buku kode</a>
           <a class="btn-ghost" href="{{ route('admin.pratinjau', ['qv' => $v->id]) }}">Pratinjau entri</a>
           <a class="btn-ghost" href="{{ route('admin.versi.export', $v) }}">Ekspor JSON</a>

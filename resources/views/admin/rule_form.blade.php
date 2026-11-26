@@ -227,6 +227,105 @@
 </form>
 @endif
 
+@if($edit)
+{{-- Inc 159: contoh kasus uji — isian kecil + harapan, dijalankan tanpa menyentuh sampel --}}
+<section class="panel" id="contoh-uji">
+  <div class="panel-head">
+    <h2>Contoh kasus uji</h2>
+    @if($tests['total'])
+      <span class="flag {{ $tests['pass'] === $tests['total'] ? 'ok' : 'error' }}">{{ $tests['pass'] }} dari {{ $tests['total'] }} sesuai</span>
+    @endif
+  </div>
+  <p class="muted small">Tulis isian kecil dan harapannya. Setiap kali rumus diubah, contoh ini diperiksa ulang, jadi kesalahan rumus
+    langsung ketahuan sebelum mengenai sampel. Format isian: <span class="mono">nama=nilai; nama2=nilai</span> (yang tidak ditulis dianggap kosong;
+    parameter versi ikut dipakai).
+    @php($refNames = (function () use ($edit) { try { return app(\App\Services\ExpressionEvaluator::class)->referencedNames($edit->expr); } catch (\Throwable) { return []; } })())
+    @if($refNames)<br>Variabel yang dipakai rumus ini: <span class="mono">{{ implode(', ', $refNames) }}</span>@endif</p>
+  <form method="post" action="{{ route('admin.aturan.uji', $edit) }}">
+    @csrf
+    <div class="tablewrap">
+    <table class="tbl uji-tbl">
+      <thead><tr><th style="width:22%">Nama kasus</th><th>Isian</th><th style="width:160px">Harapan</th><th style="width:150px">Hasil</th></tr></thead>
+      <tbody>
+      @php($cases = $edit->test_cases ?? [])
+      @for ($i = 0; $i < count($cases) + 3; $i++)
+        @php($c = $cases[$i] ?? null)
+        @php($res = $tests['results'][$i] ?? null)
+        <tr @if(!$c && $i > count($cases)) class="uji-spare" hidden @endif>
+          <td><input name="cases[{{ $i }}][name]" value="{{ $c['name'] ?? '' }}" placeholder="mis. anak 3 tahun bersekolah"></td>
+          <td><input name="cases[{{ $i }}][isian]" value="{{ $c['isian'] ?? '' }}" class="mono" placeholder="umur=3; sekolah=1"></td>
+          <td><select name="cases[{{ $i }}][expect]">
+            <option value="1" @selected(($c['expect'] ?? true) === true)>Harus menyala</option>
+            <option value="0" @selected(($c['expect'] ?? true) === false)>Tidak menyala</option>
+          </select></td>
+          <td class="small">
+            @if($res)
+              @if($res['error'])<span class="flag error" title="{{ $res['error'] }}">✕ gagal dihitung</span>
+              @elseif($res['pass'])<span class="flag ok">✓ sesuai</span>
+              @else<span class="flag error">✕ {{ $res['fired'] ? 'menyala' : 'tidak menyala' }}</span>@endif
+            @endif
+          </td>
+        </tr>
+      @endfor
+      </tbody>
+    </table>
+    </div>
+    <div class="row-form mt">
+      <button type="submit">Simpan contoh uji</button>
+      <button type="button" class="btn-ghost" id="uji-more">+ Tambah baris</button>
+    </div>
+  </form>
+</section>
+
+{{-- Inc 158: riwayat perubahan + kembalikan --}}
+<section class="panel" id="riwayat">
+  <h2>Riwayat perubahan</h2>
+  @if(empty($history))
+    <p class="muted small">Belum ada perubahan sejak aturan ini dimuat. Perubahan berikutnya akan tercatat di sini dan bisa dikembalikan.</p>
+  @else
+  <div class="tablewrap">
+  <table class="tbl">
+    <thead><tr><th style="width:140px">Waktu</th><th style="width:150px">Oleh</th><th style="width:130px">Perubahan</th><th>Rincian</th><th style="width:120px"></th></tr></thead>
+    <tbody>
+    @foreach ($history as $h)
+      @php($rv = $h['rev'])
+      <tr>
+        <td class="small">{{ $rv->at->format('d/m/Y H:i') }}</td>
+        <td class="small">{{ $rv->user->name ?? ($rv->action === 'awal' ? 'Keadaan bawaan' : '—') }}</td>
+        <td class="small">{{ \App\Models\RuleRevision::ACTION_LABELS[$rv->action] ?? $rv->action }}</td>
+        <td class="small">
+          @forelse ($h['diff'] as $f => [$old, $new])
+            <div><strong>{{ \App\Models\RuleRevision::FIELD_LABELS[$f] ?? $f }}:</strong>
+              @if($f === 'active') {{ $new ? 'ya' : 'tidak' }}
+              @elseif(in_array($f, ['expr', 'row_block', 'target_var', 'code'], true))
+                <span class="mono diff-old">{{ $old === '' ? '(kosong)' : $old }}</span> → <span class="mono diff-new">{{ $new === '' ? '(kosong)' : $new }}</span>
+              @elseif($f === 'severity') {{ Istilah::severity($old) }} → {{ Istilah::severity($new) }}
+              @else <span class="diff-old">{{ $old === '' ? '(kosong)' : $old }}</span> → <span class="diff-new">{{ $new === '' ? '(kosong)' : $new }}</span>
+              @endif
+            </div>
+          @empty
+            <span class="muted">{{ $rv->action === 'awal' ? 'Keadaan sebelum perubahan pertama' : 'Keadaan saat dibuat' }}</span>
+          @endforelse
+        </td>
+        <td class="right">
+          @if(!$loop->first)
+          <form method="post" action="{{ route('admin.aturan.kembalikan', [$edit, $rv]) }}"
+            onsubmit="return confirm('Kembalikan aturan ke keadaan {{ $rv->at->format('d/m/Y H:i') }}?')">
+            @csrf<button type="submit" class="btn-ghost">Kembalikan</button>
+          </form>
+          @else
+          <span class="muted small">keadaan sekarang</span>
+          @endif
+        </td>
+      </tr>
+    @endforeach
+    </tbody>
+  </table>
+  </div>
+  @endif
+</section>
+@endif
+
 <details class="panel" id="bantuan">
   <summary style="cursor:pointer;font-weight:600">Bantuan rumus &amp; daftar variabel</summary>
   <div class="mt small">
@@ -340,6 +439,13 @@
     }).catch(function (e) { out.className = "live bad"; out.textContent = e.message; });
   });
 
+  var more = document.getElementById("uji-more");
+  if (more) more.addEventListener("click", function () {
+    var r = document.querySelector(".uji-spare[hidden]");
+    if (r) r.hidden = false;
+    if (!document.querySelector(".uji-spare[hidden]")) more.hidden = true;
+  });
+
   // ---- tulis rumus sendiri: periksa langsung saat mengetik
   var expr = document.getElementById("expr");
   if (!expr) return;
@@ -354,7 +460,8 @@
     fetch("{{ route('admin.aturan.pratinjau') }}", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-TOKEN": csrf },
-      body: new URLSearchParams({ qv: "{{ $qv->id }}", expr: expr.value, row_block: rb.value, message: msg.value })
+      body: new URLSearchParams({ qv: "{{ $qv->id }}", expr: expr.value, row_block: rb.value, message: msg.value,
+        rule_id: "{{ $edit->id ?? '' }}" })
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (my !== seq) return;   // ada ketikan lebih baru
       if (!d.ok) {
@@ -363,6 +470,12 @@
       }
       exprLive.className = "live ok";
       exprLive.textContent = "✓ Rumus terbaca" + (d.eval_errors ? " (" + nf(d.eval_errors) + " sampel gagal dihitung, cek nama variabel)" : "");
+      if (d.tests && d.tests.total) {
+        var okAll = d.tests.pass === d.tests.total;
+        if (!okAll) exprLive.className = "live bad";
+        exprLive.textContent += " · Contoh uji: " + d.tests.pass + " dari " + d.tests.total + " sesuai"
+          + (okAll ? "" : " (tidak sesuai: " + d.tests.fails.join(", ") + ")");
+      }
       impact.innerHTML = d.fire_docs
         ? "Kena di <strong>" + nf(d.fire_docs) + "</strong> dari " + nf(d.docs) + " sampel"
           + (d.fire_rows !== d.fire_docs ? " (" + nf(d.fire_rows) + " baris)" : "")
