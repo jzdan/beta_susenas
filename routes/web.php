@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Auth\SsoBangdataController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CleaningController;
 use App\Http\Controllers\EntryController;
@@ -14,6 +15,13 @@ Route::get('/', fn () => redirect()->route('monitoring.dashboard'));
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:8,1');
 Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Login SSO Bangdata (aktif bila SSO_CLIENT_ID / BANGDATA_CLIENT_ID terisi). Path harus persis
+// "auth/sso/callback" — itu yang didaftarkan sebagai redirect URI di sso.bangdata.web.id.
+Route::middleware('guest')->group(function () {
+    Route::get('auth/sso', [SsoBangdataController::class, 'redirect'])->name('sso.bangdata');
+    Route::get('auth/sso/callback', [SsoBangdataController::class, 'callback'])->name('sso.bangdata.callback');
+});
 
 Route::middleware('role')->group(function () {
 

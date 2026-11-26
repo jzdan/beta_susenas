@@ -2143,23 +2143,6 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   `test_admin_imports_block_rows_with_calorie_data_from_xlsx` (kolom harga/kalori
   diabaikan di impor baris). 238 tes lulus.
 
-### Increment 163 — jadwal lapangan mengikuti kalender
-
-- Masalah: kotak samping menampilkan "TW1 2027 (jadwal lewat)" di November 2026 — siklus contoh berperiode Maret 2027
-  tetapi berjadwal relatif hari ini & sudah berstatus Lapangan. Sistem tidak mencegah jadwal di luar periodenya.
-- `SurveyCycle::quarterRange()`, `scheduleProblem()` (mulai harus di triwulan periode; selesai paling lambat
-  `FIELD_END_GRACE_MONTHS`=2 bulan sesudah triwulan berakhir — SERUTI Maret s.d. 15 April tetap sah), `quarterNotStarted()`,
-  `fieldOverdue()`, `fieldShouldHaveStarted()`. Dicek di `cycleCreate`/`jadwalSave`; butir wajib "Jadwal lapangan sesuai
-  periode" + butir peringatan "Triwulan periode ini sudah dimulai" di Persiapan periode (konfirmasi buka lapangan ikut menyebut).
-- Kotak "Triwulan berjalan": catatan "Jadwal lapangan sudah mulai …, masih Persiapan" / "N siklus jadwalnya selesai, belum
-  ditutup"; "Juga di lapangan" menandai "belum waktunya" atau "jadwal selesai, belum ditutup".
-- `php artisan susenas:ingat-jadwal` (terjadwal 07:00) → Notifikasi admin `CycleScheduleReminder`; tidak dobel selama belum
-  dibaca; status TIDAK diubah otomatis.
-- Data contoh `DatabaseSeeder`: siklus "SUSENAS <bulan ini> (contoh)" berperiode bulan berjalan, jadwal di dalam triwulannya.
-  Basis data pengembangan disesuaikan untuk baris contoh itu saja (tercatat di Log Audit).
-- Waktu relatif ("1 menit yang lalu") kini berbahasa Indonesia (`Carbon::setLocale('id')`).
-- Tes: `PeriodeSurveiTest` (+1, kotak samping diperluas), `ScheduleReminderTest` (2).
-
 ### Increment 165 — data contoh: 18 kecamatan Bangkalan, tim lapangan, semua sampel berisi isian lengkap
 
 - `database/data/wilayah_bangkalan.csv` (format Impor Wilayah) + `WilayahBangkalanSeeder`: 1 kabupaten, 18 kecamatan (kode
@@ -2190,6 +2173,23 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
 - `.env` `SEED_ATURAN=false` → `KosongkanAturanSeeder` dipanggil sesudah seeding: semua aturan validasi + hasil, riwayat,
   konfirmasi peringatan dihapus, isian dihitung ulang. Blok, parameter, agregat, turunan, patokan Harga & Kalori tetap.
 - DB pengembangan dimuat ulang (cadangan `storage/app/backups/susenas-20261126-041950.sqlite`). `PeriodeSurveiSeederTest` (7).
+
+### Increment 163 — jadwal lapangan mengikuti kalender
+
+- Masalah: kotak samping menampilkan "TW1 2027 (jadwal lewat)" di November 2026 — siklus contoh berperiode Maret 2027
+  tetapi berjadwal relatif hari ini & sudah berstatus Lapangan. Sistem tidak mencegah jadwal di luar periodenya.
+- `SurveyCycle::quarterRange()`, `scheduleProblem()` (mulai harus di triwulan periode; selesai paling lambat
+  `FIELD_END_GRACE_MONTHS`=2 bulan sesudah triwulan berakhir — SERUTI Maret s.d. 15 April tetap sah), `quarterNotStarted()`,
+  `fieldOverdue()`, `fieldShouldHaveStarted()`. Dicek di `cycleCreate`/`jadwalSave`; butir wajib "Jadwal lapangan sesuai
+  periode" + butir peringatan "Triwulan periode ini sudah dimulai" di Persiapan periode (konfirmasi buka lapangan ikut menyebut).
+- Kotak "Triwulan berjalan": catatan "Jadwal lapangan sudah mulai …, masih Persiapan" / "N siklus jadwalnya selesai, belum
+  ditutup"; "Juga di lapangan" menandai "belum waktunya" atau "jadwal selesai, belum ditutup".
+- `php artisan susenas:ingat-jadwal` (terjadwal 07:00) → Notifikasi admin `CycleScheduleReminder`; tidak dobel selama belum
+  dibaca; status TIDAK diubah otomatis.
+- Data contoh `DatabaseSeeder`: siklus "SUSENAS <bulan ini> (contoh)" berperiode bulan berjalan, jadwal di dalam triwulannya.
+  Basis data pengembangan disesuaikan untuk baris contoh itu saja (tercatat di Log Audit).
+- Waktu relatif ("1 menit yang lalu") kini berbahasa Indonesia (`Carbon::setLocale('id')`).
+- Tes: `PeriodeSurveiTest` (+1, kotak samping diperluas), `ScheduleReminderTest` (2).
 
 ### Increment 162 — aplikasi terpasang (PWA) Android & iPhone + isian tanpa sinyal
 
@@ -2265,6 +2265,34 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   `SerutiIntiLengkapSeeder` (idempoten, per versi dalam transaksi). Detail & hal yang perlu dicek di
   `docs/modul-seruti.md`. Catatan: kolom `questions.unit/skip_expr/help_text` NOT NULL — isi `''`, bukan null.
 - Tes: `SerutiIntiLengkapTest`, tambahan di `PeriodeSurveiTest`.
+
+### Increment 156 — login SSO Bangdata
+
+- Deploy pertama ke produksi: `susenas.bangdata.web.id` (Hostinger shared hosting, pola
+  `susenas-app/` + symlink `public_html/susenas`, mengikuti konvensi app lain di akun yang sama).
+  MySQL (`u978319107_susenas`), `QUEUE_CONNECTION=sync` (aplikasi tidak memakai queue).
+- Login SSO Bangdata (OAuth2, server Passport di `sso.bangdata.web.id`, dipakai bersama app lain
+  di platform ini) — `App\Services\SsoBangdata` (klien: redirect ke `/oauth/authorize`, tukar kode
+  di `/oauth/token`, ambil profil dari `/api/user`) + `Auth\SsoBangdataController` (route tetap
+  `auth/sso` + `auth/sso/callback` — path kedua dipatok karena sudah didaftarkan sebagai redirect URI
+  di panel SSO). Nonaktif selama `BANGDATA_CLIENT_ID`/`SSO_CLIENT_ID` kosong di `.env`.
+- **SSO hanya mengautentikasi, tidak pernah membuat akun** — beda dari pola AKSARA (yang
+  auto-provisioning dengan peran default). Di SUSENAS peran & `wilayah_scope` per petugas kritis
+  untuk keamanan (Inc 121, 148), jadi akun tetap dikelola admin di `/admin/pengguna`; SSO
+  mencocokkan ke akun lokal lewat `username` (case-insensitive, hanya bila `sso_id` akun itu
+  masih kosong), lalu menautkan `sso_id` secara permanen. Username SSO tak dikenal → ditolak
+  dengan pesan "hubungi admin", bukan dibuatkan akun baru.
+- Migrasi `add_sso_id_to_users_table` (`sso_id` nullable unik).
+- **Permintaan user: SSO jadi satu-satunya jalan masuk** (bukan sekadar tambahan) selama aktif —
+  halaman login hanya menampilkan tombol "Masuk dengan SSO Bangdata" (form lokal & akun demo
+  disembunyikan lewat `@if($ssoAktif) … @else …`), dan `AuthController::login` (POST `/login`)
+  membalas 404 bila SSO aktif — bukan cuma UI yang disembunyikan, submit langsung pun ditolak.
+  **Katup darurat**: mengosongkan `SSO_CLIENT_ID`/`BANGDATA_CLIENT_ID` di `.env` server + `config:cache`
+  langsung memunculkan lagi form lokal tanpa redeploy kode — dipakai bila penautan akun gagal.
+  Konsekuensinya: akun lokal yang belum tertaut `sso_id` (atau belum punya `username` yang cocok
+  dengan SSO) **tidak bisa login sama sekali** sampai ditautkan — lihat katup darurat di atas.
+- 290 tes lulus (tidak ada tes baru untuk alur SSO — butuh mock HTTP ke server SSO sungguhan;
+  jalur penolakan "akun tak dikenal" & "SSO nonaktif" sudah tercakup lewat guard `aktif()`/404).
 
 ### Increment 155 — keterhubungan kuesioner ↔ aturan, neraca, turunan
 

@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    // Login SSO Bangdata (OAuth2, server Laravel Passport di sso.bangdata.web.id). Nonaktif selama
+    // client id belum diisi. Nama env BANGDATA_* utama; SSO_* (gaya contoh panel SSO) diterima sebagai cadangan.
+    'bangdata' => [
+        'url' => rtrim((string) env('BANGDATA_SSO_URL', env('SSO_BASE_URL', 'https://sso.bangdata.web.id')), '/'),
+        'client_id' => env('BANGDATA_CLIENT_ID', env('SSO_CLIENT_ID')),
+        'client_secret' => env('BANGDATA_CLIENT_SECRET', env('SSO_CLIENT_SECRET')),
+        'redirect' => env('BANGDATA_REDIRECT_URI', env('SSO_REDIRECT_URI')),
+        'scope' => env('BANGDATA_SCOPE', ''),
+    ],
+
 ];

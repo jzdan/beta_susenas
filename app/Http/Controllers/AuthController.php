@@ -3,18 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Services\SsoBangdata;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function showLogin(Request $request)
+    public function showLogin(Request $request, SsoBangdata $sso)
     {
         if ($request->user()) {
             return redirect($this->safeNext($request->query('next')));
         }
-        return view('auth.login', ['next' => $this->safeNext($request->query('next'))]);
+        return view('auth.login', [
+            'next' => $this->safeNext($request->query('next')),
+            'ssoAktif' => $sso->aktif(),
+        ]);
     }
 
     /** Penguncian sementara akun setelah beberapa kali gagal. */
@@ -22,8 +26,10 @@ class AuthController extends Controller
 
     private const LOCK_THRESHOLD = 5;
 
-    public function login(Request $request)
+    public function login(Request $request, SsoBangdata $sso)
     {
+        abort_if($sso->aktif(), 404);
+
         $data = $request->validate([
             'username' => 'required|string',
             'password' => 'required|string',
