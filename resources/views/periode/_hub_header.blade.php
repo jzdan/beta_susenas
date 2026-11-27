@@ -16,7 +16,7 @@
     <span class="chip p-{{ $hubCycle->status }}">{{ Istilah::cycleStatus($hubCycle->status) }}</span>
   </div>
   <p class="muted small hub-meta">
-    @if($hubCycle->field_start && $hubCycle->field_end)Lapangan {{ $hubCycle->field_start->format('d M') }} s.d. {{ $hubCycle->field_end->format('d M Y') }} · @endif
+    @if($hubCycle->field_start && $hubCycle->field_end)Pencacahan {{ $hubCycle->field_start->format('d M') }} s.d. {{ $hubCycle->field_end->format('d M Y') }} · @endif
     {{ Istilah::CYCLE_STATUS_HELP[$hubCycle->status] ?? '' }}
     @if($hubVersion) · versi kuesioner <span class="mono">{{ $hubVersion->code }}</span>@endif
   </p>

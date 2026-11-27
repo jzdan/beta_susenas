@@ -31,7 +31,7 @@
           <p class="small muted">Belum ada sampel.@if(auth()->user()->role === 'admin') Muat lewat tab Sampel.@endif</p>
         @endif
       </div>
-      <div class="pcard-foot"><span>@if($c->field_start && $c->field_end)Lapangan {{ $c->field_start->format('d M') }}–{{ $c->field_end->format('d M') }}@else Jadwal belum diisi @endif</span><span>Buka →</span></div>
+      <div class="pcard-foot"><span>@if($c->field_start && $c->field_end)Pencacahan {{ $c->field_start->format('d M') }}–{{ $c->field_end->format('d M') }}@else Jadwal belum diisi @endif</span><span>Buka →</span></div>
     </a>
   @endforeach
 </div>
@@ -63,7 +63,7 @@
 <section class="panel" id="siapkan">
   <h2>{{ $cycles->isEmpty() ? 'Siapkan triwulan ini' : 'Tambah survei ke triwulan ini' }}</h2>
   <p class="muted small">Kuesioner, aturan validasi, neraca, turunan, dan patokan harga disalin dari periode terakhir
-    survei yang dipilih. Siklus baru berstatus <em>Persiapan</em>: petugas belum melihatnya sampai lapangan dibuka.</p>
+    survei yang dipilih. Periode baru berstatus <em>Persiapan</em>: petugas belum melihatnya sampai pencacahan dibuka.</p>
   <form method="post" action="{{ route('periode.siapkan', [$tahun, $tw]) }}" class="stack-form">
     @csrf
     <div class="pick-list">

@@ -3,7 +3,7 @@
 @section('title', 'Kinerja Tim · Sistem SUSENAS')
 @section('content')
 <h1>Kinerja Tim
-  @if($cycle)<small class="muted">TW{{ $cycle->quarter() }} {{ $cycle->year() }} · {{ $cycle->label() }}</small>@else<small class="muted">semua siklus</small>@endif</h1>
+  @if($cycle)<small class="muted">TW{{ $cycle->quarter() }} {{ $cycle->year() }} · {{ $cycle->label() }}</small>@else<small class="muted">semua periode</small>@endif</h1>
 @include('monitoring._cycle_pick')
 <p class="muted">Produktivitas entri &amp; pengolahan dalam cakupan wilayah Anda
   ({{ $totalDocs }} sampel). Angka indikatif untuk pembinaan, bukan penilaian formal.</p>
@@ -15,7 +15,7 @@
     <thead><tr>
       <th>Petugas</th><th class="num">Sampel</th><th class="num">Difinalisasi</th>
       <th class="num">Bersih</th><th class="num">Dikembalikan</th>
-      <th class="num">Rata² hari entri</th><th class="num">Rata² peringatan</th>
+      <th class="num">Rata-rata lama pengisian (hari)</th><th class="num">Rata-rata peringatan</th>
     </tr></thead>
     <tbody>
     @forelse ($entriRows as $r)
@@ -43,7 +43,7 @@
     <thead><tr>
       <th>Pemeriksa</th><th class="num">Dibersihkan</th><th class="num">Koreksi</th>
       <th class="num">Peringatan ditinjau</th><th class="num">Dikembalikan</th>
-      <th class="num">Rata² hari tunggu→bersih</th>
+      <th class="num">Rata-rata hari sampai bersih</th>
     </tr></thead>
     <tbody>
     @forelse ($olahRows as $r)

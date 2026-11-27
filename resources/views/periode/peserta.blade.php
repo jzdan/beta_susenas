@@ -11,7 +11,7 @@
       <a href="{{ route('monitoring.samples', ['cycle' => $hubCycle->id, 'petugas' => 'none']) }}">Tugaskan →</a></div>
   @endif
   @if($peserta->isEmpty())
-    <p class="muted">Belum ada sampel yang ditugaskan di siklus ini.</p>
+    <p class="muted">Belum ada sampel yang ditugaskan di periode ini.</p>
   @else
   <div class="tablewrap">
   <table class="tbl">

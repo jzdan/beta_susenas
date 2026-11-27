@@ -3,7 +3,7 @@
 @section('title', 'Dashboard · Sistem SUSENAS')
 @section('content')
 <h1>Dashboard Monitoring
-  @if($cycle)<small class="muted">TW{{ $cycle->quarter() }} {{ $cycle->year() }} · {{ $cycle->label() }}</small>@else<small class="muted">semua siklus</small>@endif</h1>
+  @if($cycle)<small class="muted">TW{{ $cycle->quarter() }} {{ $cycle->year() }} · {{ $cycle->label() }}</small>@else<small class="muted">semua periode</small>@endif</h1>
 @include('monitoring._cycle_pick')
 <p class="muted">Cakupan sesuai peran &amp; wilayah Anda.</p>
 
@@ -17,7 +17,7 @@
 </div>
 
 <section class="panel">
-  <h2>Respons &amp; disposisi</h2>
+  <h2>Hasil kunjungan</h2>
   <div class="summary-counts">
     <span class="cnt">{{ $response['responded'] }}</span> terespons ·
     <span class="cnt warn">{{ $response['nonresponse'] }}</span> non-respons ·
@@ -35,7 +35,7 @@
   <div class="tablewrap">
   <table class="tbl">
     <thead><tr>
-      <th>Siklus</th><th>Periode lapangan</th><th class="num">Hari tersisa</th>
+      <th>Periode</th><th>Jadwal pencacahan</th><th class="num">Hari tersisa</th>
       <th class="num">Target vs Riil</th><th>Progres</th><th class="num">Butuh/hari</th><th>Status</th>
     </tr></thead>
     <tbody>
@@ -63,7 +63,7 @@
     </tbody>
   </table>
   </div>
-  <p class="muted small">Target = proporsi hari lapangan yang sudah berjalan. Tertinggal bila riil &lt; target − 5 poin.</p>
+  <p class="muted small">Target = proporsi hari pencacahan yang sudah berjalan. Tertinggal bila riil &lt; target − 5 poin.</p>
 </section>
 @endif
 

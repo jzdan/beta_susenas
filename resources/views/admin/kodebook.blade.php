@@ -8,7 +8,7 @@
 
 <div class="print-doc">
 <h1>Buku Kode — {{ $qv->code }}</h1>
-<p class="muted">Siklus: {{ $cycle->name ?? '—' }} · berlaku {{ $qv->effective_date }} ·
+<p class="muted">Periode: {{ $cycle->name ?? '—' }} · berlaku {{ $qv->effective_date }} ·
   {{ $qv->blocks->count() }} blok ·
   {{ $qv->blocks->sum(fn ($b) => $b->questions->count()) }} rincian ·
   {{ $qv->rules->count() }} aturan · {{ $qv->derived->count() }} nilai turunan ·

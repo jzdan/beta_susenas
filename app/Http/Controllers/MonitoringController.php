@@ -535,7 +535,7 @@ class MonitoringController extends Controller
 
     public function createDocument(Request $request, SampleHousehold $sample)
     {
-        abort_if($sample->cycle?->isLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        abort_if($sample->cycle?->isLocked(), 423, 'Periode sudah dikunci (selesai).');
         $doc = $sample->documents()->first();
         if ($request->user()->role === 'operator') {
             abort_unless((int) $sample->petugas_id === (int) $request->user()->id, 403,
@@ -543,7 +543,7 @@ class MonitoringController extends Controller
             // isian yang sudah ada tetap bisa dibuka (hanya-lihat di luar periode lapangan);
             // isian BARU hanya boleh dibuat selama periode lapangan dibuka
             abort_unless($doc || $sample->cycle?->isFieldOpen(), 403,
-                'Periode lapangan sampel ini belum/sudah ditutup — isian baru tidak bisa dibuat.');
+                'Pencacahan sampel ini belum dibuka/sudah ditutup — isian baru tidak bisa dibuat.');
         }
         if (! $doc) {
             $qv = QuestionnaireVersion::where('cycle_id', $sample->cycle_id)->orderByDesc('id')->first();

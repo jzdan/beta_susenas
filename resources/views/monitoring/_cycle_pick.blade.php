@@ -1,11 +1,11 @@
 {{-- Pemilih siklus untuk halaman pemantauan (Inc 154). Butuh $cycle (null = gabungan), $choices.
-     Bawaan dari controller (pickCycle) = siklus lapangan terbaru. --}}
+     Bawaan dari controller (pickCycle) = periode lapangan terbaru. --}}
 <form method="get" class="cycle-pick">
   @foreach (request()->except('cycle') as $k => $v)
     @continue(is_array($v))
     <input type="hidden" name="{{ $k }}" value="{{ $v }}">
   @endforeach
-  <label>Siklus
+  <label>Periode
     <select name="cycle" onchange="this.form.submit()">
       @foreach ($choices->groupBy(fn ($c) => $c->year().' TW'.$c->quarter()) as $grp => $cs)
         <optgroup label="{{ $grp }}">
@@ -14,11 +14,11 @@
           @endforeach
         </optgroup>
       @endforeach
-      <option value="semua" @selected(!$cycle)>Semua siklus (gabungan)</option>
+      <option value="semua" @selected(!$cycle)>Semua periode (gabungan)</option>
     </select>
   </label>
   <noscript><button type="submit">Tampilkan</button></noscript>
   @if($cycle && in_array(auth()->user()->role, ['pml', 'pj', 'admin'], true))
-    <a class="small" href="{{ route('periode.hub', $cycle) }}">Buka hub {{ $cycle->label() }} TW{{ $cycle->quarter() }} {{ $cycle->year() }} →</a>
+    <a class="small" href="{{ route('periode.hub', $cycle) }}">Buka halaman {{ $cycle->label() }} TW{{ $cycle->quarter() }} {{ $cycle->year() }} →</a>
   @endif
 </form>

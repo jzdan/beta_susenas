@@ -44,11 +44,11 @@ class VisitPhotoController extends Controller
     {
         $this->guardEnabled();
         abort_unless(in_array($request->user()->role, ['operator', 'pml', 'pj', 'admin'], true), 403);
-        abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci.');
+        abort_if($document->cycleLocked(), 423, 'Periode sudah dikunci.');
         if ($request->user()->role === 'operator') {
             abort_unless((int) $document->sample->petugas_id === (int) $request->user()->id, 403);
             abort_unless($document->editableByPetugas(), 403,
-                'Periode lapangan sampel ini sudah ditutup — foto tidak bisa ditambahkan.');
+                'Pencacahan sampel ini sudah ditutup — foto tidak bisa ditambahkan.');
         }
 
         $d = $request->validate([

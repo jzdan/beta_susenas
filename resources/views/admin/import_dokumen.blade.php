@@ -3,12 +3,8 @@
 @section('title', 'Impor Isian Massal · Sistem SUSENAS')
 @section('content')
 <x-back :href="request('cycle') ? route('monitoring.samples', ['cycle' => request('cycle')]) : route('periode.index')" smart />
-<h1>Impor Isian Massal (format lebar)</h1>
-<p class="muted">Satu baris CSV = satu rumah tangga. Kolom kunci wajib:
-  <span class="mono">wilayah_code, no_bs, no_ruta</span> (opsional <span class="mono">krt_name</span>).
-  Kolom sisanya = <strong>nama variabel</strong>. Untuk blok berulang pakai
-  <span class="mono">var__1</span>, <span class="mono">var__2</span> (angka = nomor anggota rumah tangga / baris).
-  Cocok untuk memuat ekspor CAPI ke sistem ini.</p>
+<h1>Impor Isian dari CAPI <x-panduan key="impor-isian" /></h1>
+<p class="muted">Muat isian dari berkas CSV ekspor CAPI — satu baris per rumah tangga.</p>
 
 @if($hasil)
 <div class="alert {{ $hasil['dilewati'] && !($hasil['dibuat'] || $hasil['diperbarui']) ? 'err' : '' }}">
@@ -54,7 +50,7 @@
 <section class="panel">
   <form method="post" action="{{ route('admin.impor.dokumen.run') }}" class="stack-form">
     @csrf
-    <label>Siklus survei
+    <label>Periode survei
       <select name="cycle_id" required>
         @foreach (\App\Models\SurveyCycle::orderByDesc('id')->get() as $c)
         <option value="{{ $c->id }}" @selected(($hasil['cycle_id'] ?? (int) request('cycle')) === $c->id)>{{ $c->name }} ({{ $c->period }})</option>
@@ -81,7 +77,7 @@
     <span class="mono">art</span> = jumlah baris anggota rumah tangga maksimum pada template.</p>
   <div class="tablewrap">
   <table class="tbl">
-    <thead><tr><th>Siklus</th><th>Template kosong</th><th>Kamus data</th><th>Ekspor jawaban</th></tr></thead>
+    <thead><tr><th>Periode</th><th>Template kosong</th><th>Kamus data</th><th>Ekspor jawaban</th></tr></thead>
     <tbody>
     @foreach (\App\Models\SurveyCycle::orderByDesc('id')->get() as $c)
       <tr>
@@ -122,7 +118,7 @@
 
   <form method="post" action="{{ route('admin.impor.dokumen.alias.save') }}" class="stack-form mt">
     @csrf
-    <label>Siklus
+    <label>Periode
       <select name="cycle_id" required>
         @foreach (\App\Models\SurveyCycle::orderByDesc('id')->get() as $c)
         <option value="{{ $c->id }}">{{ $c->name }}</option>

@@ -18,7 +18,7 @@ trait GuardsLockedVersion
         $guard = function ($m) {
             $id = $m->guardQversionId();
             if ($id && QuestionnaireVersion::isLocked($id)) {
-                abort(423, 'Kuesioner ini milik siklus yang sudah dikunci, jadi hanya bisa dilihat. Buka kunci siklusnya dulu untuk mengubah.');
+                abort(423, 'Kuesioner ini milik periode yang sudah dikunci, jadi hanya bisa dilihat. Buka kunci periodenya dulu untuk mengubah.');
             }
         };
         static::saving($guard);

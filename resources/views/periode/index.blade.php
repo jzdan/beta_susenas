@@ -38,7 +38,7 @@
 </div>
 
 @if(auth()->user()->role === 'admin')
-<p class="small muted mt">Daftar semua siklus dalam satu tabel (ubah nama, tanggal, status):
-  <a href="{{ route('admin.jadwal') }}">Kelola jadwal semua siklus →</a></p>
+<p class="small muted mt">Daftar semua periode dalam satu tabel (ubah nama, tanggal, status):
+  <a href="{{ route('admin.jadwal') }}">Kelola jadwal semua periode →</a></p>
 @endif
 @endsection

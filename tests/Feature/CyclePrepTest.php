@@ -43,7 +43,7 @@ class CyclePrepTest extends TestCase
         $this->assertTrue($res['siap'], implode(' | ', CyclePrep::blockers($res)));
 
         $this->actingAs($this->admin())->get("/admin/siklus/{$cycle->id}/persiapan")->assertOk()
-            ->assertSee('Daftar periksa')->assertSee('Buka periode lapangan');
+            ->assertSee('Daftar periksa')->assertSee('Buka pencacahan');
         $this->actingAs($this->admin())->post("/admin/siklus/{$cycle->id}/buka-lapangan")->assertRedirect();
         $this->assertSame('lapangan', $cycle->fresh()->status);
     }
@@ -86,6 +86,6 @@ class CyclePrepTest extends TestCase
         // tab Kuesioner versi lain (bukan bawaan) menawarkan "Jadikan bawaan", bukan "Jadikan aktif"
         $other = QuestionnaireVersion::where('is_active', false)->firstOrFail();
         $this->actingAs($this->admin())->get("/admin/metadata?qv={$other->id}")->assertOk()
-            ->assertSee('Jadikan bawaan', false)->assertDontSee('Jadikan aktif');
+            ->assertSee('Jadikan versi utama', false)->assertDontSee('Jadikan aktif');
     }
 }

@@ -50,6 +50,10 @@
   <div class="shell">
     @php($navKey = in_array($nav ?? '', ['periode', 'meta', 'impor', 'aturan', 'jadwal', 'imsampel', 'imdok'], true) ? 'periode' : ($nav ?? ''))
     <nav class="side">
+      {{-- layar HP/tablet: menu dilipat di balik tombol ini (sebelumnya satu strip geser yang sangat panjang) --}}
+      <button type="button" class="nav-toggle" aria-expanded="false" aria-label="Buka menu">
+        <span>☰ Menu</span><span class="cur"></span>
+      </button>
       @if(in_array($u->role, ['pml','pj','admin']))
         @if($runningQuarter ?? null)
         <a class="now" href="{{ route('periode.triwulan', [$runningQuarter['year'], $runningQuarter['q']]) }}">
@@ -58,7 +62,7 @@
           @foreach ($runningQuarter['notes'] ?? [] as $note)<span class="now-note">⚠ {{ $note }}</span>@endforeach
         </a>
         @if(!empty($otherField))
-        <div class="now-also">Juga di lapangan:
+        <div class="now-also">Juga sedang pencacahan:
           @foreach ($otherField as $g)
             <a href="{{ route('periode.triwulan', [$g['year'], $g['q']]) }}">TW{{ $g['q'] }} {{ $g['year'] }}</a>@if($g['note']) <span class="{{ $g['warn'] ? 'now-warn' : '' }}">({{ $g['note'] }})</span>@endif{{ $loop->last ? '' : ' ·' }}
           @endforeach
@@ -88,6 +92,9 @@
         <div class="nav-sep">Data bersama</div>
         <a href="{{ route('admin.impor.wilayah') }}" class="{{ ($nav ?? '')=='wil' ? 'on' : '' }}">Wilayah</a>
         <a href="{{ route('admin.pengguna') }}" class="{{ ($nav ?? '')=='pengguna' ? 'on' : '' }}">Pengguna</a>
+        <div class="nav-sep">Bantuan</div>
+        <a href="{{ route('panduan.alur') }}" class="{{ ($nav ?? '')=='alur' ? 'on' : '' }}">Alur kerja</a>
+        <a href="{{ route('admin.panduan') }}" class="{{ ($nav ?? '')=='panduan' ? 'on' : '' }}">Ubah panduan</a>
       @endif
     </nav>
     <main class="content">
@@ -99,6 +106,7 @@
     style="position:fixed;top:14px;right:14px;z-index:20;background:var(--surface)"><span data-theme-label>Tema</span></button>
   @yield('content')
 @endauth
+@stack('panduan')
 <script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}"></script>
 @stack('scripts')
 </body>

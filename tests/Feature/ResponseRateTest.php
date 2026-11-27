@@ -52,7 +52,7 @@ class ResponseRateTest extends TestCase
         $this->assertGreaterThanOrEqual(1, $r['ineligible']);
         $this->assertLessThanOrEqual(100.0, $r['rate']);
 
-        $res->assertSee('Respons &amp; disposisi', false);
+        $res->assertSee('Hasil kunjungan', false);
     }
 
     public function test_replaced_original_not_counted_in_completion_total(): void

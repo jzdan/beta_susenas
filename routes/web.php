@@ -108,6 +108,9 @@ Route::middleware('role')->group(function () {
 
     // modul bukti kunjungan (opsional — lihat config/susenas.php)
     Route::get('/kunjungan/foto/{photo}', [\App\Http\Controllers\VisitPhotoController::class, 'show'])->name('kunjungan.foto');
+    Route::get('/panduan/gambar/{slide}', [\App\Http\Controllers\PanduanController::class, 'image'])->name('panduan.gambar');
+    Route::get('/alur-kerja', [\App\Http\Controllers\PanduanController::class, 'alur'])->middleware('role:admin')->name('panduan.alur');
+    Route::post('/panduan/{key}/dilihat', [\App\Http\Controllers\PanduanController::class, 'seen'])->name('panduan.dilihat');
     Route::delete('/kunjungan/foto/{photo}', [\App\Http\Controllers\VisitPhotoController::class, 'destroy'])->name('kunjungan.foto.hapus');
 
     Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
@@ -178,6 +181,13 @@ Route::middleware('role')->group(function () {
         Route::get('/pengguna', [AdminController::class, 'users'])->name('pengguna');
         Route::post('/pengguna', [AdminController::class, 'saveUser'])->name('pengguna.save');
         Route::post('/pengguna/{user}/aktif', [AdminController::class, 'toggleUser'])->name('pengguna.toggle');
+        // Inc 167: panduan bergambar per halaman (carousel) — isi dikelola admin
+        Route::get('/panduan', [\App\Http\Controllers\PanduanController::class, 'index'])->name('panduan');
+        Route::get('/panduan/{key}', [\App\Http\Controllers\PanduanController::class, 'edit'])->name('panduan.edit');
+        Route::post('/panduan/{key}', [\App\Http\Controllers\PanduanController::class, 'store'])->name('panduan.store');
+        Route::post('/panduan-langkah/{slide}', [\App\Http\Controllers\PanduanController::class, 'update'])->name('panduan.update');
+        Route::post('/panduan-langkah/{slide}/urutan', [\App\Http\Controllers\PanduanController::class, 'move'])->name('panduan.move');
+        Route::post('/panduan-langkah/{slide}/hapus', [\App\Http\Controllers\PanduanController::class, 'destroy'])->name('panduan.destroy');
         Route::get('/impor-dokumen', [AdminController::class, 'docImportForm'])->name('impor.dokumen');
         Route::post('/impor-dokumen', [AdminController::class, 'docImport'])->name('impor.dokumen.run');
         Route::get('/impor-dokumen/template/{cycle}', [AdminController::class, 'docTemplate'])->name('impor.dokumen.template');

@@ -58,7 +58,7 @@ class PetugasAccessTest extends TestCase
     {
         $doc = $this->ownDoc('pengolahan');
         $this->actingAs($this->ani())->get("/entri/{$doc->id}")->assertOk()
-            ->assertSee('Periode lapangan sampel ini sudah ditutup')
+            ->assertSee('Pencacahan sampel ini sudah ditutup')
             ->assertViewHas('canEdit', false);
         $this->save($doc)->assertForbidden();
     }

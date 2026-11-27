@@ -296,7 +296,7 @@ class PeriodeController extends Controller
                 $wajib = collect($prep['items'])->where('wajib', true);
                 $ok = $wajib->where('ok', true)->count();
 
-                return ['text' => $prep['siap'] ? 'Persiapan beres. Periode lapangan siap dibuka.'
+                return ['text' => $prep['siap'] ? 'Persiapan beres. Pencacahan siap dibuka.'
                         : "Persiapan: {$ok} dari {$wajib->count()} butir wajib beres.",
                     'sub' => 'Selama persiapan, petugas belum melihat sampel triwulan ini.',
                     'url' => $admin ? route('admin.siklus.persiapan', $cycle) : null, 'btn' => 'Buka daftar periksa'];
@@ -304,7 +304,7 @@ class PeriodeController extends Controller
                 $belum = $st['tahap']['belum'];
                 $sisa = $cycle->field_end ? max(0, (int) now()->startOfDay()->diffInDays($cycle->field_end, false)) : null;
 
-                return ['text' => $belum ? "{$belum} sampel belum dikunjungi".($sisa !== null ? ", {$sisa} hari lapangan tersisa." : '.')
+                return ['text' => $belum ? "{$belum} sampel belum dikunjungi".($sisa !== null ? ", {$sisa} hari pencacahan tersisa." : '.')
                         : 'Semua sampel sudah dikunjungi.',
                     'sub' => 'Pantau siapa yang tertinggal di tab Peserta.',
                     'url' => route('periode.peserta', $cycle), 'btn' => 'Lihat peserta'];

@@ -1,5 +1,5 @@
 {{-- Selector versi kuesioner yang sedang dilihat/disunting. "Bawaan" (is_active) hanya versi yang
-     dibuka pertama kali di menu admin; tidak memengaruhi petugas (isian ikut siklus sampelnya). --}}
+     dibuka pertama kali di menu admin; tidak memengaruhi petugas (isian ikut periode sampelnya). --}}
 <div class="row-form" style="margin-bottom:10px;align-items:center">
   <label class="small">Versi kuesioner
     <select onchange="var u=new URL(location);u.searchParams.set('qv',this.value);location=u;">
@@ -9,6 +9,6 @@
     </select>
   </label>
   @if($qv->cycle)
-    <span class="muted small">Dipakai sampel siklus {{ $qv->cycle->name }} ({{ strtolower(Istilah::cycleStatus($qv->cycle->status)) }}).</span>
+    <span class="muted small">Dipakai sampel periode {{ $qv->cycle->name }} ({{ strtolower(Istilah::cycleStatus($qv->cycle->status)) }}).</span>
   @endif
 </div>

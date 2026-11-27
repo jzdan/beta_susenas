@@ -2,8 +2,8 @@
      (GuardsLockedVersion, 423); di sini formulir pengubah disembunyikan supaya tidak
      memancing klik. Formulir yang tetap boleh (jadikan bawaan, periksa, duplikasi) diberi .ro-allow. --}}
 @if($roQv && $roQv->locked())
-<div class="alert ro-note">Siklus versi <span class="mono">{{ $roQv->code }}</span> sudah dikunci, jadi kuesioner dan aturannya
-  <strong>hanya bisa dilihat</strong>. Untuk mengubah, buka kunci siklusnya dulu di Laporan &amp; penutupan.</div>
+<div class="alert ro-note">Periode versi <span class="mono">{{ $roQv->code }}</span> sudah dikunci, jadi kuesioner dan aturannya
+  <strong>hanya bisa dilihat</strong>. Untuk mengubah, buka kunci periodenya dulu di Laporan &amp; penutupan.</div>
 @push('scripts')
 <style>
   .content form[method="post"]:not(.ro-allow), .content button[form]:not(.ro-allow) { display: none !important; }

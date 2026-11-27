@@ -5,8 +5,11 @@
 <a class="back-link" href="{{ route('periode.index') }}">← Kembali ke Periode Survei</a>
 <div class="crumb"><a href="{{ route('periode.index') }}">Periode</a> › {{ $tahun }}</div>
 <h1>{{ $tahun }}</h1>
-<p class="muted">Empat triwulan, dari atas ke bawah. Warna pita kiri mengikuti status: biru lapangan, cokelat pengolahan,
-  hijau selesai, abu-abu persiapan.</p>
+<p class="muted legend-dots">Warna pita:
+  <span><i class="lg-dot ph-persiapan"></i>persiapan</span>
+  <span><i class="lg-dot ph-lapangan"></i>pencacahan</span>
+  <span><i class="lg-dot ph-pengolahan"></i>pengolahan</span>
+  <span><i class="lg-dot ph-selesai"></i>selesai</span></p>
 
 <div class="qlist">
   @foreach ($quarters as $q => $info)

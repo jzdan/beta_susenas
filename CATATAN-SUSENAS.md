@@ -2143,6 +2143,45 @@ lalu `php artisan migrate:fresh --seed` — kode tidak berubah.
   `test_admin_imports_block_rows_with_calorie_data_from_xlsx` (kolom harga/kalori
   diabaikan di impor baris). 238 tes lulus.
 
+### Increment 167 — panduan bergambar (carousel) di halaman admin, isinya dikelola admin
+
+- Penjelasan panjang di bawah judul 10 halaman admin dipersingkat jadi satu kalimat (Jadwal, Persiapan, Daftar Wilayah,
+  Impor Sampel, Impor Isian, Impor Rincian, Aturan Validasi 3 tab, Tabulasi, Indikator); sisanya pindah ke panduan.
+- Komponen `<x-panduan key="…">`: tombol **? Panduan** + carousel di `<dialog>` (gambar + judul + teks per langkah; geser
+  jari, ‹ ›, titik, panah keyboard, Esc). Muncul sendiri **sekali per pengguna per versi isi** (localStorage
+  `susenas-panduan:{user}:{key}:{versi}`; versi = `GuideSlide::versionOf`, berubah bila langkah diubah).
+- Tabel `guide_slides` + `App\Models\GuideSlide`; daftar halaman di `App\Support\Panduan::pages()` (kunci → label/route).
+  Admin → **Data bersama → Panduan** (`PanduanController`): tambah/ubah/urutkan/sembunyikan/hapus langkah, unggah
+  gambar (disk `local`, disajikan `/panduan/gambar/{slide}` — tanpa `storage:link`), tercatat di Log Audit.
+- Isi awal: `database/data/panduan/panduan.json` + gambar `database/data/panduan/img/` dari `scripts/panduan_gambar.py`
+  (tangkapan layar halaman asli, bagian yang dimaksud diberi kotak oranye bernomor). `PanduanSeeder` (DatabaseSeeder &
+  MetadataSeeder) hanya mengisi halaman yang belum punya langkah — suntingan admin tidak ditimpa.
+- Muncul sendiri **sekali per akun** (tabel `guide_views`, dicatat begitu muncul lewat `POST /panduan/{key}/dilihat` — dulu
+  localStorage & baru dicatat saat ditutup, sehingga muncul berulang bila tidak ditutup). Gambar dipotret di layar 1920×1080,
+  dipotong di sekitar bagian yang ditandai (tata letak sama dengan layar kantor); kotak panduan lebih lebar.
+- **Alur kerja** (menu Bantuan → Alur kerja, `/alur-kerja`, kunci `alur-kerja`): 15 langkah berurutan A–E (wilayah & akun →
+  siapkan triwulan, kuesioner, aturan validasi, sampel, jadwal, buka pencacahan → pantau → pengolahan → kunci & tabulasi),
+  tiap langkah berlabel bagian (`guide_slides.section`) + tombol "Buka halaman ini" (`guide_slides.link`, hanya alamat internal).
+  Slide langsung terbuka tiap halaman dibuka; di bawahnya daftar isi per bagian.
+- Panduan **Membuat aturan validasi** (kunci `aturan-form`, 7 langkah) di halaman Buat/Ubah aturan: terpandu vs rumus sendiri,
+  apa yang diperiksa, rumus (benar = masalah), pesan berplaceholder, simpan & dampak, uji/riwayat/periksa ulang — gambarnya
+  dipotret sambil formulir diisi contoh (`shot.fill`/`shot.select`). Kotak pesan di formulir aturan kini selebar langkahnya.
+- `PanduanTest` (9).
+
+### Increment 166 — tampilan HP & istilah antarmuka yang lebih awam
+
+- Menu samping di HP/tablet dilipat di balik tombol **☰ Menu** (dulu strip geser 12 menu); tombol bilah atas sama tinggi;
+  formulir `.row-form` di HP: label di atas, kotak selebar layar. Halaman isian: judul blok sejajar dengan tanda panah, blok
+  tertutup tanpa ruang kosong, kotak isian selebar kartu, tombol Kembali/Cetak sejajar.
+- **Service worker** (`public/sw.js`, VERSI v2): CSS/JS dicocokkan persis menurut `?v=` — dulu `ignoreSearch` membuat app.css lama
+  terus dipakai walau berkas sudah diperbarui.
+- Istilah: status `lapangan` tampil **Pencacahan**; "Siklus" → **Periode** (siklus survei, penutupan periode, kunci periode);
+  isu berikutnya → Ke masalah berikutnya; Kelengkapan entri → Kelengkapan isian; Entri Kuesioner → Isi Kuesioner;
+  Respons & disposisi → Hasil kunjungan; Rata² … → Rata-rata …; Buka hub → Buka halaman; persentase miskin (sampel /
+  perkiraan populasi); Revalidasi → Periksa ulang semua sampel; Master Wilkerstat → Daftar Wilayah; Impor Isian Massal (format
+  lebar) → Impor Isian dari CAPI; Rujukan putus → Nama yang tidak ditemukan; Bahan hitungan → Angka bantu; Jadikan bawaan →
+  Jadikan versi utama. Halaman tahun: keterangan warna pita berupa titik berwarna.
+
 ### Increment 165 — data contoh: 18 kecamatan Bangkalan, tim lapangan, semua sampel berisi isian lengkap
 
 - `database/data/wilayah_bangkalan.csv` (format Impor Wilayah) + `WilayahBangkalanSeeder`: 1 kabupaten, 18 kecamatan (kode

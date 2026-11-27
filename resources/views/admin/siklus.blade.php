@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @php($nav = 'periode')
-@section('title', "Siklus {$cycle->name} · Sistem SUSENAS")
+@section('title', "Periode {$cycle->name} · Sistem SUSENAS")
 @section('content')
 <div class="no-print">
 @include('periode._hub_header', \App\Http\Controllers\PeriodeController::hubContext($cycle) + ['hubTab' => 'persiapan'])
@@ -23,7 +23,7 @@
     <div class="panel" style="margin:0">
       <h2>Instrumen &amp; validasi</h2>
       @if($versionObjs->isEmpty())
-        <p class="muted small">Belum ada versi kuesioner untuk siklus ini.</p>
+        <p class="muted small">Belum ada versi kuesioner untuk periode ini.</p>
       @else
         @foreach ($versionObjs as $v)
           <p class="small" style="margin:4px 0">
@@ -38,13 +38,13 @@
     <div class="panel" style="margin:0">
       <h2>Sampel &amp; Pencacah Lapangan</h2>
       <p class="small" style="margin:4px 0">
-        <a href="{{ route('monitoring.samples', ['cycle' => $cycle->id]) }}">Daftar Sampel siklus ini →</a></p>
+        <a href="{{ route('monitoring.samples', ['cycle' => $cycle->id]) }}">Daftar Sampel periode ini →</a></p>
       <p class="small" style="margin:4px 0">
         <a href="{{ route('admin.impor.sampel') }}">Impor Sampel →</a></p>
     </div>
     <div class="panel" style="margin:0">
       <h2>Wilayah kerja</h2>
-      <p class="small" style="margin:4px 0"><a href="{{ route('admin.impor.wilayah') }}">Impor Wilkerstat →</a></p>
+      <p class="small" style="margin:4px 0"><a href="{{ route('admin.impor.wilayah') }}">Impor Wilayah →</a></p>
     </div>
     <div class="panel" style="margin:0">
       <h2>Pengguna</h2>
@@ -54,7 +54,7 @@
 </section>
 
 <section class="panel">
-  <h2>Respons &amp; disposisi</h2>
+  <h2>Hasil kunjungan</h2>
   <div class="summary-counts">
     <span class="cnt">{{ $response['rate'] }}%</span> angka respons ·
     <span class="cnt">{{ $response['responded'] }}</span>/{{ $response['eligible'] }} yang memenuhi syarat terespons ·
@@ -104,21 +104,21 @@
 </div>
 
 <section class="panel no-print">
-  <h2>Revalidasi</h2>
-  <p class="muted small">Jalankan ulang mesin aturan untuk semua {{ $dTotal }} sampel terisi siklus ini —
+  <h2>Periksa ulang</h2>
+  <p class="muted small">Jalankan ulang mesin aturan untuk semua {{ $dTotal }} sampel terisi periode ini —
     lakukan setelah menyunting aturan / agregat / nilai turunan.</p>
   <form method="post" action="{{ route('admin.siklus.revalidate', $cycle) }}"
-    onsubmit="return confirm('Revalidasi seluruh sampel siklus ini?')">
-    @csrf<button type="submit" class="btn-ghost">↻ Revalidasi seluruh siklus</button>
+    onsubmit="return confirm('Periksa ulang semua sampel periode ini?')">
+    @csrf<button type="submit" class="btn-ghost">↻ Periksa ulang semua sampel</button>
   </form>
 </section>
 
 <section class="panel no-print">
-  <h2>Penutupan siklus</h2>
+  <h2>Penutupan periode</h2>
   @if($cycle->isLocked())
-    <p>Siklus <strong>terkunci</strong>. Entri &amp; pengolahan untuk siklus ini menolak perubahan data.</p>
+    <p>Periode <strong>terkunci</strong>. Entri &amp; pengolahan untuk periode ini menolak perubahan data.</p>
     <form method="post" action="{{ route('admin.siklus.unlock', $cycle) }}"
-      onsubmit="return confirm('Buka kembali kunci siklus ini?')">
+      onsubmit="return confirm('Buka kembali kunci periode ini?')">
       @csrf<button type="submit" class="btn-ghost">Buka kembali kunci</button>
     </form>
   @else
@@ -135,12 +135,12 @@
       </div>
     @endif
     <form method="post" action="{{ route('admin.siklus.lock', $cycle) }}"
-      onsubmit="return confirm('Kunci siklus? Entri & pengolahan untuk siklus ini akan menolak perubahan.')">
-      @csrf<button type="submit">Kunci siklus (tandai selesai)</button>
+      onsubmit="return confirm('Kunci periode? Entri & pengolahan untuk periode ini akan menolak perubahan.')">
+      @csrf<button type="submit">Kunci periode (tandai selesai)</button>
     </form>
   @endif
 </section>
 
-<p class="muted small print-foot">Laporan internal siklus, bukan angka resmi.</p>
+<p class="muted small print-foot">Laporan internal periode, bukan angka resmi.</p>
 </div>
 @endsection

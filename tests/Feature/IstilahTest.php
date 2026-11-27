@@ -22,7 +22,7 @@ class IstilahTest extends TestCase
         $this->assertSame('Kesalahan', Istilah::severity('error'));
         $this->assertSame('Peringatan', Istilah::severity('warning'));
         $this->assertSame('per anggota rumah tangga', Istilah::repeat('art'));
-        $this->assertSame('Lapangan', Istilah::cycleStatus('lapangan'));
+        $this->assertSame('Pencacahan', Istilah::cycleStatus('lapangan'));
         $this->assertSame('Ubah sesuatu', Istilah::audit('ubah-sesuatu'));
     }
 

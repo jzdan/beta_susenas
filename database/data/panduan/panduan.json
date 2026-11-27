@@ -1,0 +1,577 @@
+{
+  "_keterangan": "Isi awal panduan bergambar (Inc 167). Dimuat PanduanSeeder bila halaman belum punya langkah. 'shot' dipakai scripts/panduan_gambar.py untuk membuat gambar (url + bagian yang ditandai); tidak disimpan ke database.",
+  "alur-kerja": [
+    {
+      "section": "A. Sekali di awal",
+      "title": "Muat Daftar Wilayah",
+      "image": "alur-01.jpg",
+      "link": "/admin/impor-wilayah",
+      "body": "Kecamatan dan desa kabupaten dimuat sekali di awal (impor CSV). Sesudahnya cukup ubahan kecil lewat Telusuri.",
+      "shot": {
+        "url": "/admin/impor-wilayah",
+        "mark": "section.panel:has(h2:text-is('Telusuri'))"
+      }
+    },
+    {
+      "section": "A. Sekali di awal",
+      "title": "Buat akun petugas & pengawas",
+      "image": "alur-02.jpg",
+      "link": "/admin/pengguna",
+      "body": "Tambahkan akun Pencacah Lapangan, Pengawas Lapangan, dan Penanggung Jawab (satu per kecamatan) beserta cakupan wilayahnya.",
+      "shot": {
+        "url": "/admin/pengguna",
+        "mark": "section.panel:has(h2#form-title)"
+      }
+    },
+    {
+      "section": "B. Tiap triwulan: menyiapkan",
+      "title": "Siapkan triwulan",
+      "image": "alur-03.jpg",
+      "link": "/periode",
+      "body": "Buka Periode Survei, pilih tahun dan triwulan, lalu Siapkan triwulan: pilih survei yang berjalan. Kuesioner triwulan sebelumnya disalin otomatis.",
+      "shot": {
+        "url": "/periode/2028/tw/1",
+        "mark": "#siapkan"
+      }
+    },
+    {
+      "section": "B. Tiap triwulan: menyiapkan",
+      "title": "Periksa kuesioner",
+      "image": "alur-04.jpg",
+      "link": "/periode",
+      "body": "Di halaman periode, buka tab Kuesioner. Tambah atau ubah blok dan rinciannya bila kuesioner semester ini berubah.",
+      "shot": {
+        "url": "/admin/metadata?qv={sepqv}",
+        "mark": "nav.hub-tabs"
+      }
+    },
+    {
+      "section": "B. Tiap triwulan: menyiapkan",
+      "title": "Isi aturan validasi",
+      "image": "alur-05.jpg",
+      "link": "/admin/aturan",
+      "body": "Buka tab Aturan Validasi → Buat aturan baru. Pilih jenis pemeriksaan (terpandu) atau tulis rumus sendiri; sistem langsung menunjukkan berapa sampel yang terkena. Lihat juga panduan di halaman itu.",
+      "shot": {
+        "url": "/admin/aturan-baru?qv=3",
+        "mark": "nav.mode-switch"
+      }
+    },
+    {
+      "section": "B. Tiap triwulan: menyiapkan",
+      "title": "Impor sampel & tugaskan petugas",
+      "image": "alur-06.jpg",
+      "link": "/admin/impor-sampel",
+      "body": "Muat daftar rumah tangga sampel (CSV) dan isi petugas serta pengawas tiap sampel.",
+      "shot": {
+        "url": "/admin/impor-sampel?cycle=10",
+        "mark": "section.panel:has(h2:has-text('Impor banyak sekaligus'))"
+      }
+    },
+    {
+      "section": "B. Tiap triwulan: menyiapkan",
+      "title": "Atur jadwal pencacahan",
+      "image": "alur-07.jpg",
+      "link": "/admin/jadwal",
+      "body": "Isi tanggal mulai dan selesai pencacahan. Tanggal mulai harus di dalam triwulan periodenya.",
+      "shot": {
+        "url": "/admin/jadwal",
+        "mark": "form:has(input[name='field_start']):has(button:text-is('Simpan')) >> nth=0"
+      }
+    },
+    {
+      "section": "B. Tiap triwulan: menyiapkan",
+      "title": "Buka pencacahan",
+      "image": "alur-08.jpg",
+      "link": "/periode",
+      "body": "Di Persiapan periode, bereskan daftar periksa lalu tekan Buka pencacahan. Sejak itu petugas bisa mengisi.",
+      "shot": {
+        "url": "/admin/siklus/{persiapan}/persiapan",
+        "mark": "section.panel:has(h2:text-is('Buka pencacahan'))"
+      }
+    },
+    {
+      "section": "C. Selama pencacahan",
+      "title": "Petugas mengisi di HP",
+      "image": "alur-09.jpg",
+      "link": "/monitoring/tugas",
+      "body": "Pencacah Lapangan membuka Tugas Saya, memilih rumah tangga, mengisi kuesioner, lalu mengirimnya ke pemeriksa. Isian tetap tersimpan walau sinyal hilang.",
+      "shot": {
+        "url": "/entri/{doc}",
+        "mark": "section.panel.block >> nth=0"
+      }
+    },
+    {
+      "section": "C. Selama pencacahan",
+      "title": "Pantau kemajuan",
+      "image": "alur-10.jpg",
+      "link": "/monitoring",
+      "body": "Dashboard menunjukkan jumlah sampel terisi, angka respons, dan petugas yang tertinggal. Peta Progres menunjukkan sebarannya per desa.",
+      "shot": {
+        "url": "/monitoring",
+        "mark": "div.kpis"
+      }
+    },
+    {
+      "section": "C. Selama pencacahan",
+      "title": "Tangani rumah tangga yang tidak bisa dicacah",
+      "image": "alur-11.jpg",
+      "link": "/monitoring/sampel",
+      "body": "Di halaman sampel, pengawas menandai non-respons beserta alasannya, atau mengganti dengan sampel lain.",
+      "shot": {
+        "url": "/monitoring/sampel/{sample}",
+        "mark": "form:has(select[name='reason']) >> nth=0"
+      }
+    },
+    {
+      "section": "D. Pengolahan",
+      "title": "Tutup pencacahan",
+      "image": "alur-12.jpg",
+      "link": "/admin/jadwal",
+      "body": "Setelah jadwal selesai, ubah status periode menjadi Pengolahan di halaman Jadwal. Petugas tidak bisa lagi mengubah isian, kecuali yang dikembalikan.",
+      "shot": {
+        "url": "/admin/jadwal",
+        "mark": "form:has(input[name='field_start']):has(button:text-is('Simpan')) >> nth=0 >> select[name='status']"
+      }
+    },
+    {
+      "section": "D. Pengolahan",
+      "title": "Periksa & bersihkan isian",
+      "image": "alur-13.jpg",
+      "link": "/pengolahan",
+      "body": "Di Pengolahan, buka isian yang bermasalah: koreksi nilainya, atau kembalikan ke petugas dengan alasan. Isian yang sudah benar ditandai bersih (bisa sekaligus).",
+      "shot": {
+        "url": "/pengolahan",
+        "mark": "main table.tbl >> nth=-1"
+      }
+    },
+    {
+      "section": "E. Akhir periode",
+      "title": "Kunci periode",
+      "image": "alur-14.jpg",
+      "link": "/periode",
+      "body": "Di Laporan & penutupan, periksa ringkasan lalu Kunci periode. Isian, kuesioner, dan aturannya menjadi hanya-lihat.",
+      "shot": {
+        "url": "/admin/siklus/{sep}",
+        "mark": "section.panel:has(h2:text-is('Penutupan periode'))"
+      }
+    },
+    {
+      "section": "E. Akhir periode",
+      "title": "Tabulasi, indikator & ekspor",
+      "image": "alur-15.jpg",
+      "link": "/tabulasi",
+      "body": "Buat tabel ringkas, lihat indikator kesejahteraan, atau unduh data untuk diolah lebih lanjut. Angkanya bukan angka resmi.",
+      "shot": {
+        "url": "/tabulasi",
+        "mark": "section.panel:has(h2:text-is('Tabulasi'))"
+      }
+    }
+  ],
+  "jadwal": [
+    {
+      "title": "Buat periode baru",
+      "image": "jadwal-1.jpg",
+      "body": "Isi nama periode (mis. SUSENAS Maret 2027 (KP)), bulannya, serta tanggal mulai dan selesai pencacahan. Periode baru selalu berstatus Persiapan, jadi petugas belum melihatnya.",
+      "shot": {
+        "url": "/admin/jadwal",
+        "mark": "section.panel:has(h2:text-is('Buat periode baru'))"
+      }
+    },
+    {
+      "title": "Atur jadwal tiap periode",
+      "image": "jadwal-2.jpg",
+      "body": "Ubah nama atau tanggal pencacahan, lalu tekan Simpan. Tanggal mulai harus berada di dalam triwulan periodenya.",
+      "shot": {
+        "url": "/admin/jadwal",
+        "mark": "form:has(input[name='field_start']):has(button:text-is('Simpan')) >> nth=0"
+      }
+    },
+    {
+      "title": "Lanjut ke Persiapan periode",
+      "image": "jadwal-3.jpg",
+      "body": "Persiapan periode berisi daftar periksa sebelum pencacahan dibuka. Laporan & penutupan dipakai di akhir untuk mengunci periode.",
+      "shot": {
+        "url": "/admin/jadwal",
+        "mark": "a:has-text('Persiapan periode') >> nth=0"
+      }
+    }
+  ],
+  "persiapan": [
+    {
+      "title": "Bereskan daftar periksa",
+      "image": "persiapan-1.jpg",
+      "body": "Butir wajib harus bertanda beres: versi kuesioner utuh, sampel sudah dimuat, dan semua sampel punya petugas. Butir yang belum beres punya tautan untuk membereskannya.",
+      "shot": {
+        "url": "/admin/siklus/{persiapan}/persiapan",
+        "mark": "section.panel:has(h2:text-is('Daftar periksa'))"
+      }
+    },
+    {
+      "title": "Buka pencacahan",
+      "image": "persiapan-2.jpg",
+      "body": "Setelah semua butir wajib beres, tekan Buka pencacahan. Sejak itu petugas bisa membuka sampel dan mengisi kuesioner di HP.",
+      "shot": {
+        "url": "/admin/siklus/{persiapan}/persiapan",
+        "mark": "section.panel:has(h2:text-is('Buka pencacahan'))"
+      }
+    },
+    {
+      "title": "Hanya bila mendesak",
+      "image": "persiapan-3.jpg",
+      "body": "Tombol Tetap buka membuka pencacahan walau ada butir wajib yang belum beres. Pakai hanya bila mendesak — tindakan ini tercatat di Log Audit.",
+      "shot": {
+        "url": "/admin/siklus/{persiapan}/persiapan",
+        "mark": "button:has-text('Tetap buka')"
+      }
+    }
+  ],
+  "wilayah": [
+    {
+      "title": "Cari dan ubah nama wilayah",
+      "image": "wilayah-1.jpg",
+      "body": "Ketik kode atau nama di kotak Telusuri. Nama kecamatan atau desa bisa diubah langsung di tabel, lalu tekan Simpan di barisnya.",
+      "shot": {
+        "url": "/admin/impor-wilayah",
+        "mark": "section.panel:has(h2:text-is('Telusuri'))"
+      }
+    },
+    {
+      "title": "Tambah satu wilayah",
+      "image": "wilayah-2.jpg",
+      "body": "Isi kode (kecamatan 7 digit, desa 10 digit), nama, dan jenjangnya. Induknya diambil otomatis dari awalan kode dan harus sudah ada.",
+      "shot": {
+        "url": "/admin/impor-wilayah",
+        "mark": "section.panel:has(h2:text-is('Tambah satu wilayah'))"
+      }
+    },
+    {
+      "title": "Muat banyak sekaligus",
+      "image": "wilayah-3.jpg",
+      "body": "Untuk daftar lengkap, tempel isi berkas CSV dengan kolom code, name, level. Tekan Pratinjau untuk memeriksa, lalu Simpan.",
+      "shot": {
+        "url": "/admin/impor-wilayah",
+        "mark": "form:has(textarea[name='data'])"
+      }
+    }
+  ],
+  "impor-sampel": [
+    {
+      "title": "Tambah satu sampel",
+      "image": "impor-sampel-1.jpg",
+      "body": "Pilih periode dan desa, isi nomor blok sensus dan nomor rumah tangga, lalu pilih petugasnya. Daftar petugas otomatis tersaring ke kecamatan desa itu.",
+      "shot": {
+        "url": "/admin/impor-sampel?cycle=10",
+        "mark": "section.panel:has(h2:text-is('Tambah satu sampel'))"
+      }
+    },
+    {
+      "title": "Impor banyak sekaligus",
+      "image": "impor-sampel-2.jpg",
+      "body": "Tempel isi berkas CSV. Kolom wajib: wilayah_code, no_bs, no_ruta. Kolom petugas dan pml (boleh kosong) diisi nama pengguna petugas dan pengawasnya.",
+      "shot": {
+        "url": "/admin/impor-sampel?cycle=10",
+        "mark": "section.panel:has(h2:has-text('Impor banyak sekaligus'))"
+      }
+    },
+    {
+      "title": "Periksa hasilnya",
+      "image": "impor-sampel-3.jpg",
+      "body": "Sampel ganda dan kode desa yang tidak ada di Daftar Wilayah dilewati; jumlahnya tampil di pesan hasil. Bagian Contoh menunjukkan bentuk berkas yang benar.",
+      "shot": {
+        "url": "/admin/impor-sampel?cycle=10",
+        "mark": "section.panel:has(h2:text-is('Contoh'))"
+      }
+    }
+  ],
+  "impor-isian": [
+    {
+      "title": "Unduh templat dan kamus data",
+      "image": "impor-isian-1.jpg",
+      "body": "Tiap periode punya templat kosong (judul kolom yang dikenal), kamus data (arti tiap kolom), dan ekspor jawaban yang sudah ada.",
+      "shot": {
+        "url": "/admin/impor-dokumen?cycle=10",
+        "mark": "section.panel:has(h2:has-text('Template'))"
+      }
+    },
+    {
+      "title": "Unggah berkas CSV",
+      "image": "impor-isian-2.jpg",
+      "body": "Satu baris = satu rumah tangga. Kolom wajib wilayah_code, no_bs, no_ruta; kolom lain diberi nama variabel. Untuk anggota rumah tangga pakai akhiran __1, __2, dan seterusnya.",
+      "shot": {
+        "url": "/admin/impor-dokumen?cycle=10",
+        "mark": "form:has(select[name='cycle_id']) >> nth=0"
+      }
+    },
+    {
+      "title": "Pratinjau dulu, baru simpan",
+      "image": "impor-isian-3.jpg",
+      "body": "Pratinjau menunjukkan kolom yang dikenal dan yang tidak dikenal tanpa menyimpan apa pun. Setelah yakin, jalankan lagi dengan pilihan simpan.",
+      "shot": {
+        "url": "/admin/impor-dokumen?cycle=10",
+        "mark": "form:has(select[name='cycle_id']) >> nth=0 >> button >> nth=0"
+      }
+    },
+    {
+      "title": "Nama kolom CAPI berbeda?",
+      "image": "impor-isian-4.jpg",
+      "body": "Bila nama kolom dari CAPI tidak sama dengan nama variabel di sini, petakan sekali di Alias kolom. Impor berikutnya otomatis memakai pemetaan itu.",
+      "shot": {
+        "url": "/admin/impor-dokumen?cycle=10",
+        "mark": "section.panel:has(h2:has-text('Alias kolom'))"
+      }
+    }
+  ],
+  "impor-rincian": [
+    {
+      "title": "Pastikan versi kuesionernya",
+      "image": "impor-rincian-1.jpg",
+      "body": "Rincian ditambahkan ke versi kuesioner yang tampil di bagian atas. Ganti versinya dulu bila perlu.",
+      "shot": {
+        "url": "/admin/impor?qv=10",
+        "mark": "main .row-form:has(label:has-text('Versi kuesioner')) >> nth=0"
+      }
+    },
+    {
+      "title": "Tempel daftar rincian",
+      "image": "impor-rincian-2.jpg",
+      "body": "Baris pertama adalah judul kolom. Wajib: kode_rincian, var_name, label. Boleh ditambah qtype, unit, skip_expr, help_text.",
+      "shot": {
+        "url": "/admin/impor?qv=10",
+        "mark": "form:has(textarea) >> nth=0"
+      }
+    },
+    {
+      "title": "Lihat contohnya",
+      "image": "impor-rincian-3.jpg",
+      "body": "Bagian Contoh menunjukkan bentuk berkas yang benar. Pratinjau dulu sebelum menyimpan.",
+      "shot": {
+        "url": "/admin/impor?qv=10",
+        "mark": "section.panel:has(h2:text-is('Contoh'))"
+      }
+    }
+  ],
+  "aturan": [
+    {
+      "title": "Aturan dikelompokkan per blok",
+      "image": "aturan-1.jpg",
+      "body": "Tiap aturan menunjukkan blok yang diperiksanya. Pakai pilihan blok di atas untuk menampilkan aturan satu blok saja.",
+      "shot": {
+        "url": "/admin/aturan?qv=3",
+        "mark": "main table >> nth=0"
+      }
+    },
+    {
+      "title": "Nyalakan, matikan, ubah ambang",
+      "image": "aturan-2.jpg",
+      "body": "Sakelar di tiap baris menyalakan atau mematikan aturan. Angka ambang bisa diubah langsung — sebelum disimpan, sistem menunjukkan berapa sampel yang akan terkena.",
+      "shot": {
+        "url": "/admin/aturan?qv=3",
+        "mark": "main table tbody tr:has(.thr-live) >> nth=0"
+      }
+    },
+    {
+      "title": "Buat atau ubah aturan",
+      "image": "aturan-3.jpg",
+      "body": "Tombol Buat aturan baru dan tautan Ubah membuka halaman aturan lengkap: periksa langsung, riwayat perubahan, dan contoh kasus uji.",
+      "shot": {
+        "url": "/admin/aturan?qv=3",
+        "mark": "a:has-text('Buat aturan baru') >> nth=0"
+      }
+    }
+  ],
+  "aturan-form": [
+    {
+      "title": "Pilih cara membuat aturan",
+      "image": "aturan-form-1.jpg",
+      "body": "Terpandu: pilih jenis pemeriksaan dan isi angkanya, sistem yang menyusun rumusnya. Tulis rumus sendiri: untuk pemeriksaan yang lebih rumit.",
+      "shot": {
+        "url": "/admin/aturan-baru?qv=3",
+        "mark": "nav.mode-switch"
+      }
+    },
+    {
+      "title": "Cara terpandu",
+      "image": "aturan-form-2.jpg",
+      "body": "Isi kode aturan, pilih jenis pemeriksaan (mis. wajib diisi, di luar rentang), variabel yang diperiksa, dan angkanya. Pesan untuk pemeriksa bisa diubah.",
+      "shot": {
+        "url": "/admin/aturan-baru?qv=3",
+        "mark": "#wizform"
+      }
+    },
+    {
+      "title": "1 · Apa yang diperiksa",
+      "image": "aturan-form-3.jpg",
+      "body": "Isi kode (mis. IV1-KUANTITAS-BESAR) dan tingkatnya: Kesalahan menahan isian ditandai bersih, Peringatan cukup dikonfirmasi pemeriksa. Pilih blok bila aturan diperiksa per baris (per komoditas atau per anggota rumah tangga).",
+      "shot": {
+        "url": "/admin/aturan-baru?qv=3&mode=rumus",
+        "mark": ".rule-step >> nth=0",
+        "fill": {
+          "input[name='code']": "IV1-KUANTITAS-BESAR"
+        },
+        "select": {
+          "select[name='row_block']": "IV.1"
+        }
+      }
+    },
+    {
+      "title": "2 · Tulis rumusnya",
+      "image": "aturan-form-4.jpg",
+      "body": "Rumus yang bernilai BENAR berarti ada masalah. Contoh: iv1_kuantitas > 15 — konsumsi seminggu lebih dari 15 satuan, perlu diperiksa. Pilihan lain: filled(x) / blank(x) untuk terisi/kosong, and / or untuk menggabungkan. Di bawahnya langsung tampil berapa sampel yang terkena.",
+      "shot": {
+        "url": "/admin/aturan-baru?qv=3&mode=rumus",
+        "mark": ".rule-step >> nth=1",
+        "fill": {
+          "input[name='code']": "IV1-KUANTITAS-BESAR",
+          "textarea[name='expr']": "iv1_kuantitas > 15"
+        },
+        "select": {
+          "select[name='row_block']": "IV.1"
+        },
+        "wait": 2500
+      }
+    },
+    {
+      "title": "3 · Pesan untuk pemeriksa",
+      "image": "aturan-form-5.jpg",
+      "body": "Tulis pesan yang jelas untuk pemeriksa. Tulisan dalam kurung kurawal diisi otomatis, mis. {iv1_kuantitas} menjadi angka di isian itu. Contoh pesan untuk salah satu sampel langsung tampil.",
+      "shot": {
+        "url": "/admin/aturan-baru?qv=3&mode=rumus",
+        "mark": ".rule-step >> nth=2",
+        "fill": {
+          "input[name='code']": "IV1-KUANTITAS-BESAR",
+          "textarea[name='expr']": "iv1_kuantitas > 15",
+          "input[name='message']": "Konsumsi {iv1_kuantitas} satuan dalam seminggu — terlalu banyak? Mohon periksa ke responden."
+        },
+        "select": {
+          "select[name='row_block']": "IV.1"
+        },
+        "wait": 2500
+      }
+    },
+    {
+      "title": "Simpan",
+      "image": "aturan-form-6.jpg",
+      "body": "Tekan Simpan. Di sebelahnya tampil perkiraan berapa sampel yang akan terkena aturan ini.",
+      "shot": {
+        "url": "/admin/aturan-baru?qv=3&mode=rumus",
+        "mark": ".save-bar",
+        "fill": {
+          "input[name='code']": "IV1-KUANTITAS-BESAR",
+          "textarea[name='expr']": "iv1_kuantitas > 15",
+          "input[name='message']": "Konsumsi {iv1_kuantitas} satuan dalam seminggu — terlalu banyak? Mohon periksa ke responden."
+        },
+        "select": {
+          "select[name='row_block']": "IV.1"
+        },
+        "wait": 2500
+      }
+    },
+    {
+      "title": "Uji, riwayat & periksa ulang",
+      "image": "aturan-form-7.jpg",
+      "body": "Setelah disimpan, tambahkan contoh kasus uji agar aturan tidak rusak saat diubah; riwayat mencatat setiap perubahan. Terakhir tekan Periksa ulang sekarang di Aturan Validasi supaya semua sampel dinilai ulang.",
+      "shot": {
+        "url": "/admin/aturan/{rule}",
+        "mark": "#contoh-uji"
+      }
+    }
+  ],
+  "angka-bantu": [
+    {
+      "title": "Parameter — angka tetap",
+      "image": "angka-bantu-1.jpg",
+      "body": "Angka yang dipakai berulang (mis. garis kemiskinan) disimpan sekali di sini, lalu dipakai aturan dan tabulasi.",
+      "shot": {
+        "url": "/admin/aturan?qv=3&tab=neraca",
+        "mark": "section.panel:has(h2:has-text('Parameter'))"
+      }
+    },
+    {
+      "title": "Agregat — penjumlahan",
+      "image": "angka-bantu-2.jpg",
+      "body": "Penjumlahan dari blok berulang (mis. total pengeluaran makanan) dihitung otomatis untuk tiap sampel dan bisa diperiksa silang.",
+      "shot": {
+        "url": "/admin/aturan?qv=3&tab=neraca",
+        "mark": "section.panel:has(h2:has-text('Agregat'))"
+      }
+    },
+    {
+      "title": "Variabel turunan",
+      "image": "angka-bantu-3.jpg",
+      "body": "Hitungan dari rincian lain (mis. pengeluaran per kapita). Hasilnya dipakai aturan dan tampil di tabulasi.",
+      "shot": {
+        "url": "/admin/aturan?qv=3&tab=neraca",
+        "mark": "section.panel:has(h2:has-text('Variabel turunan'))"
+      }
+    }
+  ],
+  "harga-kalori": [
+    {
+      "title": "Rentang harga wajar",
+      "image": "harga-kalori-1.jpg",
+      "body": "Tiap komoditas punya harga terendah dan tertinggi yang wajar. Harga satuan di isian (nilai dibagi banyaknya) di luar rentang ini memunculkan peringatan.",
+      "shot": {
+        "url": "/admin/aturan?qv=3&tab=harga",
+        "mark": "section.panel:has(h2:has-text('Daftar komoditas'))"
+      }
+    },
+    {
+      "title": "Ubah atau tambah komoditas",
+      "image": "harga-kalori-2.jpg",
+      "body": "Ubah angka langsung di tabel lalu simpan. Komoditas baru ditambahkan lewat tombol Tambah komoditas.",
+      "shot": {
+        "url": "/admin/aturan?qv=3&tab=harga",
+        "mark": "button:has-text('Tambah komoditas') >> nth=0"
+      }
+    }
+  ],
+  "tabulasi": [
+    {
+      "title": "Ekspor data",
+      "image": "tabulasi-1.jpg",
+      "body": "Unduh data isian dalam bentuk CSV untuk diolah lebih lanjut di aplikasi lain.",
+      "shot": {
+        "url": "/tabulasi",
+        "mark": "section.panel:has(h2:text-is('Ekspor'))"
+      }
+    },
+    {
+      "title": "Buat tabel ringkas",
+      "image": "tabulasi-2.jpg",
+      "body": "Pilih variabel dan pengelompokannya (mis. per kecamatan). Tabel langsung dihitung dari sampel dalam cakupan Anda.",
+      "shot": {
+        "url": "/tabulasi",
+        "mark": "section.panel:has(h2:text-is('Tabulasi'))"
+      }
+    },
+    {
+      "title": "Bukan angka resmi",
+      "image": "tabulasi-3.jpg",
+      "body": "Angka di sini memakai penimbang sementara yang belum dikalibrasi BPS. Pakai untuk memantau arah angka dan pemeriksaan mutu, bukan untuk publikasi.",
+      "shot": {
+        "url": "/tabulasi",
+        "mark": "section.panel:has(h2:text-is('Cakupan'))"
+      }
+    }
+  ],
+  "indikator": [
+    {
+      "title": "Pilih variabel dan garis kemiskinan",
+      "image": "indikator-1.jpg",
+      "body": "Pilih variabel pengeluaran per kapita dan garis kemiskinan yang dipakai. Tabel di bawah langsung menyesuaikan.",
+      "shot": {
+        "url": "/tabulasi/indikator",
+        "mark": "main form.row-form >> nth=0"
+      }
+    },
+    {
+      "title": "Baca tabelnya",
+      "image": "indikator-2.jpg",
+      "body": "Persentase miskin (sampel) dihitung langsung dari sampel; (perkiraan populasi) memakai penimbang sementara. Keduanya bukan angka resmi.",
+      "shot": {
+        "url": "/tabulasi/indikator",
+        "mark": "main table >> nth=0"
+      }
+    }
+  ]
+}

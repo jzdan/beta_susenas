@@ -71,7 +71,7 @@ class EntryProgressTest extends TestCase
         $this->actingAs(User::where('username', 'ppl_ani')->firstOrFail())
             ->get("/entri/{$doc->id}")
             ->assertOk()
-            ->assertSee('Kelengkapan entri')
+            ->assertSee('Kelengkapan isian')
             ->assertSee('id="entry-progress"', false);
     }
 }

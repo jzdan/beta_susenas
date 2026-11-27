@@ -59,7 +59,7 @@ class QversionImport extends Command
 
         $cycle = $this->resolveCycle($this->option('cycle'));
         if (! $cycle) {
-            $this->error('Siklus tujuan tidak ditemukan. Buat siklus dulu atau beri --cycle.');
+            $this->error('Periode tujuan tidak ditemukan. Buat periode dulu atau beri --cycle.');
 
             return self::FAILURE;
         }
@@ -72,7 +72,7 @@ class QversionImport extends Command
             return self::FAILURE;
         }
 
-        $this->info("Versi '{$qv->code}' dibuat pada siklus '{$cycle->name}' (id {$qv->id}).");
+        $this->info("Versi '{$qv->code}' dibuat pada periode '{$cycle->name}' (id {$qv->id}).");
         $this->line(sprintf('  %d blok · %d parameter · %d aturan',
             $qv->blocks()->count(), $qv->parameters()->count(), $qv->rules()->count()));
 

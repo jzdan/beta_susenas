@@ -76,7 +76,7 @@ SERUTI INTI/MAK per triwulan). Akun demo lihat halaman login. Diperbarui Novembe
 | G3 | Tab Aturan Validasi → filter Blok IV.1 | Hanya aturan yang memakai Blok IV.1; tiap aturan berchip blok |
 | G4 | Ubah aturan (Ubah) dengan rumus rusak | Tanda ✕ langsung saat mengetik; simpan ditolak dengan pesan |
 | G5 | Matikan sebuah aturan | Kotak "N sampel belum diperiksa ulang" → "Periksa ulang sekarang" menghilangkannya |
-| G6 | Tab Bahan hitungan | Tiap agregat/turunan berchip blok asal & keterangan "dipakai oleh" |
+| G6 | Tab Angka bantu | Tiap agregat/turunan berchip blok asal & keterangan "dipakai oleh" |
 | G7 | Tab Harga & Kalori → "+ Tambah komoditas" | Komoditas baru di baris terakhir; kode ganda / harga min > max ditolak |
 | G8 | Rincian di blok anggota rumah tangga: isi "Lewati bila" mis. `n(art_umur) < 5`; di entri isi umur 3 | Sel itu terarsir & terkunci, tidak diperiksa aturan, tidak ikut dihitung |
 | G9 | Ubah pesan aturan lalu buka lagi → Riwayat perubahan → "Kembalikan" pada keadaan awal | Pesan kembali seperti semula; riwayat mencatat "Dikembalikan" |

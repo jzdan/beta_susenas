@@ -1,14 +1,12 @@
 @extends('layouts.app')
 @php($nav = 'wil')
-@section('title', 'Impor Wilkerstat · Sistem SUSENAS')
+@section('title', 'Daftar Wilayah · Sistem SUSENAS')
 @section('content')
 @php($byLevel = $byLevel ?? collect())
 @php($fQ = $fQ ?? '')
 @php($groups = $groups ?? collect())
-<h1>Master Wilkerstat</h1>
-<p class="muted"><em>Setup awal.</em> Muat daftar kecamatan &amp; desa kabupaten sekali di awal.
-  Untuk perubahan kecil (pemekaran wilayah, ganti nama) pakai <strong>Tambah/Sunting/Hapus</strong> di bawah;
-  untuk banyak sekaligus pakai impor CSV. Untuk daftar sampel tiap semester, pakai <strong>Impor Sampel</strong>.</p>
+<h1>Daftar Wilayah <x-panduan key="wilayah" /></h1>
+<p class="muted">Daftar kecamatan &amp; desa dimuat sekali di awal; perubahan kecil lewat Telusuri di bawah.</p>
 <p class="muted">Total kode: <strong>{{ $n }}</strong>
   @foreach (['kabupaten','kecamatan','desa'] as $lv)
     · {{ $byLevel[$lv] ?? 0 }} {{ $lv }}

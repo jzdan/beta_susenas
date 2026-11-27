@@ -32,7 +32,7 @@
     </label>
     <label>…atau unggah berkas <input type="file" name="file" accept=".json,application/json"></label>
     <div class="row-form">
-      <label class="small">Siklus tujuan
+      <label class="small">Periode tujuan
         <select name="cycle_id" required>
           @foreach ($cycles as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach
         </select>

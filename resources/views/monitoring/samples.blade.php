@@ -32,7 +32,7 @@
     @endforeach
   </select>
   <select name="cycle">
-    <option value="">Semua siklus</option>
+    <option value="">Semua periode</option>
     @foreach ($cycles->groupBy(fn ($c) => $c->year().' TW'.$c->quarter()) as $grp => $cs)
       <optgroup label="{{ $grp }}">
         @foreach ($cs as $c)
@@ -62,7 +62,7 @@
   <thead>
     <tr>
       @if($canAssign)<th style="width:24px"><input type="checkbox" data-check-all></th>@endif
-      <th>Desa / Blok Sensus / Rumah Tangga</th><th>Siklus</th><th>Nama Kepala Rumah Tangga</th><th>Petugas</th><th>Tahap</th><th></th>
+      <th>Desa / Blok Sensus / Rumah Tangga</th><th>Periode</th><th>Nama Kepala Rumah Tangga</th><th>Petugas</th><th>Tahap</th><th></th>
     </tr>
   </thead>
   <tbody>

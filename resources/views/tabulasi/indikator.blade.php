@@ -2,10 +2,8 @@
 @php($nav = 'indikator')
 @section('title', 'Indikator Kesejahteraan · Sistem SUSENAS')
 @section('content')
-<h1>Indikator Kesejahteraan</h1>
-<p class="muted">Rekap <strong>internal untuk pemeriksaan mutu/pemantauan — BUKAN estimasi resmi</strong>.
-  Angka tertimbang memakai <em>design weight</em> yang belum dikalibrasi.
-  {{ $total }} sampel dalam cakupan Anda.</p>
+<h1>Indikator Kesejahteraan <x-panduan key="indikator" /></h1>
+<p class="muted">Rekap internal untuk pemantauan — <strong>bukan angka resmi</strong>. {{ $total }} sampel dalam cakupan Anda.</p>
 
 <form method="get" class="row-form">
   <input type="hidden" name="selesai" value="1">
@@ -57,7 +55,7 @@
 <table class="tbl">
   <thead><tr>
     <th>Wilayah</th><th class="num">n</th>
-    <th class="num">Persentase miskin (tak tertimbang)</th><th class="num">Persentase miskin (tertimbang)</th>
+    <th class="num">Persentase miskin (sampel)</th><th class="num">Persentase miskin (perkiraan populasi)</th>
     <th class="num">Rata-rata</th><th class="num">Median</th>
     <th class="num">Porsi makanan</th><th class="num">Estimasi populasi</th>
     <th>Sebaran kelas ({{ implode(' / ', $classLabels) }})</th>

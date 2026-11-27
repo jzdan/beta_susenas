@@ -7,7 +7,7 @@
   <section class="panel block" data-block="{{ $b['code'] }}" id="blok-{{ $b['code'] }}">
     <h2 class="block-head" data-block-toggle>
       <span class="block-caret" aria-hidden="true">▾</span>
-      {{ $b['code'] }} — {{ $b['title'] }}
+      <span class="block-title">{{ $b['code'] }} — {{ $b['title'] }}</span>
       @if($b['n_err'])<span class="flag error" style="display:inline-block">{{ $b['n_err'] }} kesalahan</span>@endif
       @if($b['n_warn'])<span class="flag warning" style="display:inline-block">{{ $b['n_warn'] }} peringatan</span>@endif
     </h2>
@@ -96,7 +96,7 @@
       @endif
       @if(($state['art_var'] ?? null) === $q['var'] && $canEdit)
         <button type="button" id="apply-art" class="btn-ghost" style="margin-top:6px">Terapkan jumlah anggota</button>
-        <span class="muted small" id="apply-art-note">tabel roster &amp; makanan-jadi disesuaikan ke angka ini</span>
+        <span class="muted small" id="apply-art-note">Tabel anggota rumah tangga &amp; makanan jadi menyesuaikan angka ini</span>
       @endif
       <div class="q-flags">
         @foreach ($q['warnings'] as $w)<span class="flag {{ $w['status'] }}">{{ $w['message'] }}</span>@endforeach

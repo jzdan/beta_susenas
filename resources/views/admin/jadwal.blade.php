@@ -1,17 +1,16 @@
 @extends('layouts.app')
 @php($nav = 'jadwal')
-@section('title', 'Siklus & Jadwal · Sistem SUSENAS')
+@section('title', 'Periode & Jadwal · Sistem SUSENAS')
 @section('content')
 <x-back :href="route('periode.index')" label="Kembali ke Periode Survei" />
-<h1>Siklus Survei &amp; Jadwal Lapangan</h1>
-<p class="muted">Alur siklus baru: buat siklus (status Persiapan), siapkan versi kuesioner dan sampel,
-  lalu buka lapangan dari halaman <em>Persiapan periode</em>.</p>
+<h1>Periode Survei &amp; Jadwal Lapangan <x-panduan key="jadwal" /></h1>
+<p class="muted">Buat periode baru, atur jadwal pencacahan, lalu lanjut ke Persiapan periode.</p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
 
 <section class="panel">
-  <h2>Buat siklus baru</h2>
+  <h2>Buat periode baru</h2>
   <form method="post" action="{{ route('admin.jadwal.create') }}" class="row-form">
     @csrf
     <input name="name" placeholder="Nama (mis. SUSENAS Maret 2027)" required style="width:230px">
@@ -26,7 +25,7 @@
 @foreach ($cyclesByYear as $year => $group)
 <details class="rule-group" @if($loop->first) open @endif>
   <summary style="cursor:pointer;font-weight:600;font-size:1.05rem;padding:6px 0">
-    {{ $year }} <span class="muted small">— {{ $group->count() }} siklus</span>
+    {{ $year }} <span class="muted small">— {{ $group->count() }} periode</span>
   </summary>
   @foreach ($group as $c)
   <section class="panel" style="margin-top:10px">

@@ -55,7 +55,7 @@ class WilayahBrowseTest extends TestCase
         $csv = "code,name,level\n3526990,Kec Baru,kecamatan\n";
         $this->actingAs($this->admin())->post('/admin/impor-wilayah', ['data' => $csv, 'mode' => 'preview'])
             ->assertOk()
-            ->assertSee('Master Wilkerstat');
+            ->assertSee('Daftar Wilayah');
     }
 
     public function test_crud_add_single_wilayah(): void

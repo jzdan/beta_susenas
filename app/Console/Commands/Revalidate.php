@@ -28,7 +28,7 @@ class Revalidate extends Command
                 ? SurveyCycle::find((int) $ref)
                 : SurveyCycle::where('name', $ref)->first();
             if (! $cycle) {
-                $this->error("Siklus '{$ref}' tidak ditemukan.");
+                $this->error("Periode '{$ref}' tidak ditemukan.");
 
                 return self::FAILURE;
             }

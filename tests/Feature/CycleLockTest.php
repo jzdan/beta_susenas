@@ -31,7 +31,7 @@ class CycleLockTest extends TestCase
         $cycle = $doc->sample->cycle;
         $admin = User::where('username', 'admin')->firstOrFail();
 
-        $this->actingAs($admin)->get("/admin/siklus/{$cycle->id}")->assertOk()->assertSee('Penutupan siklus');
+        $this->actingAs($admin)->get("/admin/siklus/{$cycle->id}")->assertOk()->assertSee('Penutupan periode');
 
         $this->actingAs($admin)->post("/admin/siklus/{$cycle->id}/kunci")->assertRedirect();
         $this->assertTrue($cycle->fresh()->isLocked());
@@ -86,7 +86,7 @@ class CycleLockTest extends TestCase
         $tahap = $res->viewData('tahap');
         $this->assertSame(array_keys(\App\Support\Tahap::LABELS), array_keys($tahap));
         $this->assertSame($cycle->samples()->count(), array_sum($tahap));
-        $res->assertSee('Respons &amp; disposisi', false)->assertSee('Temuan tersering');
+        $res->assertSee('Hasil kunjungan', false)->assertSee('Temuan tersering');
     }
 
     /** Inc 133 — panel "Aksi cepat" di halaman Siklus, pintasan ke instrumen/sampel milik siklus ini. */

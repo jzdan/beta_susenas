@@ -19,7 +19,7 @@ final class Istilah
     /** status siklus + dampaknya ke petugas (akses diatur status siklus, lihat Document::editableByPetugas). */
     public const CYCLE_STATUS = [
         'persiapan' => 'Persiapan',
-        'lapangan' => 'Lapangan',
+        'lapangan' => 'Pencacahan',
         'pengolahan' => 'Pengolahan',
         'selesai' => 'Selesai (terkunci)',
     ];
@@ -74,8 +74,8 @@ final class Istilah
         'koreksi' => 'Koreksi nilai',
         'terima-warning' => 'Peringatan diterima',
         'batal-terima-warning' => 'Penerimaan peringatan dibatalkan',
-        'aktifkan' => 'Dijadikan versi bawaan',
-        'buka-lapangan' => 'Periode lapangan dibuka',
+        'aktifkan' => 'Dijadikan versi utama',
+        'buka-lapangan' => 'Pencacahan dibuka',
         'toggle' => 'Aktif/nonaktif diubah',
         'toggle-aktif' => 'Aktif/nonaktif diubah',
         'toggle-massal' => 'Aktif/nonaktif diubah (massal)',
@@ -86,13 +86,15 @@ final class Istilah
         'duplikat' => 'Duplikasi',
         'revalidasi' => 'Validasi ulang',
         'unggah' => 'Unggah foto',
+        'ubah' => 'Diubah',
+        'hapus' => 'Dihapus',
     ];
 
     public const ENTITY = [
         'aggregate' => 'Agregat', 'auth' => 'Masuk sistem', 'block' => 'Blok', 'block_row' => 'Baris tetap',
-        'column_alias' => 'Alias kolom impor', 'cycle' => 'Siklus', 'derived' => 'Variabel turunan',
+        'column_alias' => 'Alias kolom impor', 'cycle' => 'Periode', 'derived' => 'Variabel turunan',
         'document' => 'Isian sampel', 'parameter' => 'Parameter', 'pengolahan' => 'Pengolahan',
-        'question' => 'Rincian', 'qversion' => 'Versi kuesioner', 'rule' => 'Aturan validasi',
+        'panduan' => 'Panduan', 'question' => 'Rincian', 'qversion' => 'Versi kuesioner', 'rule' => 'Aturan validasi',
         'sample' => 'Sampel', 'user' => 'Pengguna', 'visit_photo' => 'Foto kunjungan', 'wilayah' => 'Wilayah',
     ];
 

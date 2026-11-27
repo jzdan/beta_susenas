@@ -8,13 +8,14 @@
 <h1>Aturan Validasi</h1>
 @endif
 @if($tab === 'aturan')
-<p class="muted">Pemeriksaan yang berjalan tiap kali isian disimpan. <strong>{{ $activeCount }}</strong> dari {{ $total }} aturan menyala.
-  Sehari-hari cukup menyalakan/mematikan aturan dan mengubah ambang.</p>
+<div class="page-intro"><p class="muted">Pemeriksaan yang berjalan tiap kali isian disimpan — <strong>{{ $activeCount }}</strong> dari {{ $total }} aturan menyala.</p>
+  <x-panduan key="aturan" /></div>
 @elseif($tab === 'neraca')
-<p class="muted">Bahan hitungan: agregat (neraca), turunan, dan parameter. Semuanya dihitung lebih dulu,
-  lalu dipakai aturan dan tabulasi; tab ini sendiri tidak memunculkan kesalahan atau peringatan.</p>
+<div class="page-intro"><p class="muted">Angka bantu yang dihitung lebih dulu, lalu dipakai aturan dan tabulasi.</p>
+  <x-panduan key="angka-bantu" /></div>
 @else
-<p class="muted">Patokan harga wajar dan kalori per komoditas, dipakai aturan harga dan kalori.</p>
+<div class="page-intro"><p class="muted">Patokan harga wajar dan kalori per komoditas, dipakai aturan harga dan kalori.</p>
+  <x-panduan key="harga-kalori" /></div>
 @endif
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
@@ -43,7 +44,7 @@
      style="{{ $tab === 'aturan' ? 'font-weight:700;border-color:var(--acc)' : '' }}">Aturan ({{ $total }})</a>
   <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'neraca', 'blok' => $fBlok ?: null]) }}"
      style="{{ $tab === 'neraca' ? 'font-weight:700;border-color:var(--acc)' : '' }}"
-     title="Agregat (neraca), variabel turunan, dan parameter: angka yang dihitung lebih dulu lalu dipakai aturan & tabulasi">Bahan hitungan <small class="muted">agregat · turunan · parameter</small></a>
+     title="Agregat (neraca), variabel turunan, dan parameter: angka yang dihitung lebih dulu lalu dipakai aturan & tabulasi">Angka bantu <small class="muted">agregat · turunan · parameter</small></a>
   <a class="btn-ghost" href="{{ route('admin.aturan', ['qv' => $qv->id, 'tab' => 'harga', 'blok' => $fBlok ?: null]) }}"
      style="{{ $tab === 'harga' ? 'font-weight:700;border-color:var(--acc)' : '' }}">Harga &amp; Kalori</a>
 </nav>

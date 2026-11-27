@@ -40,10 +40,10 @@ class AppServiceProvider extends ServiceProvider
             $notes = [];
             if ($late) {
                 $notes[] = 'Jadwal lapangan sudah mulai '.$late->field_start->day.' '.\App\Models\SurveyCycle::MONTHS[$late->field_start->month]
-                    .', '.($cur->filter(fn ($c) => $c->fieldShouldHaveStarted())->count() > 1 ? 'beberapa siklus' : $late->label()).' masih Persiapan';
+                    .', '.($cur->filter(fn ($c) => $c->fieldShouldHaveStarted())->count() > 1 ? 'beberapa periode' : $late->label()).' masih Persiapan';
             }
             if ($n = $cur->filter(fn ($c) => $c->fieldOverdue())->count()) {
-                $notes[] = "{$n} siklus jadwalnya selesai, belum ditutup";
+                $notes[] = "{$n} periode jadwalnya selesai, belum ditutup";
             }
             $view->with('runningQuarter', ['year' => $y, 'q' => $q, 'notes' => $notes,
                 'status' => $cur->isEmpty() ? null : \App\Http\Controllers\PeriodeController::combinedStatus($cur)]);

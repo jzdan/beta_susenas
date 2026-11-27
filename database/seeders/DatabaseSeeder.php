@@ -67,6 +67,7 @@ class DatabaseSeeder extends Seeder
             $this->call(WilayahBangkalanSeeder::class);
             $this->call(PetugasBangkalanSeeder::class);
             $this->call(PeriodeSurveiSeeder::class);
+            $this->call(PanduanSeeder::class); // Inc 167: panduan bergambar halaman admin
             // SEED_ATURAN=false di .env → aturan validasi dikosongkan (admin menyusun sendiri dari awal)
             if (! filter_var(env('SEED_ATURAN', true), FILTER_VALIDATE_BOOL)) {
                 $this->call(KosongkanAturanSeeder::class);
@@ -900,6 +901,7 @@ class DatabaseSeeder extends Seeder
             'role' => 'admin', 'wilayah_scope' => '', 'active' => true,
         ]);
         $this->questionnaire();
+        $this->call(PanduanSeeder::class);
         $this->command?->warn('Sandi admin diacak — atur ulang via: php artisan tinker');
     }
 

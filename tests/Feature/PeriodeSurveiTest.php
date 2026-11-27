@@ -193,7 +193,7 @@ class PeriodeSurveiTest extends TestCase
             'field_start' => '2026-11-01', 'field_end' => '2026-11-30']);
         $res = $this->actingAs($this->u('admin'))->get('/monitoring')->assertOk();
         $res->assertSee('TW4 2026')->assertSee(route('periode.triwulan', [2026, 4]), false);
-        $res->assertSee('Juga di lapangan')->assertSee('belum waktunya')->assertSee('jadwal selesai, belum ditutup')
+        $res->assertSee('Juga sedang pencacahan')->assertSee('belum waktunya')->assertSee('jadwal selesai, belum ditutup')
             ->assertSee('Jadwal lapangan sudah mulai 1 November', false);
     }
 

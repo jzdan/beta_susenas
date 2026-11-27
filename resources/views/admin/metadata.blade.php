@@ -25,11 +25,11 @@
   @if(!$vc['errors'] && !$vc['warnings'])
     <p style="color:var(--ok)">Tidak ada masalah. Semua aturan, agregat, turunan, dan parameter menunjuk blok &amp; variabel yang ada.</p>
   @elseif($vc['errors'])
-    <p class="muted small">Rujukan putus menahan pembukaan periode lapangan siklus yang memakai versi ini.
+    <p class="muted small">Nama yang tidak ditemukan menahan pembukaan pencacahan periode yang memakai versi ini.
       Perbaiki di Metadata atau Aturan Validasi.</p>
   @endif
   @if($vc['errors'])
-    <h3>Rujukan putus ({{ count($vc['errors']) }})</h3>
+    <h3>Nama yang tidak ditemukan ({{ count($vc['errors']) }})</h3>
     <ul>@foreach ($vc['errors'] as $e)<li class="small" style="color:var(--err)">{{ $e }}</li>@endforeach</ul>
   @endif
   @if($vc['warnings'])
@@ -40,10 +40,10 @@
 @endif
 
 {{-- Inc 154: di dalam hub siklus, tabel ini hanya berisi versi milik siklus itu
-     (dulu semua versi dari semua siklus — membingungkan sejak Metadata jadi tab hub) --}}
+     (dulu semua versi dari semua periode — membingungkan sejak Metadata jadi tab hub) --}}
 @php($listVersions = $qv->cycle ? $versions->where('cycle_id', $qv->cycle_id) : $versions)
 <section class="panel">
-  <h2>{{ $qv->cycle ? 'Versi kuesioner siklus ini' : 'Versi kuesioner' }}</h2>
+  <h2>{{ $qv->cycle ? 'Versi kuesioner periode ini' : 'Versi kuesioner' }}</h2>
   @foreach ($listVersions as $v)
     <form method="post" action="{{ route('admin.versi.simpan', $v) }}" id="vf{{ $v->id }}" hidden>@csrf</form>
   @endforeach
@@ -70,7 +70,7 @@
             <a class="btn-ghost" href="{{ route('admin.metadata', ['qv' => $v->id]) }}">Lihat/sunting</a>
           @endif
           @if($v->id !== $activeId)
-            <form method="post" action="{{ route('admin.versi.aktifkan', $v) }}" class="ro-allow">@csrf<button class="btn-ghost" title="Buka versi ini pertama kali di menu admin. Tidak memengaruhi petugas.">Jadikan bawaan</button></form>
+            <form method="post" action="{{ route('admin.versi.aktifkan', $v) }}" class="ro-allow">@csrf<button class="btn-ghost" title="Buka versi ini pertama kali di menu admin. Tidak memengaruhi petugas.">Jadikan versi utama</button></form>
           @endif
           <form method="post" action="{{ route('admin.versi.periksa', $v) }}" class="ro-allow"
             title="Cek aturan, agregat, turunan & parameter yang menunjuk blok/variabel yang tidak ada">@csrf<button class="btn-ghost">Periksa</button></form>
@@ -96,7 +96,7 @@
   <form method="post" action="{{ route('admin.versi.duplikat') }}" class="row-form mt ro-allow">
     @csrf
     <input name="new_code" placeholder="Kode versi baru, mis. VSEN27.KP-rev2" required style="min-width:280px">
-    <button type="submit">Duplikasi versi bawaan ({{ $versions->firstWhere('id', $activeId)->code ?? '?' }})</button>
+    <button type="submit">Duplikasi versi utama ({{ $versions->firstWhere('id', $activeId)->code ?? '?' }})</button>
   </form>
   @endif
   <p class="muted small mt">Paket JSON berisi seluruh metadata versi (blok, rincian, opsi, parameter,

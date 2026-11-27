@@ -4,7 +4,7 @@
  *   bila tidak ada sinyal pakai salinan terakhir; bila belum pernah dibuka → offline.html.
  * - POST (simpan isian, kirim) TIDAK pernah lewat cache; isian tanpa sinyal diantrekan di HP oleh app.js.
  * Ganti VERSI bila berkas inti berubah besar. */
-const VERSI = "v1";
+const VERSI = "v2";
 const STATIC = "susenas-static-" + VERSI;
 const PAGES = "susenas-pages-" + VERSI;
 const PRECACHE = ["/offline.html", "/css/app.css", "/js/app.js", "/icons/icon-192.png", "/manifest.webmanifest"];
@@ -27,14 +27,29 @@ self.addEventListener("message", (e) => {
   if (e.data === "clear-pages") e.waitUntil(caches.delete(PAGES));
 });
 
+/* CSS/JS dipanggil dengan penanda versi (?v=waktu ubah berkas). Salinan dicocokkan PERSIS — dulu
+ * memakai ignoreSearch sehingga app.css lama terus dipakai walau berkasnya sudah diperbarui.
+ * Versi baru yang belum tersimpan → ambil dari jaringan (salinan versi lama hanya bila tanpa sinyal). */
 function staleWhileRevalidate(req) {
   return caches.open(STATIC).then((c) =>
-    c.match(req, { ignoreSearch: true }).then((hit) => {
+    c.match(req).then((hit) => {
       const net = fetch(req).then((res) => {
-        if (res && (res.ok || res.type === "opaque")) c.put(req, res.clone());
+        if (res && (res.ok || res.type === "opaque")) {
+          const path = new URL(req.url).pathname;
+          // buang salinan versi lama berkas yang sama supaya cache tidak menumpuk
+          c.keys().then((keys) => keys.forEach((k) => {
+            const u = new URL(k.url);
+            if (u.origin === location.origin && u.pathname === path && k.url !== req.url) c.delete(k);
+          }));
+          c.put(req, res.clone());
+        }
         return res;
-      }).catch(() => hit);
-      return hit || net;
+      });
+      if (hit) {
+        net.catch(() => {});
+        return hit;
+      }
+      return net.catch(() => c.match(req, { ignoreSearch: true }));
     })
   );
 }

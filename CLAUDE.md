@@ -86,12 +86,24 @@ petugas yang sedang di lapangan):
   mengalahkan isian). Tampilkan `Tahap::label()` + chip `t-{tahap}` — **jangan** cetak
   `$doc->status`/`$sample->status` mentah. Pengawas hanya bisa menandai `non_respons` atau `batal`
   (`MonitoringController::setStatus`); ganti sampel lewat `replace()`; selebihnya otomatis.
+- Status siklus `lapangan` (nilai DB tetap) tampil sebagai **"Pencacahan"** di antarmuka (Inc 166) — jangan tulis
+  "Lapangan"/"periode lapangan" utk status ini; "Pencacah Lapangan"/"Pengawas Lapangan" (jabatan) & "jadwal lapangan" tetap.
+  Siklus (`survey_cycles`) disebut **"periode"** di antarmuka (bukan "siklus"); nama model/route/variabel tetap.
 - Nilai kode DB → teks lewat `App\Support\Istilah` (`severity`, `cycleStatus`, `repeat`, `qtype`,
   `scope`, `audit`, `entity`). Alias Blade `Istilah::` / `Tahap::` (AppServiceProvider).
   Teks antarmuka: "Kesalahan/Peringatan" (bukan error/warning), "angka respons", "Cakupan wilayah",
   "Nama pengguna"; tanpa "Inc NNN". Kolom teknis (nama variabel, rumus lewati) diberi `class="tech"`
   + `@include('admin.partials._tech_toggle')` — tersembunyi kecuali "Tampilkan detail teknis".
 - Huruf: satu keluarga IBM Plex Sans; `.mono` hanya untuk kode. Tanpa label kapital berjarak.
+
+## Panduan bergambar (Inc 167)
+
+- Halaman admin: penjelasan di bawah judul cukup **satu kalimat**; detail → panduan carousel `<x-panduan key="…" />`
+  (letakkan di `<h1>` atau dalam `<div class="page-intro">`). Halaman baru: tambah kunci di `App\Support\Panduan::pages()`
+  + langkah awal di `database/data/panduan/panduan.json` (gambar: `python scripts/panduan_gambar.py <url> <id-persiapan> <kunci>`).
+  Isi dikelola admin di `/admin/panduan` (tabel `guide_slides`, kolom `section`/`link` utk Alur kerja `/alur-kerja`);
+  `PanduanSeeder` tidak menimpa suntingan admin. "Sudah muncul" dicatat per akun di `guide_views`. Gambar dibuat ulang:
+  `python scripts/panduan_gambar.py <url> '<id JSON>' [kunci]` terhadap server berisi data contoh LENGKAP dgn aturan.
 
 ## Jadwal vs kalender (Inc 163)
 

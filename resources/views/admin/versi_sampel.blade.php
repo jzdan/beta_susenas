@@ -4,8 +4,8 @@
 @section('content')
 <x-back :href="route('admin.metadata', ['qv' => $qv->id])" label="Kembali ke Kuesioner" smart />
 <h1>Rincian Sampel — {{ $qv->code }}</h1>
-<p class="muted">Siklus <strong>{{ $cycle->name ?? '—' }}</strong>{{ $cycle?->period ? ' · periode '.$cycle->period : '' }}.
-  Sampel diambil dari siklus versi ini; sampel yang sudah digantikan tidak dihitung.</p>
+<p class="muted">Periode <strong>{{ $cycle->name ?? '—' }}</strong>{{ $cycle?->period ? ' · periode '.$cycle->period : '' }}.
+  Sampel diambil dari periode versi ini; sampel yang sudah digantikan tidak dihitung.</p>
 
 <div class="kpis">
   <div class="kpi"><span class="n">{{ $total }}</span><span class="l">Total sampel</span></div>
@@ -17,7 +17,7 @@
 </div>
 
 @if(!$kec)
-<section class="panel"><p class="muted">Belum ada sampel di siklus ini. Tambahkan lewat
+<section class="panel"><p class="muted">Belum ada sampel di periode ini. Tambahkan lewat
   <a href="{{ route('admin.impor.sampel') }}">Impor Sampel</a>.</p></section>
 @else
 

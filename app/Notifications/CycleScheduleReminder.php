@@ -21,11 +21,11 @@ class CycleScheduleReminder extends Notification
         $tgl = fn ($d) => $d->day.' '.SurveyCycle::MONTHS[$d->month].' '.$d->year;
         [$title, $body] = $this->kind === 'lewat'
             ? ["Jadwal lapangan {$c->name} sudah selesai",
-                'Jadwal berakhir '.$tgl($c->field_end).', tetapi status masih Lapangan sehingga petugas masih bisa mengubah isian. '
+                'Jadwal berakhir '.$tgl($c->field_end).', tetapi status masih Pencacahan sehingga petugas masih bisa mengubah isian. '
                 .'Bila pencacahan memang sudah selesai, ubah status ke Pengolahan.']
             : ["Jadwal lapangan {$c->name} sudah mulai",
                 'Jadwal mulai '.$tgl($c->field_start).', tetapi status masih Persiapan sehingga petugas belum bisa mengisi. '
-                .'Periksa Persiapan periode lalu buka lapangan.'];
+                .'Periksa Persiapan periode lalu buka pencacahan.'];
 
         return [
             'kind' => 'cycle_schedule', 'cycle_id' => $c->id, 'sub' => $this->kind,

@@ -3,10 +3,8 @@
 @section('title', 'Impor Rincian · Sistem SUSENAS')
 @section('content')
 <x-back :href="route('admin.metadata', ['qv' => $qv->id])" label="Kembali ke Kuesioner" />
-<h1>Impor Rincian dari CSV</h1>
-<p class="muted">Tempel daftar rincian (mis. seluruh komoditas Blok IV.1) sekali jalan.
-  Baris pertama = header. Kolom wajib: <span class="mono">kode_rincian, var_name, label</span>.
-  Kolom opsional: <span class="mono">qtype, unit, skip_expr, help_text</span> (qtype default <span class="mono">decimal</span>).</p>
+<h1>Impor Rincian dari CSV <x-panduan key="impor-rincian" /></h1>
+<p class="muted">Tambahkan banyak rincian sekaligus (mis. seluruh komoditas Blok IV.1) dari CSV.</p>
 
 @include('admin.partials._qv_switch')
 

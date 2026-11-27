@@ -3,18 +3,15 @@
 @section('title', 'Impor Daftar Sampel · Sistem SUSENAS')
 @section('content')
 <x-back :href="request('cycle') ? route('monitoring.samples', ['cycle' => request('cycle')]) : route('periode.index')" smart />
-<h1>Daftar Sampel Rumah Tangga</h1>
-<p class="muted">Untuk satu responden pakai form <strong>Tambah satu sampel</strong>; untuk banyak sekaligus
-  pakai <strong>Impor CSV</strong> (kolom wajib <span class="mono">wilayah_code, no_bs, no_ruta</span>,
-  opsional <span class="mono">krt_name, petugas, pml</span>; dua terakhir diisi nama pengguna untuk masuk).
-  Sampel duplikat dan kode desa yang tidak ada di master wilayah akan dilewati/ditolak.</p>
+<h1>Impor Sampel <x-panduan key="impor-sampel" /></h1>
+<p class="muted">Tambah sampel satu per satu, atau banyak sekaligus lewat berkas CSV.</p>
 
 @if(session('ok'))<div class="alert" style="background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)">{{ session('ok') }}</div>@endif
 @if($errors->any())<div class="alert err">{{ $errors->first() }}</div>@endif
 
 @if($hasil)
 <div class="alert {{ $hasil['dilewati'] && !$hasil['dibuat'] ? 'err' : '' }}">
-  <strong>{{ $hasil['dibuat'] }}</strong> sampel ditambahkan ke siklus {{ $hasil['cycle']->name }}.
+  <strong>{{ $hasil['dibuat'] }}</strong> sampel ditambahkan ke periode {{ $hasil['cycle']->name }}.
   @if($hasil['dilewati'])<br>Dilewati {{ count($hasil['dilewati']) }}:
     <ul>@foreach ($hasil['dilewati'] as $d)<li class="small">{{ $d }}</li>@endforeach</ul>@endif
 </div>
@@ -25,7 +22,7 @@
   <p class="muted small">Untuk menambah beberapa sekaligus, pakai impor CSV di bawah.</p>
   <form method="post" action="{{ route('admin.sampel.simpan') }}" class="row-form">
     @csrf
-    <label class="small">Siklus
+    <label class="small">Periode
       <select name="cycle_id" required>
         <option value="">—</option>
         @foreach ($cycles as $c)<option value="{{ $c->id }}" @selected((string) old('cycle_id', request('cycle')) === (string) $c->id)>{{ $c->name }} ({{ $c->period }})</option>@endforeach
@@ -68,7 +65,7 @@
   <h2>Impor banyak sekaligus (CSV)</h2>
   <form method="post" action="{{ route('admin.impor.sampel.run') }}" class="stack-form">
     @csrf
-    <label>Siklus survei
+    <label>Periode survei
       <select name="cycle_id" required>
         @foreach ($cycles as $c)<option value="{{ $c->id }}">{{ $c->name }} ({{ $c->period }})</option>@endforeach
       </select>

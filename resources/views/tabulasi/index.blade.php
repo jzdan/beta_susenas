@@ -2,11 +2,9 @@
 @php($nav = 'tabulasi')
 @section('title', 'Tabulasi & Ekspor · Sistem SUSENAS')
 @section('content')
-<h1>Tabulasi &amp; Ekspor</h1>
+<h1>Tabulasi &amp; Ekspor <x-panduan key="tabulasi" /></h1>
 <p><a class="btn-ghost" href="{{ route('tabulasi.indikator') }}">Indikator kesejahteraan →</a></p>
-<p class="muted">Rekap internal untuk pra-pengolahan &amp; pemeriksaan mutu — <strong>bukan estimasi resmi</strong>.
-  Agregasi tertimbang memakai <em>design weight</em> per sampel (belum dikalibrasi/di-<em>raking</em>),
-  jadi hanya untuk pemantauan arah angka. {{ $totalDocs }} sampel dalam cakupan Anda.</p>
+<p class="muted">Rekap internal untuk pemeriksaan mutu — <strong>bukan angka resmi</strong>. {{ $totalDocs }} sampel dalam cakupan Anda.</p>
 
 <div class="grid2">
   <section class="panel">

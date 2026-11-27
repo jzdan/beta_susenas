@@ -274,7 +274,7 @@ class CleaningController extends Controller
     public function correct(Request $request, Document $document)
     {
         abort_if($document->status === 'bersih', 409, 'Sampel sudah bersih (terkunci).');
-        abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        abort_if($document->cycleLocked(), 423, 'Periode sudah dikunci (selesai).');
         $d = $request->validate([
             'question_id' => 'required|integer',
             'art_index' => 'nullable|integer',
@@ -362,7 +362,7 @@ class CleaningController extends Controller
 
     public function markClean(Request $request, Document $document)
     {
-        abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        abort_if($document->cycleLocked(), 423, 'Periode sudah dikunci (selesai).');
         $sum = $this->engine->run($document);
         if ($sum['errors'] > 0) {
             return back()->withErrors(['bersih' => "Masih ada {$sum['errors']} kesalahan, belum bisa ditandai bersih."]);
@@ -419,7 +419,7 @@ class CleaningController extends Controller
             "{$done} bersih, {$skip} dilewati", $request->user()->id);
 
         return redirect()->route('pengolahan.index', $request->only('status', 'rule', 'q', 'cycle'))
-            ->with('ok', "{$done} sampel ditandai bersih".($skip ? ", {$skip} dilewati (masih ada kesalahan atau siklus terkunci)." : '.'));
+            ->with('ok', "{$done} sampel ditandai bersih".($skip ? ", {$skip} dilewati (masih ada kesalahan atau periode terkunci)." : '.'));
     }
 
     public function reopen(Request $request, Document $document)

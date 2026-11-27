@@ -739,7 +739,7 @@ window.SusenasOutbox = (function () {
       setTimeout(function () { el.classList.remove("issue-flash"); }, 1200);
       var inp = el.querySelector(".answer");
       if (inp && !inp.disabled) setTimeout(function () { inp.focus(); }, 300);
-      jump.textContent = "↧ isu berikutnya (" + (cursor + 1) + "/" + items.length + ")";
+      jump.textContent = "↧ Ke masalah berikutnya (" + (cursor + 1) + "/" + items.length + ")";
     });
   }
 })();
@@ -793,4 +793,94 @@ window.SusenasOutbox = (function () {
   window.addEventListener("scroll", reset, { passive: true });
   window.addEventListener("load", reset);
   window.addEventListener("hashchange", function () { setTimeout(reset, 0); });
+})();
+
+// ---- menu samping di HP/tablet: tombol "☰ Menu" membuka/menutup daftar menu (CSS: nav.side.open)
+(function () {
+  function go() {
+    var side = document.querySelector("nav.side");
+    var btn = side && side.querySelector(".nav-toggle");
+    if (!btn) return;
+    var on = side.querySelector("a.on:not(.now)");
+    var cur = btn.querySelector(".cur");
+    if (cur && on) cur.textContent = on.textContent.trim();
+    btn.addEventListener("click", function () {
+      var open = side.classList.toggle("open");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      btn.setAttribute("aria-label", open ? "Tutup menu" : "Buka menu");
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();
+
+// ---- Panduan bergambar (Inc 167): carousel di <dialog data-panduan>. Muncul sendiri SEKALI per akun per
+// versi isi: server memberi data-auto="1" bila belum pernah, lalu langsung dicatat (POST …/dilihat) begitu
+// muncul — tidak menunggu ditutup. Setelahnya hanya lewat tombol [data-panduan-open].
+(function () {
+  function markSeen(dlg) {
+    var t = document.querySelector('meta[name="csrf-token"]');
+    try {
+      fetch(dlg.dataset.seenUrl, { method: "POST", keepalive: true, credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": t ? t.content : "", "Accept": "application/json" },
+        body: JSON.stringify({ version: dlg.dataset.version }) }).catch(function () {});
+    } catch (e) {}
+    dlg.dataset.auto = "0";
+  }
+  function setup(dlg) {
+    var track = dlg.querySelector(".panduan-track");
+    var slides = dlg.querySelectorAll(".panduan-slide");
+    var dots = dlg.querySelectorAll("[data-panduan-dot]");
+    var step = dlg.querySelector(".panduan-step");
+    var prev = dlg.querySelector("[data-panduan-prev]");
+    var next = dlg.querySelector("[data-panduan-next]");
+    var n = slides.length, i = 0;
+    function go(k) {
+      i = Math.max(0, Math.min(n - 1, k));
+      track.style.transform = "translateX(" + (-100 * i) + "%)";
+      if (step) step.textContent = (i + 1) + " / " + n;
+      dots.forEach(function (d, j) { d.classList.toggle("on", j === i); });
+      prev.disabled = i === 0;
+      next.textContent = i === n - 1 ? "Selesai ✓" : "Berikutnya ›";
+    }
+    prev.addEventListener("click", function () { go(i - 1); });
+    next.addEventListener("click", function () { if (i === n - 1) dlg.close(); else go(i + 1); });
+    dots.forEach(function (d) { d.addEventListener("click", function () { go(+d.dataset.panduanDot); }); });
+    dlg.querySelector("[data-panduan-close]").addEventListener("click", function () { dlg.close(); });
+    dlg.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") { go(i + 1); e.preventDefault(); }
+      if (e.key === "ArrowLeft") { go(i - 1); e.preventDefault(); }
+    });
+    // klik di luar kotak (di latar gelap) = tutup
+    dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+    // geser jari / tetikus
+    var x0 = null;
+    var vp = dlg.querySelector(".panduan-viewport");
+    vp.addEventListener("pointerdown", function (e) { x0 = e.clientX; });
+    vp.addEventListener("pointerup", function (e) {
+      if (x0 === null) return;
+      var dx = e.clientX - x0; x0 = null;
+      if (Math.abs(dx) > 40) { go(i + (dx < 0 ? 1 : -1)); swiped = Date.now(); }
+    });
+    var swiped = 0;
+    vp.addEventListener("click", function (e) { if (Date.now() - swiped < 400 && e.target.closest("a")) e.preventDefault(); });
+    dlg.panduanOpen = function () { go(0); if (!dlg.open) dlg.showModal(); };
+    go(0);
+  }
+  function init() {
+    var dialogs = document.querySelectorAll("dialog[data-panduan]");
+    dialogs.forEach(setup);
+    document.querySelectorAll("[data-panduan-open]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var d = document.querySelector('dialog[data-panduan="' + b.dataset.panduanOpen + '"]');
+        if (d && d.panduanOpen) d.panduanOpen();
+      });
+    });
+    // muncul sendiri: hanya panduan pertama yang belum pernah muncul untuk akun ini
+    for (var k = 0; k < dialogs.length; k++) {
+      if (dialogs[k].dataset.auto === "1" && typeof dialogs[k].showModal === "function") {
+        dialogs[k].panduanOpen(); markSeen(dialogs[k]); break;
+      }
+    }
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();

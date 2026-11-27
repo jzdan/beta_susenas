@@ -5,7 +5,7 @@
 {{-- Inc 153: menyunting / membuat aturan di halaman sendiri, dengan pemeriksaan langsung
      (rumus terbaca?, menyala di berapa sampel?, contoh pesan). Daftar harian tetap di /admin/aturan. --}}
 <x-back :href="route('admin.aturan', ['qv' => $qv->id])" label="Kembali ke Aturan Validasi" />
-<h1>{{ $edit ? 'Ubah aturan' : 'Buat aturan baru' }}
+<h1>{{ $edit ? 'Ubah aturan' : 'Buat aturan baru' }} <x-panduan key="aturan-form" />
   @if($edit)<small class="mono">{{ $edit->code }}</small>@endif</h1>
 <p class="muted">Versi kuesioner {{ $qv->code }}@if($qv->cycle), dipakai sampel {{ $qv->cycle->name }}@endif.</p>
 

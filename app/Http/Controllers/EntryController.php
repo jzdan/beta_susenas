@@ -60,11 +60,11 @@ class EntryController extends Controller
     {
         $this->assertCanView($request, $document);
         // kunci yang lebih spesifik didahulukan supaya pesannya tepat
-        abort_if($document->cycleLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        abort_if($document->cycleLocked(), 423, 'Periode sudah dikunci (selesai).');
         abort_if($document->status === 'bersih', 409, 'Sampel sudah dikunci (bersih)');
         if ($request->user()->role === 'operator') {
             abort_unless($document->editableByPetugas(), 403,
-                'Periode lapangan sampel ini sudah ditutup — isian hanya bisa dilihat.');
+                'Pencacahan sampel ini sudah ditutup — isian hanya bisa dilihat.');
         }
     }
 

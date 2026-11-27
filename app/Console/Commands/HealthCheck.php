@@ -114,7 +114,7 @@ class HealthCheck extends Command
             ->whereNotIn('sample_households.status', ['ganti_sampel'])
             ->count();
         if ($unassigned > 0) {
-            $this->warn("• {$unassigned} sampel di siklus berstatus lapangan belum punya petugas.");
+            $this->warn("• {$unassigned} sampel di periode berstatus lapangan belum punya petugas.");
             $problems++;
         }
 
@@ -156,7 +156,7 @@ class HealthCheck extends Command
         if ($active = QuestionnaireVersion::where('is_active', true)->first()) {
             $vc = app(\App\Services\VersionChecker::class)->check($active);
             if ($vc['errors']) {
-                $this->error("• Versi aktif {$active->code} punya rujukan putus:");
+                $this->error("• Versi aktif {$active->code} punya nama yang tidak ditemukan:");
                 foreach ($vc['errors'] as $e) {
                     $this->line("    - {$e}");
                 }

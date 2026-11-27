@@ -963,7 +963,7 @@ class AdminController extends Controller
             'ids' => 'required|array', 'ids.*' => 'integer',
             'aksi' => 'required|in:aktif,nonaktif',
         ]);
-        abort_if($this->selectedQv($request)->locked(), 423, 'Kuesioner ini milik siklus yang sudah dikunci, jadi hanya bisa dilihat.');
+        abort_if($this->selectedQv($request)->locked(), 423, 'Kuesioner ini milik periode yang sudah dikunci, jadi hanya bisa dilihat.');
         $n = ValidationRule::where('qversion_id', $this->selectedQv($request)->id)
             ->whereIn('id', $d['ids'])
             ->update(['active' => $d['aksi'] === 'aktif']);
@@ -1425,7 +1425,7 @@ class AdminController extends Controller
         $qv->update(['is_active' => true]);
         AuditLog::record('qversion', $qv->id, 'aktifkan', $qv->code);
 
-        $redirect = redirect()->route('admin.metadata', ['qv' => $qv->id])->with('ok', "Versi bawaan menu admin: {$qv->code}.");
+        $redirect = redirect()->route('admin.metadata', ['qv' => $qv->id])->with('ok', "Versi utama menu admin: {$qv->code}.");
 
         return $check['warnings'] || $check['errors']
             ? $redirect->with('versiCheck', $check + ['qv_id' => $qv->id, 'code' => $qv->code, 'blocked' => false])
@@ -2351,8 +2351,8 @@ class AdminController extends Controller
             return back()->withInput()->withErrors(['field_start' => $why]);   // Inc 163: jadwal harus di dalam periodenya
         }
         if ($d['status'] === 'lapangan') {
-            return back()->withInput()->withErrors(['status' => 'Siklus baru belum punya versi kuesioner dan sampel. '
-                .'Buat dulu dengan status Persiapan, lalu buka lapangan dari halaman Persiapan periode.']);
+            return back()->withInput()->withErrors(['status' => 'Periode baru belum punya versi kuesioner dan sampel. '
+                .'Buat dulu dengan status Persiapan, lalu buka pencacahan dari halaman Persiapan periode.']);
         }
         $c = SurveyCycle::create([
             'name' => trim($d['name']), 'period' => trim($d['period']), 'status' => $d['status'],
@@ -2361,7 +2361,7 @@ class AdminController extends Controller
         ]);
         AuditLog::record('cycle', $c->id, 'buat', $c->name);
 
-        return redirect()->route('admin.jadwal')->with('ok', "Siklus \"{$c->name}\" dibuat. Berikutnya: buat versi kuesioner & impor sampel.");
+        return redirect()->route('admin.jadwal')->with('ok', "Periode \"{$c->name}\" dibuat. Berikutnya: buat versi kuesioner & impor sampel.");
     }
 
     /** Detail kesiapan penutupan satu siklus. */
@@ -2438,7 +2438,7 @@ class AdminController extends Controller
         $cycle->update(['status' => 'selesai']);
         AuditLog::record('cycle', $cycle->id, 'kunci', 'status -> selesai');
 
-        return redirect()->route('admin.siklus', $cycle)->with('ok', 'Siklus dikunci (selesai). Entri & pengolahan untuk siklus ini terkunci.');
+        return redirect()->route('admin.siklus', $cycle)->with('ok', 'Periode dikunci (selesai). Entri & pengolahan untuk periode ini terkunci.');
     }
 
     /** Daftar periksa sebelum siklus dibuka untuk lapangan. */
@@ -2450,7 +2450,7 @@ class AdminController extends Controller
     /** Buka periode lapangan (status `lapangan`): petugas mulai bisa mengisi. */
     public function cycleOpenField(Request $request, SurveyCycle $cycle)
     {
-        abort_if($cycle->isLocked(), 423, 'Siklus sudah dikunci (selesai).');
+        abort_if($cycle->isLocked(), 423, 'Periode sudah dikunci (selesai).');
         $prep = app(\App\Services\CyclePrep::class)->check($cycle);
         $force = $request->boolean('force');
         if (! $prep['siap'] && ! $force) {
@@ -2462,7 +2462,7 @@ class AdminController extends Controller
             $prep['siap'] ? 'semua butir wajib beres' : 'DIPAKSA: '.implode('; ', \App\Services\CyclePrep::blockers($prep)));
 
         return redirect()->route('admin.siklus.persiapan', $cycle)
-            ->with('ok', "Periode lapangan \"{$cycle->name}\" dibuka. Petugas sekarang bisa mengisi.");
+            ->with('ok', "Pencacahan \"{$cycle->name}\" dibuka. Petugas sekarang bisa mengisi.");
     }
 
     public function cycleUnlock(Request $request, SurveyCycle $cycle)
@@ -2470,7 +2470,7 @@ class AdminController extends Controller
         $cycle->update(['status' => 'pengolahan']);
         AuditLog::record('cycle', $cycle->id, 'buka-kunci', 'status -> pengolahan');
 
-        return redirect()->route('admin.siklus', $cycle)->with('ok', 'Kunci siklus dibuka.');
+        return redirect()->route('admin.siklus', $cycle)->with('ok', 'Kunci periode dibuka.');
     }
 
     public function jadwalSave(Request $request, SurveyCycle $cycle)
@@ -2487,7 +2487,7 @@ class AdminController extends Controller
         if ($d['status'] === 'lapangan' && $cycle->status !== 'lapangan') {
             $prep = app(\App\Services\CyclePrep::class)->check($cycle);
             if (! $prep['siap']) {
-                return back()->withErrors(['status' => "\"{$cycle->name}\" belum bisa dibuka untuk lapangan: "
+                return back()->withErrors(['status' => "\"{$cycle->name}\" belum bisa dibuka untuk pencacahan: "
                     .implode('; ', \App\Services\CyclePrep::blockers($prep)).'. Lihat halaman Persiapan periode.']);
             }
         }
@@ -2499,6 +2499,6 @@ class AdminController extends Controller
         ]);
         AuditLog::record('cycle', $cycle->id, 'ubah', $d['status'].' · '.($d['field_start'] ?? '-').' s.d. '.($d['field_end'] ?? '-'));
 
-        return redirect()->route('admin.jadwal')->with('ok', 'Siklus diperbarui.');
+        return redirect()->route('admin.jadwal')->with('ok', 'Periode diperbarui.');
     }
 }

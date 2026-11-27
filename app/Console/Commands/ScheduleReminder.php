@@ -16,7 +16,7 @@ class ScheduleReminder extends Command
 {
     protected $signature = 'susenas:ingat-jadwal';
 
-    protected $description = 'Kirim notifikasi ke admin untuk siklus yang jadwal lapangannya tidak cocok dengan statusnya';
+    protected $description = 'Kirim notifikasi ke admin untuk periode yang jadwal lapangannya tidak cocok dengan statusnya';
 
     public function handle(): int
     {
@@ -27,7 +27,7 @@ class ScheduleReminder extends Command
             if (! $kind) {
                 continue;
             }
-            $this->line("• {$c->name}: ".($kind === 'lewat' ? 'jadwal selesai, masih Lapangan' : 'jadwal mulai, masih Persiapan'));
+            $this->line("• {$c->name}: ".($kind === 'lewat' ? 'jadwal selesai, masih Pencacahan' : 'jadwal mulai, masih Persiapan'));
             foreach ($admins as $a) {
                 $pending = $a->unreadNotifications()->where('data->kind', 'cycle_schedule')
                     ->where('data->cycle_id', $c->id)->where('data->sub', $kind)->exists();

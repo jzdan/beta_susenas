@@ -41,15 +41,15 @@ class CyclePrep
 
         $qv = self::versionFor($cycle);
         $add('versi', 'Versi kuesioner tersedia', (bool) $qv, true,
-            $qv ? "Isian baru memakai versi {$qv->code}." : 'Belum ada versi kuesioner untuk siklus ini.',
+            $qv ? "Isian baru memakai versi {$qv->code}." : 'Belum ada versi kuesioner untuk periode ini.',
             route('admin.metadata', $qv ? ['qv' => $qv->id] : []), 'Metadata');
 
         $versionErrors = [];
         if ($qv) {
             $res = $this->checker->check($qv);
             $versionErrors = $res['errors'];
-            $add('periksa', 'Versi kuesioner utuh (tidak ada rujukan putus)', ! $versionErrors, true,
-                $versionErrors ? count($versionErrors).' rujukan putus, mis. '.$versionErrors[0]
+            $add('periksa', 'Versi kuesioner utuh (semua nama ditemukan)', ! $versionErrors, true,
+                $versionErrors ? count($versionErrors).' nama tidak ditemukan, mis. '.$versionErrors[0]
                     : ($res['warnings'] ? count($res['warnings']).' catatan ringan, tidak menahan.' : 'Semua aturan, agregat, dan turunan menunjuk variabel yang ada.'),
                 route('admin.metadata', ['qv' => $qv->id]), 'Periksa di Metadata');
 
@@ -109,7 +109,7 @@ class CyclePrep
         $belum = $cycle->quarterNotStarted();
         $range = SurveyCycle::quarterRange((string) $cycle->period);
         $add('triwulan_mulai', 'Triwulan periode ini sudah dimulai', ! $belum, false,
-            $belum ? 'Triwulan ini baru mulai '.$range[0]->format('d-m-Y').'. Membuka lapangan sekarang berarti petugas bisa mengisi lebih awal.'
+            $belum ? 'Triwulan ini baru mulai '.$range[0]->format('d-m-Y').'. Membuka pencacahan sekarang berarti petugas bisa mengisi lebih awal.'
                 : 'Sesuai kalender.');
 
         $siap = collect($items)->every(fn ($i) => $i['ok'] || ! $i['wajib']);

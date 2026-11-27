@@ -10,7 +10,7 @@
       <span class="saved-note" id="saved-note"></span>
     </div>
     @if($canEdit)
-      <button type="button" id="next-issue" class="btn-ghost" style="margin-top:6px">↧ isu berikutnya</button>
+      <button type="button" id="next-issue" class="btn-ghost" style="margin-top:6px">↧ Ke masalah berikutnya</button>
     @endif
 
     <div class="entry-filter">
@@ -20,7 +20,7 @@
 
     @php($pr = $state['progress'])
     <div class="entry-progress" id="entry-progress">
-      <div class="prog-label">Kelengkapan entri
+      <div class="prog-label">Kelengkapan isian
         <span><strong data-prog-pct>{{ $pr['pct'] }}</strong>% ·
           <span data-prog-filled>{{ $pr['filled'] }}</span>/<span data-prog-total>{{ $pr['expected'] }}</span></span>
       </div>
